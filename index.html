@@ -1458,7 +1458,73 @@
   </div>
   ${S.rules.length === 0
                     ? `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Sin reglas</div><div class="empty-sub">Crea tu primera regla para empezar</div></div>`
-                    : S.rules.map(r => `
+                    : S.rules.map(r => {
+                        // Special handling for CABLE DESNUDO 2/0 AWG rule to show DETALLE variants
+                        if (r.id === 'r2') {
+                            // Generate table of DETALLE variants
+                            const detalleTable = Object.entries(DETALLE_VARIANTS).map(([detalleCode, items]) => {
+                                const itemList = items.map(item => esc(item.desc)).join('<br>');
+                                return `
+                <tr>
+                  <td style="border:1px solid var(--b1);padding:6px 8px;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold">${detalleCode}</td>
+                  <td style="border:1px solid var(--b1);padding:6px 8px;font-family:var(--mo);font-size:11px;color:var(--mu)">${itemList}</td>
+                </tr>`;
+                            }).join('');
+                            
+                            return `
+    <div class="rule-card">
+      <div class="rule-card-row">
+        <div style="flex:1">
+          <div class="rule-trigger">⚡ ${esc(r.trigger)}</div>
+          <div style="color:var(--am);font-size:11px;margin-bottom:8px;font-family:var(--mo);padding-left:14px">
+            ⚠️ Los ítems 3 y 4 cambian según el DETALLE seleccionado:
+          </div>
+          
+          <div style="margin:12px 0;overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-family:var(--mo);font-size:11px;border:1px solid var(--b1);">
+              <colgroup>
+                <col style="width:25%">
+                <col style="width:75%">
+              </colgroup>
+              <thead>
+                <tr style="background:var(--s2);">
+                  <th style="border:1px solid var(--b1);padding:8px;text-align:left;color:var(--am);font-weight:bold">DETALLE</th>
+                  <th style="border:1px solid var(--b1);padding:8px;text-align:left;color:var(--am);font-weight:bold">ÍTEMS 3 y 4 (reemplazan TERMINAL + PERNO)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${detalleTable}
+              </tbody>
+            </table>
+          </div>
+          
+          <div style="color:var(--mu);font-size:11px;margin:12px 0;font-family:var(--mo);padding-left:14px">
+            <strong>Base de la regla (ítems 1 y 2 siempre iguales):</strong>
+          </div>
+          <div class="rule-subitems">
+            ${r.subitems.slice(0, 2).map((s, i) => `
+            <div class="rule-sub">
+              <span class="rule-sub-n">${i + 1}.</span>
+              <span class="rule-sub-d">${esc(s.desc)}</span>
+              <span class="rule-sub-q">${s.qty}</span>
+              <span style="color:var(--mu)">${esc(s.unit)}</span>
+            </div>`).join('')}
+            <div class="rule-sub" style="color:var(--di);font-style:italic">
+              <span class="rule-sub-n">3-4.</span>
+              <span class="rule-sub-d">Varían según DETALLE seleccionado (ver tabla arriba)</span>
+              <span class="rule-sub-q">1</span>
+              <span style="color:var(--mu)">und</span>
+            </div>
+          </div>
+        </div>
+        <div class="rule-card-acts">
+          <button class="btn-ghost btn-sm" onclick="APP.openEditRule('${r.id}')">EDITAR</button>
+          <button class="btn-ghost btn-sm btn-danger" onclick="APP.deleteRule('${r.id}')">ELIMINAR</button>
+        </div>
+      </div>
+    </div>`;
+                        } else {
+                            return `
     <div class="rule-card">
       <div class="rule-card-row">
         <div style="flex:1">
@@ -1478,7 +1544,9 @@
           <button class="btn-ghost btn-sm btn-danger" onclick="APP.deleteRule('${r.id}')">ELIMINAR</button>
         </div>
       </div>
-    </div>`).join('')
+    </div>`;
+                        }
+                    }).join('')
                 }`;
         };
 
@@ -1599,6 +1667,14 @@
                     const planoVal = (S.customPlano || '').toUpperCase();
                     const newItems = rule.subitems.map((s, idx) => {
                         const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
+                        let metradoOt = '';
+                        if (s.desc.toUpperCase().includes('TIERRA DE CULTIVO')) {
+                            metradoOt = Math.ceil(0.375 * 0.5 * lengthRaw * 10) / 10;
+                        } else if (s.desc.toUpperCase().includes('MOLDE')) {
+                            metradoOt = '0.0167';
+                        } else {
+                            metradoOt = lengthRaw;
+                        }
                         return {
                             id: uid(), pkgId,
                             desc: s.desc,
@@ -1610,9 +1686,7 @@
                             tagUnico: generateTagUnico(planoVal, tagRaw, mat),
                             tagPlano: tagRaw,
                             detalle: '',
-                            metradoOt: s.desc.toUpperCase().includes('TIERRA DE CULTIVO')
-                                ? Math.ceil(0.375 * 0.5 * lengthRaw * 10) / 10
-                                : lengthRaw
+                            metradoOt: metradoOt
                         };
                     });
                     // Add .01, .02 suffixes when multiple P items share same tagPlano
@@ -1644,32 +1718,74 @@
 
             let numInstances = 1;
             const upTrigger = rule.trigger.toUpperCase();
-            if (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO')) {
+            
+            // Check if rule is CABLE DESNUDO 4/0 AWG or CABLE DESNUDO 2/0 AWG
+            const isCableRule = upTrigger.includes('CABLE DESNUDO 4/0 AWG') || upTrigger.includes('CABLE DESNUDO 2/0 AWG');
+            
+            if (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO') || isCableRule) {
                 const countInput = window.prompt(`¿Cuántas veces deseas agregar la regla:\n"${rule.trigger}"?`, '1');
                 numInstances = parseInt(countInput, 10);
                 if (isNaN(numInstances) || numInstances < 1) return; // Cancelled or invalid
             }
 
-            const tagPlano = window.prompt(`Ingresa el TAG EN PLANO para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`) || '';
-            const detalle = window.prompt(`Ingresa el DETALLE para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`) || '';
+            // For SOLDADURA or POZO rules with multiple instances, ask for base TAG EN PLANO
+            let baseTagPlano = '';
+            if (numInstances > 1 && (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO') || isCableRule)) {
+                baseTagPlano = window.prompt(`Ingresa el TAG EN PLANO BASE (ej: M04) para ${numInstances} instancias de:\n"${rule.trigger}"\n\nSe crearán secuencialmente: ${getSequentialTagsExample('M04', numInstances)}`, '') || '';
+            } else {
+                baseTagPlano = window.prompt(`Ingresa el TAG EN PLANO para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`) || '';
+            }
+            
+            // For CABLE DESNUDO 2/0 AWG, use DETALLE '151' as standard
+            let detalle = '';
+            if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+                detalle = '151'; // Standard DETALLE
+            } else {
+                detalle = window.prompt(`Ingresa el DETALLE para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`) || '';
+            }
 
             const planoVal = (S.customPlano || '').toUpperCase();
             const pkgId = S.selPkg || S.packages[0]?.id || null;
             
             const newItems = [];
             for (let i = 0; i < numInstances; i++) {
+                // Calculate sequential tagPlano for each instance
+                let currentTagPlano = baseTagPlano;
+                if (numInstances > 1 && baseTagPlano) {
+                    currentTagPlano = getSequentialTag(baseTagPlano, i);
+                }
+                
                 rule.subitems.forEach((s) => {
                     const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
+                    // For SOLDADURA or POZO rules, set METRADO OT to 1
+                    const isSoldaduraPozo = upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO');
+                    
+                    let metradoOt = '';
+                    if (isSoldaduraPozo) {
+                        metradoOt = '1';
+                    } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+                        // For CABLE DESNUDO 2/0 AWG rule, set METRADO OT = 1 for TERMINAL, PERNO, SOLDADURA, CARGA items
+                        const descUpper = s.desc.toUpperCase();
+                        if (descUpper.includes('TERMINAL') || descUpper.includes('PERNO') || 
+                            descUpper.includes('SOLDADURA') || descUpper.includes('CARGA')) {
+                            metradoOt = '1';
+                        }
+                    }
+                    // For all rules, set METRADO OT = 0.0167 for MOLDE items
+                    if (s.desc.toUpperCase().includes('MOLDE')) {
+                        metradoOt = '0.0167';
+                    }
+                    
                     newItems.push({
                         id: uid(), pkgId,
                         desc: s.desc, qty: s.qty, unit: s.unit, notes: '', ruleId: rule.id,
                         material: mat,
                         plano: planoVal,
                         rev: (S.customRev || '').toUpperCase(),
-                        tagUnico: generateTagUnico(planoVal, tagPlano, mat),
-                        tagPlano: tagPlano,
+                        tagUnico: generateTagUnico(planoVal, currentTagPlano, mat),
+                        tagPlano: currentTagPlano,
                         detalle: detalle,
-                        metradoOt: ''
+                        metradoOt: metradoOt
                     });
                 });
             }
@@ -1757,6 +1873,7 @@
 
             const it = S.items.find(i => i.id === id);
             const oldDetalle = it ? (it.detalle || '') : '';
+            const oldMetradoOt = it ? (it.metradoOt || '') : '';
             if (it) { Object.assign(it, { qty, unit, notes, material, plano, rev, tagUnico, tagPlano, detalle, metradoOt }); }
 
             // If DETALLE changed on a CABLE DESNUDO 2/0 AWG group item, swap siblings
@@ -1769,6 +1886,30 @@
                     sib.tagPlano === it.tagPlano && 
                     sib.pkgId === it.pkgId
                 ).forEach(sib => { sib.detalle = detalle; });
+            }
+
+            // If CABLE DESNUDO 4/0 AWG METRADO OT changed, update corresponding TIERRA DE CULTIVO
+            if (it && it.ruleId === 'r1' && it.desc.toUpperCase().includes('CABLE DESNUDO 4/0 AWG') && metradoOt !== oldMetradoOt) {
+                // Find all items in the same set (same ruleId, tagPlano, pkgId)
+                const setItems = S.items.filter(sib => 
+                    sib.ruleId === it.ruleId && 
+                    sib.tagPlano === it.tagPlano && 
+                    sib.pkgId === it.pkgId
+                );
+                
+                // Update CINTA AMARILLA with same METRADO OT
+                const cintaItem = setItems.find(sib => sib.desc.toUpperCase().includes('CINTA AMARILLA'));
+                if (cintaItem) {
+                    cintaItem.metradoOt = metradoOt;
+                }
+                
+                // Calculate and update TIERRA DE CULTIVO: 0.375 * 0.5 * cableMetradoOt
+                const tierraItem = setItems.find(sib => sib.desc.toUpperCase().includes('TIERRA DE CULTIVO'));
+                if (tierraItem) {
+                    const cableValue = parseFloat(metradoOt) || 0;
+                    const tierraValue = 0.375 * 0.5 * cableValue;
+                    tierraItem.metradoOt = tierraValue.toFixed(2);
+                }
             }
 
             S.editingItem = null;
@@ -2056,6 +2197,46 @@
             const parts = plano.split('-');
             if (parts.length < 6) return '';
             return parts[2] + parts[4] + parts[5] + '.' + tagPlano;
+        }
+
+        // Helper: Generate sequential tag from base tag and index
+        // Example: getSequentialTag('M04', 0) → 'M04', getSequentialTag('M04', 1) → 'M05', getSequentialTag('M04', 2) → 'M06'
+        function getSequentialTag(baseTag, index) {
+            if (!baseTag) return '';
+            
+            // Find the numeric part at the end of the tag
+            const match = baseTag.match(/^(.*?)(\d+)$/);
+            if (!match) return baseTag; // If no number found, return as-is
+            
+            const prefix = match[1];
+            const number = parseInt(match[2], 10);
+            
+            // Calculate new number: base number + index
+            const newNumber = number + index;
+            
+            // Format with same number of digits (preserve leading zeros)
+            const originalDigits = match[2].length;
+            const formattedNumber = String(newNumber).padStart(originalDigits, '0');
+            
+            return prefix + formattedNumber;
+        }
+
+        // Helper: Generate example of sequential tags for display in prompt
+        // Example: getSequentialTagsExample('M04', 5) → 'M04, M05, M06, M07, M08'
+        function getSequentialTagsExample(baseTag, count) {
+            if (!baseTag || count <= 1) return baseTag || '';
+            
+            const examples = [];
+            for (let i = 0; i < Math.min(count, 5); i++) { // Show max 5 examples
+                examples.push(getSequentialTag(baseTag, i));
+            }
+            
+            let result = examples.join(', ');
+            if (count > 5) {
+                result += `, ... hasta ${getSequentialTag(baseTag, count - 1)}`;
+            }
+            
+            return result;
         }
 
         // ── CACHE
