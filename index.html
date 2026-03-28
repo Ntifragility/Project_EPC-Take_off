@@ -266,7 +266,7 @@
 
         .main {
             padding: 24px;
-            max-width: 1400px;
+            max-width: 1540px;
             margin: 0 auto
         }
 
@@ -476,7 +476,7 @@
         }
 
         col.c-mat {
-            width: 46px
+            width: 40px
         }
 
         col.c-plano {
@@ -492,11 +492,11 @@
         }
 
         col.c-t-plano {
-            width: 50px
+            width: 75px
         }
 
         col.c-det {
-            width: 50px
+            width: 95px
         }
 
         col.c-d {
@@ -504,15 +504,15 @@
         }
 
         col.c-q {
-            width: 88px
+            width: 70px
         }
 
         col.c-mo {
-            width: 80px
+            width: 75px
         }
 
         col.c-u {
-            width: 76px
+            width: 70px
         }
 
         col.c-no {
@@ -995,9 +995,9 @@
             {
                 id: 'r2', trigger: 'CABLE DESNUDO 2/0 AWG', subitems: [
                     { id: 's4', desc: 'CABLE DESNUDO 2/0 AWG', qty: 1, unit: 'm' },
-                    { id: 's5', desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und' },
-                    { id: 's6', desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' },
-                    { id: 's7', desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm' },
+                    { id: 's5', desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm' },
+                    { id: 's6', desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und' },
+                    { id: 's7', desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' },
                 ]
             },
             {
@@ -1046,6 +1046,99 @@
             },
 
         ];
+
+        // DETALLE variants for CABLE DESNUDO 2/0 AWG (r2)
+        // These define which "middle" subitems replace TERMINAL + PERNO
+        const DETALLE_VARIANTS = {
+            '151': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und' },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' }
+            ],
+            '154': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und' },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' }
+            ],
+            '157A': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und' },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' }
+            ],
+            '157B': [
+                { desc: 'SOLDADURA VS', qty: 1, unit: 'und' },
+                { desc: 'CARGA 90', qty: 1, unit: 'und' },
+                { desc: 'MOLDE HSC-2G', qty: 1, unit: 'und' }
+            ],
+            '166': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und' },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' }
+            ],
+            '168': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und' },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' }
+            ],
+            '170': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und' },
+                { desc: 'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' }
+            ]
+        };
+
+        // Known "middle" descriptions that get swapped by DETALLE variants
+        const R2_SWAPPABLE = [
+            'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV',
+            'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
+            'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26',
+            'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
+            'SOLDADURA VS', 'CARGA 90', 'MOLDE HSC-2G'
+        ];
+
+        // Apply DETALLE variant: remove old middle items, insert new ones
+        function applyDetalleVariant(tagPlano, pkgId, detalleCode) {
+            const variant = DETALLE_VARIANTS[detalleCode];
+            if (!variant) return;
+
+            // Find sibling items: same tagPlano, pkgId, ruleId=r2
+            const siblings = S.items.filter(it =>
+                it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId
+            );
+            if (siblings.length === 0) return;
+
+            // Find the index of the first sibling in S.items
+            const firstIdx = S.items.indexOf(siblings[0]);
+
+            // Remove old swappable items
+            const swapUp = R2_SWAPPABLE.map(s => s.toUpperCase());
+            const toRemove = siblings.filter(it => swapUp.includes(it.desc.toUpperCase()));
+            toRemove.forEach(it => {
+                const idx = S.items.indexOf(it);
+                if (idx !== -1) S.items.splice(idx, 1);
+            });
+
+            // Find where to insert (after CABLE DESNUDO 2/0 AWG)
+            const cableIdx = S.items.findIndex(it =>
+                it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId &&
+                it.desc.toUpperCase().includes('CABLE DESNUDO 2/0 AWG')
+            );
+            const insertAt = cableIdx !== -1 ? cableIdx + 1 : firstIdx + 1;
+
+            // Build new items from variant
+            const refItem = siblings[0];
+            const newMiddle = variant.map(v => ({
+                id: uid(), pkgId: refItem.pkgId,
+                desc: v.desc, qty: v.qty, unit: v.unit,
+                notes: '', ruleId: 'r2',
+                material: isPrimaryMaterial(v.desc) ? 'P' : 'C',
+                plano: refItem.plano, rev: refItem.rev,
+                tagUnico: '', tagPlano: tagPlano,
+                detalle: detalleCode, metradoOt: ''
+            }));
+
+            S.items.splice(insertAt, 0, ...newMiddle);
+
+            // Update DETALLE on all siblings
+            S.items.filter(it =>
+                it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId
+            ).forEach(it => { it.detalle = detalleCode; });
+        }
+
         const SEED_PACKAGES = [{ id: 'p1', name: 'GENERAL' }];
 
         // ── State
@@ -1054,7 +1147,7 @@
             rules: [], packages: [], items: [],
             addMode: 'rule', selPkg: null,
             triggerQuery: '', dropdownOpen: false,
-            searchQuery: '',
+            searchQuery: '', filterDetalle: '',
             editingItem: null,
             customDesc: '', customQty: 1, customUnit: 'und',
             customPlano: '', customRev: '',
@@ -1252,20 +1345,32 @@
         <thead>
           <tr style="color:var(--di); opacity:0.8">
             <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">40px</th>
-            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">46px</th>
+            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">40px</th>
             <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">170px</th>
             <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">30px</th>
             <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">140px</th>
-            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">50px</th>
-            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">50px</th>
+            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">75px</th>
+            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">95px</th>
             <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">AUTO</th>
-            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">88px</th>
-            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">80px</th>
-            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">76px</th>
+            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">70px</th>
+            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">75px</th>
+            <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">70px</th>
             <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">120px</th>
             <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">82px</th>
           </tr>
-          <tr><th>#</th><th>MAT</th><th>PLANO</th><th>REV</th><th>TAG ÚNICO</th><th>TAG EN PLANO</th><th>DETALLE</th><th>DESCRIPCIÓN</th><th>CANT.</th><th>METRADO OT</th><th>UNID</th><th>NOTAS</th><th></th></tr>
+          <tr>
+            <th>#</th><th>MAT</th><th>PLANO</th><th>REV</th><th>TAG ÚNICO</th><th>TAG EN PLANO</th>
+            <th style="padding:0">
+              <select style="background:transparent;border:none;color:inherit;font-family:inherit;font-weight:inherit;font-size:inherit;width:100%;cursor:pointer;outline:none"
+                onchange="APP.setDetalleFilter(this.value)">
+                <option value="">DETALLE ▼</option>
+                ${[...new Set(S.items.map(i => i.detalle).filter(Boolean))].sort().map(d => 
+                  `<option value="${d}" style="color:#000"${d === S.filterDetalle ? ' selected' : ''}>${d}</option>`
+                ).join('')}
+              </select>
+            </th>
+            <th>DESCRIPCIÓN</th><th>CANT.</th><th>METRADO OT</th><th>UNID</th><th>NOTAS</th><th></th>
+          </tr>
         </thead>
         <tbody>
           ${items.map((it, idx) => APP.htmlRow(it, idx + 1)).join('')}
@@ -1285,9 +1390,17 @@
       <td><input class="edit-input edit-input-mono" id="edit-rev" type="text" value="${esc(it.rev || '')}" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
       <td><input class="edit-input edit-input-mono" id="edit-t-unico" type="text" value="${esc(it.tagUnico || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
       <td><input class="edit-input edit-input-mono" id="edit-t-plano" type="text" value="${esc(it.tagPlano || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
-      <td><input class="edit-input edit-input-mono" id="edit-det" type="text" value="${esc(it.detalle || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td>
+        ${it.ruleId === 'r2'
+                        ? `<select class="edit-input edit-input-mono" id="edit-det" onchange="APP.saveItem('${it.id}')" style="width:100%;height:100%;background:rgba(255,255,255,0.05);color:inherit;border:none">
+                 <option value=""></option>
+                 ${Object.keys(DETALLE_VARIANTS).map(k => `<option value="${k}"${it.detalle === k ? ' selected' : ''}>${k}</option>`).join('')}
+               </select>`
+                        : `<input class="edit-input edit-input-mono" id="edit-det" type="text" value="${esc(it.detalle || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')">`
+                    }
+      </td>
       <td class="td-d" style="font-family:var(--mo);font-size:11px">${esc(it.desc)}</td>
-      <td><input class="edit-input edit-input-mono" id="edit-qty" type="number" min="0" value="${it.qty}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td>${isCountable(it.desc) ? `<input class="edit-input edit-input-mono" id="edit-qty" type="number" min="0" value="${it.qty}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')">` : `<input type="hidden" id="edit-qty" value="${it.qty}">`}</td>
       <td><input class="edit-input edit-input-mono" id="edit-mot" type="text" value="${esc(it.metradoOt || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
       <td><input class="edit-input edit-input-mono" id="edit-unit" type="text" value="${esc(it.unit)}" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
       <td><input class="edit-input" id="edit-notes" type="text" value="${esc(it.notes || '')}" placeholder="Notas..." onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}');if(event.key==='Escape')APP.cancelEdit()"></td>
@@ -1307,7 +1420,7 @@
     <td class="td-u">${esc(it.tagPlano || '')}</td>
     <td class="td-u">${esc(it.detalle || '')}</td>
     <td class="td-d">${esc(it.desc)}</td>
-    <td class="td-q">${it.qty}</td>
+    <td class="td-q">${isCountable(it.desc) ? it.qty : ''}</td>
     <td class="td-u">${esc(it.metradoOt || '')}</td>
     <td class="td-u">${esc(it.unit)}</td>
     <td class="td-no${it.notes ? ' has-notes' : ''}">${it.notes ? esc(it.notes) : '—'}</td>
@@ -1319,12 +1432,20 @@
         };
 
         APP.filteredItems = function () {
-            if (!S.searchQuery) return S.items;
+            let res = S.items;
+            if (S.filterDetalle) res = res.filter(it => it.detalle === S.filterDetalle);
+            if (!S.searchQuery) return res;
             const q = S.searchQuery.toLowerCase();
-            return S.items.filter(it => {
+            return res.filter(it => {
                 const pkgName = (S.packages.find(p => p.id === it.pkgId)?.name || '').toLowerCase();
                 return it.desc.toLowerCase().includes(q) || pkgName.includes(q) || (it.notes || '').toLowerCase().includes(q);
             });
+        };
+
+        APP.setDetalleFilter = function(val) {
+            S.filterDetalle = val;
+            const container = document.getElementById('table-container');
+            if (container) container.innerHTML = APP.htmlTableGroups();
         };
 
         // ── RULES VIEW
@@ -1521,25 +1642,38 @@
             const rule = S.rules.find(r => r.id === ruleId);
             if (!rule) return;
 
-            const tagPlano = window.prompt(`Ingresa el TAG PLANO para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`) || '';
+            let numInstances = 1;
+            const upTrigger = rule.trigger.toUpperCase();
+            if (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO')) {
+                const countInput = window.prompt(`¿Cuántas veces deseas agregar la regla:\n"${rule.trigger}"?`, '1');
+                numInstances = parseInt(countInput, 10);
+                if (isNaN(numInstances) || numInstances < 1) return; // Cancelled or invalid
+            }
+
+            const tagPlano = window.prompt(`Ingresa el TAG EN PLANO para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`) || '';
             const detalle = window.prompt(`Ingresa el DETALLE para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`) || '';
 
             const planoVal = (S.customPlano || '').toUpperCase();
             const pkgId = S.selPkg || S.packages[0]?.id || null;
-            const newItems = rule.subitems.map((s, idx) => {
-                const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
-                return {
-                    id: uid(), pkgId,
-                    desc: s.desc, qty: s.qty, unit: s.unit, notes: '', ruleId: rule.id,
-                    material: mat,
-                    plano: planoVal,
-                    rev: (S.customRev || '').toUpperCase(),
-                    tagUnico: generateTagUnico(planoVal, tagPlano, mat),
-                    tagPlano: tagPlano,
-                    detalle: detalle,
-                    metradoOt: ''
-                };
-            });
+            
+            const newItems = [];
+            for (let i = 0; i < numInstances; i++) {
+                rule.subitems.forEach((s) => {
+                    const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
+                    newItems.push({
+                        id: uid(), pkgId,
+                        desc: s.desc, qty: s.qty, unit: s.unit, notes: '', ruleId: rule.id,
+                        material: mat,
+                        plano: planoVal,
+                        rev: (S.customRev || '').toUpperCase(),
+                        tagUnico: generateTagUnico(planoVal, tagPlano, mat),
+                        tagPlano: tagPlano,
+                        detalle: detalle,
+                        metradoOt: ''
+                    });
+                });
+            }
+
             // Add .01, .02 suffixes when multiple P items share same tagPlano
             const pItems = newItems.filter(it => it.material === 'P' && it.tagUnico);
             if (pItems.length > 1) {
@@ -1551,7 +1685,7 @@
             S.triggerQuery = '';
             saveData();
             APP.render();
-            APP.toast(`${rule.subitems.length} ítems agregados`);
+            APP.toast(`${newItems.length} ítems agregados`);
         };
 
         APP.setCustomField = function (f, v) {
@@ -1622,7 +1756,21 @@
             const metradoOt = document.getElementById('edit-mot')?.value || '';
 
             const it = S.items.find(i => i.id === id);
+            const oldDetalle = it ? (it.detalle || '') : '';
             if (it) { Object.assign(it, { qty, unit, notes, material, plano, rev, tagUnico, tagPlano, detalle, metradoOt }); }
+
+            // If DETALLE changed on a CABLE DESNUDO 2/0 AWG group item, swap siblings
+            if (it && it.ruleId === 'r2' && detalle !== oldDetalle && detalle) {
+                applyDetalleVariant(it.tagPlano, it.pkgId, detalle.toUpperCase());
+            } else if (it && it.ruleId && detalle !== oldDetalle) {
+                // For any other rule, just sync the DETALLE text across its group siblings
+                S.items.filter(sib => 
+                    sib.ruleId === it.ruleId && 
+                    sib.tagPlano === it.tagPlano && 
+                    sib.pkgId === it.pkgId
+                ).forEach(sib => { sib.detalle = detalle; });
+            }
+
             S.editingItem = null;
             saveData();
             const container = document.getElementById('table-container');
@@ -1825,7 +1973,7 @@
             const cols = ['PARTIDA', 'MATERIAL', 'PLANO', 'REV', 'TAG UNICO', 'TAG EN PLANO', 'DETALLE', 'DESCRIPCION', 'CANTIDAD', 'METRADO OT', 'UNIDAD', 'NOTAS'];
             const rows = S.items.map(it => {
                 const pkg = S.packages.find(p => p.id === it.pkgId)?.name || 'SIN PARTIDA';
-                return [pkg, it.material || '', it.plano || '', it.rev || '', it.tagUnico || '', it.tagPlano || '', it.detalle || '', it.desc, it.qty, it.metradoOt || '', it.unit, it.notes || ''];
+                return [pkg, it.material || '', it.plano || '', it.rev || '', it.tagUnico || '', it.tagPlano || '', it.detalle || '', it.desc, isCountable(it.desc) ? it.qty : '', it.metradoOt || '', it.unit, it.notes || ''];
             });
             const csv = [cols, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
@@ -1876,6 +2024,29 @@
             ];
             const up = desc.toUpperCase();
             return primaryList.some(p => up.includes(p.toUpperCase()));
+        }
+
+        // Helper to determine if an item should show quantity (CANT. column)
+        function isCountable(desc) {
+            const list = [
+                'BARRA',
+                'CABLE DESNUDO 2/0 AWG',
+                'CABLE DESNUDO 4/0 AWG',
+                'CEMENTO GEM',
+                'PARARRAYO EN POSTE DE 15M',
+                'PARARRAYO EN POSTE DE 3M',
+                'POSTE 15 M',
+                'POZO CON CAJA REGISTRO',
+                'POZO SIN CAJA REGISTRO',
+                'SOLDADURA T 4/0',
+                'SOLDADURA VS',
+                'SOLDADURA X 4/0',
+                'TERMINAL DE COBRE 5/8"X48"',
+                'TUBERIA PVC SCH 80 Ø1"',
+                'TUBERIA PVC SCH 80 Ø3/4"'
+            ];
+            const up = desc.toUpperCase();
+            return list.some(p => up.includes(p));
         }
 
         // Helper: generate TAG UNICO from PLANO + TAG EN PLANO
