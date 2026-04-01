@@ -1052,6 +1052,13 @@
                 { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
                 { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
             ],
+            '152': [
+                { desc: 'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: 1 }
+            ],
+            '153': [
+                { desc: 'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: '1 c / 3 m', otDynamic: '1c/3m' },
+                { desc: 'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 2, unit: 'und', ot: '2 s / 15 m', otDynamic: 'empty' }
+            ],
             '154': [
                 { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
                 { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
@@ -1093,7 +1100,10 @@
             'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
             'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26',
             'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
-            'SOLDADURA VS', 'CARGA 90', 'MOLDE HSC-2G'
+            'SOLDADURA VS', 'CARGA 90', 'MOLDE HSC-2G',
+            'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY',
+            'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY',
+            'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY'
         ];
 
         // Apply DETALLE variant: remove old middle items, insert new ones
@@ -1118,31 +1128,64 @@
                 if (idx !== -1) S.items.splice(idx, 1);
             });
 
-            // Find where to insert (after TUBERIA)
-            const tubIdx = S.items.findIndex(it =>
-                it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId &&
-                it.desc.toUpperCase().includes('TUBERIA')
-            );
-            const insertAt = tubIdx !== -1 ? tubIdx + 1 : firstIdx + (siblings.length > 2 ? 2 : 1);
-
-            // Build new items from variant
+            // Handle TUBERIA dynamic requirements
             const refItem = siblings[0];
-            const newMiddle = variant.map(v => ({
-                id: uid(), pkgId: refItem.pkgId,
-                desc: v.desc, qty: v.qty, unit: v.unit,
-                notes: '', ruleId: 'r2',
-                material: isPrimaryMaterial(v.desc) ? 'P' : 'C',
-                plano: refItem.plano, rev: refItem.rev,
-                tagUnico: '', tagPlano: tagPlano,
-                detalle: detalleCode, metradoOt: v.ot || ''
-            }));
+            const cableItem = siblings.find(sib => sib.desc.toUpperCase().includes('CABLE DESNUDO 2/0 AWG'));
+            let tuberiaItem = siblings.find(sib => sib.desc.toUpperCase().includes('TUBERIA'));
+            const cableOt = cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0;
+
+            if (detalleCode === '153') {
+                if (tuberiaItem) {
+                    const idx = S.items.indexOf(tuberiaItem);
+                    if (idx !== -1) S.items.splice(idx, 1);
+                }
+            } else {
+                if (!tuberiaItem) {
+                    const insertTubAt = cableItem ? S.items.indexOf(cableItem) + 1 : S.items.indexOf(refItem) + 1;
+                    tuberiaItem = {
+                        id: uid(), pkgId: refItem.pkgId,
+                        desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm',
+                        notes: '', ruleId: 'r2',
+                        material: 'C',
+                        plano: refItem.plano, rev: refItem.rev,
+                        tagUnico: '', tagPlano: tagPlano,
+                        detalle: detalleCode, metradoOt: detalleCode === '152' ? '1.5' : '1'
+                    };
+                    S.items.splice(insertTubAt, 0, tuberiaItem);
+                } else {
+                    tuberiaItem.metradoOt = detalleCode === '152' ? '1.5' : '1';
+                }
+            }
+
+            // Find where to insert (after TUBERIA, or immediately after cable)
+            const insertAt = tuberiaItem && S.items.indexOf(tuberiaItem) !== -1 ? S.items.indexOf(tuberiaItem) + 1 : (cableItem ? S.items.indexOf(cableItem) + 1 : firstIdx + 1);
+
+            const newMiddle = variant.map(v => {
+                let finalOt = v.ot !== undefined ? v.ot : '';
+                if (v.otDynamic === '1c/3m') {
+                    finalOt = Math.ceil(cableOt / 3).toString();
+                } else if (v.otDynamic === 'empty') {
+                    finalOt = '';
+                }
+                return {
+                    id: uid(), pkgId: refItem.pkgId,
+                    desc: v.desc, qty: v.qty, unit: v.unit,
+                    notes: '', ruleId: 'r2',
+                    material: isPrimaryMaterial(v.desc) ? 'P' : 'C',
+                    plano: refItem.plano, rev: refItem.rev,
+                    tagUnico: '', tagPlano: tagPlano,
+                    detalle: detalleCode, metradoOt: finalOt
+                };
+            });
 
             S.items.splice(insertAt, 0, ...newMiddle);
 
             // Update DETALLE on all siblings
             S.items.filter(it =>
                 it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId
-            ).forEach(it => { it.detalle = detalleCode; });
+            ).forEach(it => { 
+                it.detalle = detalleCode; 
+            });
         }
 
         const SEED_PACKAGES = [{ id: 'p1', name: 'GENERAL' }];
@@ -1408,7 +1451,7 @@
               <select style="background:transparent;border:none;color:inherit;font-family:inherit;font-weight:inherit;font-size:inherit;width:100%;cursor:pointer;outline:none"
                 onchange="APP.setDetalleFilter(this.value)">
                 <option value="">DETALLE ▼</option>
-                ${[...new Set(S.items.map(i => i.detalle).filter(Boolean))].sort().map(d =>
+                ${[...new Set(S.items.map(i => i.detalle).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })).map(d =>
                         `<option value="${d}" style="color:#000"${d === S.filterDetalle ? ' selected' : ''}>${d}</option>`
                     ).join('')}
               </select>
@@ -1438,7 +1481,7 @@
         ${it.ruleId === 'r2'
                         ? `<select class="edit-input edit-input-mono" id="edit-det" onchange="APP.saveItem('${it.id}')" style="width:100%;height:100%;background:rgba(255,255,255,0.05);color:inherit;border:none">
                  <option value=""></option>
-                 ${Object.keys(DETALLE_VARIANTS).map(k => `<option value="${k}"${it.detalle === k ? ' selected' : ''}>${k}</option>`).join('')}
+                 ${Object.keys(DETALLE_VARIANTS).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })).map(k => `<option value="${k}"${it.detalle === k ? ' selected' : ''}>${k}</option>`).join('')}
                </select>`
                         : `<input class="edit-input edit-input-mono" id="edit-det" type="text" value="${esc(it.detalle || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')">`
                     }
@@ -1506,24 +1549,31 @@
                             const sortedVariants = Object.entries(DETALLE_VARIANTS).sort((a, b) => {
                                 return a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' });
                             });
-                            const detalleRows = sortedVariants.map(([detalleCode, items]) => {
-                                const descList = items.map((item, i) => {
-                                    const isLast = i === items.length - 1;
-                                    const bb = isLast ? '' : 'border-bottom:1px solid var(--b2);';
-                                    return `<div style="${bb}padding:2px 0">${esc(item.desc)}</div>`;
-                                }).join('');
-                                const otList = items.map((item, i) => {
-                                    const isLast = i === items.length - 1;
-                                    const bb = isLast ? '' : 'border-bottom:1px solid var(--b2);';
-                                    return `<div style="${bb}padding:2px 0;text-align:center;color:var(--am);font-weight:bold">${item.ot}</div>`;
-                                }).join('');
-
-                                return `
-                <tr>
-                  <td style="border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);padding:6px 8px;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold;vertical-align:middle;text-align:center">${detalleCode}</td>
-                  <td style="border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);padding:0 8px;font-family:var(--mo);font-size:11px;color:var(--mu);vertical-align:middle">${descList}</td>
-                  <td style="border-bottom:1px solid var(--b1);padding:0 8px;font-family:var(--mo);font-size:11px;color:var(--mu);vertical-align:middle">${otList}</td>
+                            const detalleRows = sortedVariants.map(([detalleCode, items], rowIdx) => {
+                                const bg = (rowIdx % 2 === 0) ? 'background: rgba(255,255,255,0.02);' : 'background: transparent;';
+                                const itemsWithTuberia = detalleCode === '153' ? [...items] : [...items, { desc: 'TUBERIA PVC SCH 80 Ø3/4"', ot: detalleCode === '152' ? '1.5' : '1' }];
+                                
+                                return itemsWithTuberia.map((item, i) => {
+                                    const isLast = i === itemsWithTuberia.length - 1;
+                                    const bb = isLast ? `border-bottom:2px solid var(--b1);` : `border-bottom:1px solid var(--b2);`;
+                                    
+                                    if (i === 0) {
+                                        return `
+                <tr style="${bb} ${bg}">
+                  <td rowspan="${itemsWithTuberia.length}" style="border-bottom:2px solid var(--b1);border-right:1px solid var(--b1);padding:8px 10px;vertical-align:middle;text-align:center">
+                     <span style="background:rgba(255,166,0,0.1);border:1px solid var(--am);border-radius:4px;padding:4px 8px;display:inline-block;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold">${detalleCode}</span>
+                  </td>
+                  <td style="border-right:1px solid var(--b1);padding:8px 10px;font-family:var(--mo);font-size:11.5px;color:var(--mu);vertical-align:middle;line-height:1.4">${esc(item.desc)}</td>
+                  <td style="padding:8px 10px;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold;vertical-align:middle;text-align:center">${item.ot}</td>
                 </tr>`;
+                                    } else {
+                                        return `
+                <tr style="${bb} ${bg}">
+                  <td style="border-right:1px solid var(--b1);padding:8px 10px;font-family:var(--mo);font-size:11.5px;color:var(--mu);vertical-align:middle;line-height:1.4">${esc(item.desc)}</td>
+                  <td style="padding:8px 10px;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold;vertical-align:middle;text-align:center">${item.ot}</td>
+                </tr>`;
+                                    }
+                                }).join('');
                             }).join('');
 
                             return `
@@ -1545,7 +1595,7 @@
               <thead>
                 <tr style="background:var(--s2);">
                   <th style="border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);padding:8px;text-align:center;color:var(--am);font-weight:bold">DETALLE</th>
-                  <th style="border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);padding:8px;text-align:left;color:var(--am);font-weight:bold">ÍTEMS 3 y 4 (reemplazan TERMINAL + PERNO)</th>
+                  <th style="border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);padding:8px;text-align:left;color:var(--am);font-weight:bold">ÍTEMS DEL DETALLE (Incluye Tuberia según aplique)</th>
                   <th style="border-bottom:1px solid var(--b1);padding:8px;text-align:center;color:var(--am);font-weight:bold">METRADO OT</th>
                 </tr>
               </thead>
@@ -2062,6 +2112,25 @@
                     const cableValue = parseFloat(metradoOt) || 0;
                     const tierraValue = 0.375 * 0.5 * cableValue;
                     tierraItem.metradoOt = tierraValue.toFixed(2);
+                }
+            }
+
+            // If CABLE DESNUDO 2/0 AWG METRADO OT changed, update corresponding PRENSA PARALELA if DETALLE is 153
+            if (it && it.ruleId === 'r2' && it.desc.toUpperCase().includes('CABLE DESNUDO 2/0 AWG') && metradoOt !== oldMetradoOt) {
+                const setItems = S.items.filter(sib =>
+                    sib.ruleId === it.ruleId &&
+                    sib.tagPlano === it.tagPlano &&
+                    sib.pkgId === it.pkgId
+                );
+                
+                if (it.detalle === '153') {
+                    const prensaItems = setItems.filter(sib => sib.desc.toUpperCase().includes('PRENSA PARALELA 1 CONDUCTOR'));
+                    const cableValue = parseFloat(metradoOt) || 0;
+                    const computed = Math.ceil(cableValue / 3).toString();
+                    
+                    prensaItems.forEach(p => {
+                        p.metradoOt = computed;
+                    });
                 }
             }
 
