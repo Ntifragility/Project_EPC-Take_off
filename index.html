@@ -985,7 +985,7 @@
                 id: 'r1', trigger: 'CABLE DESNUDO 4/0 AWG', subitems: [
                     { id: 's1', desc: 'CABLE DESNUDO 4/0 AWG', qty: 1, unit: 'm' },
                     { id: 's2', desc: 'CINTA AMARILLA', qty: 1, unit: 'm' },
-                    { id: 's3', desc: 'TIERRA DE CULTIVO', qty: 1, unit: 'm3' },
+                    { id: 's3', desc: 'TIERRA DE CULTIVO', qty: 'length x 0.375 x 0.5', unit: 'm3' },
                 ]
             },
             {
@@ -999,23 +999,23 @@
             {
                 id: 'r3', trigger: 'POZO CON CAJA REGISTRO', subitems: [
                     { id: 's8', desc: 'POZO CON CAJA REGISTRO', qty: 1, unit: 'und' },
-                    { id: 's9', desc: 'CEMENTO GEM (11.3 kg x bls)', qty: 2, unit: 'kg' },
+                    { id: 's9', desc: 'CEMENTO GEM (11.3 kg x bls)', qty: 1, unit: 'kg' },
                     { id: 's10', desc: 'CAJA REGISTRO 400 x 400 x 300 mm', qty: 1, unit: 'und' },
                     { id: 's11', desc: 'VARILLA COPPERWELD 3/4"X2.4M', qty: 1, unit: 'und' },
                     { id: 's12', desc: 'CONECTOR GK 1429', qty: 1, unit: 'und' },
-                    { id: 's13', desc: 'TIERRA DE CULTIVO', qty: 1, unit: 'm3' },
+                    { id: 's13', desc: 'TIERRA DE CULTIVO', qty: 4.71, unit: 'm3' },
                 ]
             },
 
             {
                 id: 'r4', trigger: 'POZO SIN CAJA REGISTRO', subitems: [
                     { id: 's13b', desc: 'POZO SIN CAJA REGISTRO', qty: 1, unit: 'und' },
-                    { id: 's14', desc: 'CEMENTO GEM (11.3 kg x bls)', qty: 2, unit: 'kg' },
+                    { id: 's14', desc: 'CEMENTO GEM (11.3 kg x bls)', qty: 1, unit: 'kg' },
                     { id: 's15', desc: 'VARILLA COPPERWELD 3/4"X2.4M', qty: 1, unit: 'und' },
                     { id: 's16', desc: 'SOLDADURA GT', qty: 1, unit: 'und' },
                     { id: 's17', desc: 'CARGA 115', qty: 1, unit: 'und' },
-                    { id: 's18', desc: 'MOLDE M-561', qty: 1, unit: 'und' },
-                    { id: 's19', desc: 'TIERRA DE CULTIVO', qty: 1, unit: 'm3' },
+                    { id: 's18', desc: 'MOLDE M-561', qty: 0.0167, unit: 'und' },
+                    { id: 's19', desc: 'TIERRA DE CULTIVO', qty: 4.71, unit: 'm3' },
                 ]
             },
 
@@ -1023,7 +1023,7 @@
                 id: 'r5', trigger: 'SOLDADURA T 4/0', subitems: [
                     { id: 's20', desc: 'SOLDADURA T 4/0', qty: 1, unit: 'und' },
                     { id: 's21', desc: 'CARGA 150', qty: 1, unit: 'und' },
-                    { id: 's22', desc: 'MOLDE TAC2Q2Q', qty: 1, unit: 'und' },
+                    { id: 's22', desc: 'MOLDE TAC2Q2Q', qty: 0.0167, unit: 'und' },
                 ]
             },
 
@@ -1031,7 +1031,7 @@
                 id: 'r6', trigger: 'SOLDADURA T 4/0 - 2/0', subitems: [
                     { id: 's23', desc: 'SOLDADURA T 4/0  - 2/0', qty: 1, unit: 'und' },
                     { id: 's24', desc: 'CARGA 90', qty: 1, unit: 'und' },
-                    { id: 's25', desc: 'MOLDE TAC2Q2G', qty: 1, unit: 'und' },
+                    { id: 's25', desc: 'MOLDE TAC2Q2G', qty: 0.0167, unit: 'und' },
                 ]
             },
 
@@ -1039,7 +1039,7 @@
                 id: 'r7', trigger: 'SOLDADURA X 4/0', subitems: [
                     { id: 's26', desc: 'SOLDADURA X 4/0', qty: 1, unit: 'und' },
                     { id: 's27', desc: 'CARGA 250', qty: 1, unit: 'und' },
-                    { id: 's28', desc: 'MOLDE XBM2Q2Q', qty: 1, unit: 'und' },
+                    { id: 's28', desc: 'MOLDE XBM2Q2Q', qty: 0.0167, unit: 'und' },
                 ]
             },
 
@@ -1177,9 +1177,32 @@
                 if (r) {
                     let rulesUpdated = false;
                     SEED_RULES.forEach(seedRule => {
-                        if (!S.rules.find(rule => rule.id === seedRule.id)) {
+                        const existingRule = S.rules.find(rule => rule.id === seedRule.id);
+                        if (!existingRule) {
                             S.rules.push(JSON.parse(JSON.stringify(seedRule)));
                             rulesUpdated = true;
+                        } else {
+                            existingRule.subitems.forEach(existingSub => {
+                                const descUp = existingSub.desc.toUpperCase();
+                                if (existingRule.trigger.toUpperCase().includes('POZO')) {
+                                    if (descUp.includes('CEMENTO GEM') && existingSub.qty !== 1) {
+                                        existingSub.qty = 1;
+                                        rulesUpdated = true;
+                                    }
+                                    if (descUp.includes('TIERRA DE CULTIVO') && existingSub.qty !== 4.71) {
+                                        existingSub.qty = 4.71;
+                                        rulesUpdated = true;
+                                    }
+                                }
+                                if (existingRule.trigger.toUpperCase().includes('CABLE DESNUDO') && descUp.includes('TIERRA DE CULTIVO') && existingSub.qty !== 'length x 0.375 x 0.5') {
+                                    existingSub.qty = 'length x 0.375 x 0.5';
+                                    rulesUpdated = true;
+                                }
+                                if (descUp.includes('MOLDE') && existingSub.qty !== 0.0167) {
+                                    existingSub.qty = 0.0167;
+                                    rulesUpdated = true;
+                                }
+                            });
                         }
                     });
                     if (rulesUpdated) localStorage.setItem('epc-rules', JSON.stringify(S.rules));
@@ -1684,6 +1707,7 @@
                     if (parts.length < 2) continue;
                     const tagRaw = parts[0].trim();
                     const lengthRaw = parseFloat(parts[1].trim());
+                    const detalleRaw = parts.length > 2 ? parts[2].trim() : '';
                     if (!tagRaw || isNaN(lengthRaw)) continue;
 
                     let ruleName = null;
@@ -1702,10 +1726,21 @@
                     const newItems = rule.subitems.map((s, idx) => {
                         const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
                         let metradoOt = '';
-                        if (s.desc.toUpperCase().includes('TIERRA DE CULTIVO')) {
+                        const descUp = s.desc.toUpperCase();
+                        const isPozoRule = ruleName && ruleName.toUpperCase().includes('POZO');
+                        
+                        if (isPozoRule && descUp.includes('TIERRA DE CULTIVO')) {
+                            metradoOt = '4.71';
+                        } else if (isPozoRule && descUp.includes('CEMENTO GEM')) {
+                            metradoOt = '22.6';
+                        } else if (descUp.includes('TIERRA DE CULTIVO')) {
                             metradoOt = Math.ceil(0.375 * 0.5 * lengthRaw * 10) / 10;
-                        } else if (s.desc.toUpperCase().includes('MOLDE')) {
+                        } else if (descUp.includes('MOLDE')) {
                             metradoOt = '0.0167';
+                        } else if (ruleName === 'CABLE DESNUDO 2/0 AWG' && (descUp.includes('TERMINAL') || descUp.includes('PERNO') || descUp.includes('SOLDADURA') || descUp.includes('CARGA') || descUp.includes('TUBERIA'))) {
+                            metradoOt = '1';
+                        } else if (ruleName && (ruleName.toUpperCase().includes('SOLDADURA') || isPozoRule)) {
+                            metradoOt = '1';
                         } else {
                             metradoOt = lengthRaw;
                         }
@@ -1719,7 +1754,7 @@
                             rev: (S.customRev || '').toUpperCase(),
                             tagUnico: generateTagUnico(planoVal, tagRaw, mat),
                             tagPlano: tagRaw,
-                            detalle: (row['DETALLE'] || (tagRaw.startsWith('C') ? '167/G1' : '')),
+                            detalle: (detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : '')),
                             metradoOt: metradoOt
                         };
                     });
@@ -1738,6 +1773,14 @@
                         }
                     });
                     S.items.push(...newItems);
+                    
+                    if (rule.id === 'r2') {
+                        const rowDetalle = detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : '');
+                        if (rowDetalle) {
+                            applyDetalleVariant(tagRaw, pkgId, rowDetalle.toUpperCase());
+                        }
+                    }
+
                     addedCount += newItems.length;
                 }
 
@@ -1812,13 +1855,21 @@
                     const isSoldaduraPozo = upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO');
 
                     let metradoOt = '';
-                    if (isSoldaduraPozo) {
-                        metradoOt = '1';
-                    } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
-                        // For CABLE DESNUDO 2/0 AWG rule, set METRADO OT = 1 for TERMINAL, PERNO, SOLDADURA, CARGA items
+                        const descUp = s.desc.toUpperCase();
+                        const isPozoTrigger = upTrigger.includes('POZO');
+
+                        if (isPozoTrigger && descUp.includes('TIERRA DE CULTIVO')) {
+                            metradoOt = '4.71';
+                        } else if (isPozoTrigger && descUp.includes('CEMENTO GEM')) {
+                            metradoOt = '22.6';
+                        } else if (isSoldaduraPozo) {
+                            metradoOt = '1';
+                        } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+                        // For CABLE DESNUDO 2/0 AWG rule, set METRADO OT = 1 for TERMINAL, PERNO, SOLDADURA, CARGA, TUBERIA items
                         const descUpper = s.desc.toUpperCase();
                         if (descUpper.includes('TERMINAL') || descUpper.includes('PERNO') ||
-                            descUpper.includes('SOLDADURA') || descUpper.includes('CARGA')) {
+                            descUpper.includes('SOLDADURA') || descUpper.includes('CARGA') ||
+                            descUpper.includes('TUBERIA')) {
                             metradoOt = '1';
                         }
                     }
@@ -2080,8 +2131,8 @@
             <span class="sub-n">${i + 1}</span>
             <input type="text" value="${esc(s.desc)}" style="flex:3;font-family:var(--mo);font-size:11px"
               placeholder="Descripción..." oninput="APP.updateSubitem('${s.id}','desc',this.value)">
-            <input type="number" min="0" value="${s.qty}" style="width:70px"
-              oninput="APP.updateSubitem('${s.id}','qty',+this.value)">
+            <input type="text" value="${s.qty}" style="width:130px;font-family:var(--mo);font-size:11px"
+              oninput="APP.updateSubitem('${s.id}','qty',this.value)">
             <input type="text" value="${esc(s.unit)}" style="width:70px;text-transform:uppercase"
               oninput="APP.updateSubitem('${s.id}','unit',this.value.toUpperCase())">
             <button class="sub-del" onclick="APP.removeSubitem('${s.id}')" title="Eliminar">✕</button>
@@ -2105,7 +2156,14 @@
 
         APP.updateSubitem = function (id, field, value) {
             const s = S.editingRule?.subitems.find(x => x.id === id);
-            if (s) s[field] = value;
+            if (s) {
+                if (field === 'qty') {
+                    const num = Number(value);
+                    s[field] = isNaN(num) || value.trim() === '' ? value : num;
+                } else {
+                    s[field] = value;
+                }
+            }
         };
 
         APP.removeSubitem = function (id) {
