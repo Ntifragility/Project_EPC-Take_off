@@ -1277,6 +1277,16 @@
         // ── Render engine
         const APP = {};
 
+        APP.undoLastTrigger = function () {
+            if (!S.undoSnapshot) return;
+            if (!confirm('¿Seguro que deseas deshacer la última inserción? Se eliminarán los ítems creados.')) return;
+            S.items = JSON.parse(S.undoSnapshot);
+            S.undoSnapshot = null;
+            saveData();
+            APP.render();
+            APP.toast('Acción deshecha', 'warn');
+        };
+
         APP.render = function () {
             // Nav tabs
             ['takeoff', 'rules', 'packages'].forEach(t => {
@@ -1387,6 +1397,8 @@
     <input class="search-input" id="search-input" type="text" placeholder="🔍  Buscar en el metrado..."
       value="${esc(S.searchQuery)}" oninput="APP.setSearch(this.value)">
     ${S.searchQuery ? `<button class="btn-ghost btn-sm" onclick="APP.clearSearch()">✕ LIMPIAR</button>` : ''}
+    <div style="flex:1"></div>
+    ${S.undoSnapshot ? `<button class="btn-ghost btn-sm btn-danger" title="Deshacer la última regla aplicada" onclick="APP.undoLastTrigger()">↩ DESHACER ADICIÓN</button>` : ''}
     <span class="item-count">${APP.filteredItems().length} / ${S.items.length} ítems</span>
   </div>`;
 
@@ -1750,6 +1762,7 @@
 
                 let addedCount = 0;
                 const pkgId = S.selPkg || S.packages[0]?.id || null;
+                const preSnapshot = JSON.stringify(S.items);
 
                 // Saltar encabezado
                 for (let i = 1; i < rows.length; i++) {
@@ -1836,6 +1849,7 @@
 
                 event.target.value = '';
                 if (addedCount > 0) {
+                    S.undoSnapshot = preSnapshot;
                     saveData();
                     APP.render();
                     APP.toast(`${addedCount} ítems agregados desde CSV`);
@@ -1890,6 +1904,7 @@
 
             const planoVal = (S.customPlano || '').toUpperCase();
             const pkgId = S.selPkg || S.packages[0]?.id || null;
+            const preSnapshot = JSON.stringify(S.items);
 
             const newItems = [];
             for (let i = 0; i < numInstances; i++) {
@@ -1957,7 +1972,15 @@
                 }
             });
             S.items.push(...newItems);
+            
+            // Execute DETALLE substitutions after elements are successfully mounted onto S.items!
+            if (rule.id === 'r2') {
+                const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
+                uniqueTags.forEach(tag => applyDetalleVariant(tag, pkgId, detalle));
+            }
+            
             S.triggerQuery = '';
+            S.undoSnapshot = preSnapshot;
             saveData();
             APP.render();
             APP.toast(`${newItems.length} ítems agregados`);
