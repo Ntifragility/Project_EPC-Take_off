@@ -471,29 +471,102 @@
             font-family: "Aptos Narrow", sans-serif !important;
         }
 
-        col.c-n { width: 40px }
-        col.c-mat { width: 40px }
-        col.c-plano { width: 170px }
-        col.c-rev { width: 30px }
-        col.c-t-unico { width: 140px }
-        col.c-t-plano { width: 75px }
-        col.c-det { width: 95px }
+        col.c-n {
+            width: 40px
+        }
+
+        col.c-mat {
+            width: 40px
+        }
+
+        col.c-plano {
+            width: 170px
+        }
+
+        col.c-rev {
+            width: 30px
+        }
+
+        col.c-t-unico {
+            width: 140px
+        }
+
+        col.c-t-plano {
+            width: 75px
+        }
+
+        col.c-det {
+            width: 95px
+        }
 
         /* Freeze Panes Logic (columns 1-6) */
-        th:nth-child(1), td:nth-child(1) { position: sticky; left: 0; z-index: 10; background: inherit; }
-        th:nth-child(2), td:nth-child(2) { position: sticky; left: 40px; z-index: 10; background: inherit; }
-        th:nth-child(3), td:nth-child(3) { position: sticky; left: 80px; z-index: 10; background: inherit; }
-        th:nth-child(4), td:nth-child(4) { position: sticky; left: 250px; z-index: 10; background: inherit; }
-        th:nth-child(5), td:nth-child(5) { position: sticky; left: 280px; z-index: 10; background: inherit; }
-        th:nth-child(6), td:nth-child(6) { position: sticky; left: 420px; z-index: 10; background: inherit; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+        th:nth-child(1),
+        td:nth-child(1) {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            background: inherit;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            position: sticky;
+            left: 40px;
+            z-index: 10;
+            background: inherit;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            position: sticky;
+            left: 80px;
+            z-index: 10;
+            background: inherit;
+        }
+
+        th:nth-child(4),
+        td:nth-child(4) {
+            position: sticky;
+            left: 250px;
+            z-index: 10;
+            background: inherit;
+        }
+
+        th:nth-child(5),
+        td:nth-child(5) {
+            position: sticky;
+            left: 280px;
+            z-index: 10;
+            background: inherit;
+        }
+
+        th:nth-child(6),
+        td:nth-child(6) {
+            position: sticky;
+            left: 420px;
+            z-index: 10;
+            background: inherit;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
 
         /* Ensure header parts are also sticky and above rows */
-        thead th:nth-child(-n+6) { z-index: 20; background: var(--s2) !important; }
-        
+        thead th:nth-child(-n+6) {
+            z-index: 20;
+            background: var(--s2) !important;
+        }
+
         /* Ensure rows have background so sticky cells aren't transparent */
-        tr.tr-row td { background: var(--s1); }
-        tr.tr-row:hover td { background: var(--s2); }
-        tr.tr-edit td { background: var(--ad) !important; }
+        tr.tr-row td {
+            background: var(--s1);
+        }
+
+        tr.tr-row:hover td {
+            background: var(--s2);
+        }
+
+        tr.tr-edit td {
+            background: var(--ad) !important;
+        }
 
         col.c-d {
             width: auto
@@ -1183,8 +1256,8 @@
             // Update DETALLE on all siblings
             S.items.filter(it =>
                 it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId
-            ).forEach(it => { 
-                it.detalle = detalleCode; 
+            ).forEach(it => {
+                it.detalle = detalleCode;
             });
         }
 
@@ -1564,11 +1637,11 @@
                             const detalleRows = sortedVariants.map(([detalleCode, items], rowIdx) => {
                                 const bg = (rowIdx % 2 === 0) ? 'background: rgba(255,255,255,0.02);' : 'background: transparent;';
                                 const itemsWithTuberia = detalleCode === '153' ? [...items] : [...items, { desc: 'TUBERIA PVC SCH 80 Ø3/4"', ot: detalleCode === '152' ? '1.5' : '1' }];
-                                
+
                                 return itemsWithTuberia.map((item, i) => {
                                     const isLast = i === itemsWithTuberia.length - 1;
                                     const bb = isLast ? `border-bottom:2px solid var(--b1);` : `border-bottom:1px solid var(--b2);`;
-                                    
+
                                     if (i === 0) {
                                         return `
                 <tr style="${bb} ${bg}">
@@ -1766,7 +1839,7 @@
 
                 // Saltar encabezado
                 for (let i = 1; i < rows.length; i++) {
-                    const parts = rows[i].split(',');
+                    const parts = rows[i].split(/[,;]/);
                     if (parts.length < 2) continue;
                     const tagRaw = parts[0].trim();
                     const lengthRaw = parseFloat(parts[1].trim());
@@ -1791,7 +1864,7 @@
                         let metradoOt = '';
                         const descUp = s.desc.toUpperCase();
                         const isPozoRule = ruleName && ruleName.toUpperCase().includes('POZO');
-                        
+
                         if (isPozoRule && descUp.includes('TIERRA DE CULTIVO')) {
                             metradoOt = '4.71';
                         } else if (isPozoRule && descUp.includes('CEMENTO GEM')) {
@@ -1836,7 +1909,7 @@
                         }
                     });
                     S.items.push(...newItems);
-                    
+
                     if (rule.id === 'r2') {
                         const rowDetalle = detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : '');
                         if (rowDetalle) {
@@ -1920,16 +1993,16 @@
                     const isSoldaduraPozo = upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO');
 
                     let metradoOt = '';
-                        const descUp = s.desc.toUpperCase();
-                        const isPozoTrigger = upTrigger.includes('POZO');
+                    const descUp = s.desc.toUpperCase();
+                    const isPozoTrigger = upTrigger.includes('POZO');
 
-                        if (isPozoTrigger && descUp.includes('TIERRA DE CULTIVO')) {
-                            metradoOt = '4.71';
-                        } else if (isPozoTrigger && descUp.includes('CEMENTO GEM')) {
-                            metradoOt = '22.6';
-                        } else if (isSoldaduraPozo) {
-                            metradoOt = '1';
-                        } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+                    if (isPozoTrigger && descUp.includes('TIERRA DE CULTIVO')) {
+                        metradoOt = '4.71';
+                    } else if (isPozoTrigger && descUp.includes('CEMENTO GEM')) {
+                        metradoOt = '22.6';
+                    } else if (isSoldaduraPozo) {
+                        metradoOt = '1';
+                    } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
                         // For CABLE DESNUDO 2/0 AWG rule, set METRADO OT = 1 for TERMINAL, PERNO, SOLDADURA, CARGA, TUBERIA items
                         const descUpper = s.desc.toUpperCase();
                         if (descUpper.includes('TERMINAL') || descUpper.includes('PERNO') ||
@@ -1972,13 +2045,13 @@
                 }
             });
             S.items.push(...newItems);
-            
+
             // Execute DETALLE substitutions after elements are successfully mounted onto S.items!
             if (rule.id === 'r2') {
                 const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
                 uniqueTags.forEach(tag => applyDetalleVariant(tag, pkgId, detalle));
             }
-            
+
             S.triggerQuery = '';
             S.undoSnapshot = preSnapshot;
             saveData();
@@ -2012,7 +2085,7 @@
             S.items.forEach(it => {
                 it.plano = S.customPlano;
                 it.rev = (S.customRev || '').toUpperCase();
-                
+
                 // Recalculate base Tag Unico
                 const mat = it.material || (isPrimaryMaterial(it.desc) ? 'P' : 'C');
                 it.material = mat;
@@ -2145,12 +2218,12 @@
                     sib.tagPlano === it.tagPlano &&
                     sib.pkgId === it.pkgId
                 );
-                
+
                 if (it.detalle === '153') {
                     const prensaItems = setItems.filter(sib => sib.desc.toUpperCase().includes('PRENSA PARALELA 1 CONDUCTOR'));
                     const cableValue = parseFloat(metradoOt) || 0;
                     const computed = Math.ceil(cableValue / 3).toString();
-                    
+
                     prensaItems.forEach(p => {
                         p.metradoOt = computed;
                     });
