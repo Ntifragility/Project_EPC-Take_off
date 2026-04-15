@@ -1064,9 +1064,7 @@
             {
                 id: 'r2', trigger: 'CABLE DESNUDO 2/0 AWG', subitems: [
                     { id: 's4', desc: 'CABLE DESNUDO 2/0 AWG', qty: 1, unit: 'm' },
-                    { id: 's5', desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm' },
-                    { id: 's6', desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und' },
-                    { id: 's7', desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und' },
+                    { id: 's5', desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm' }
                 ]
             },
             {
@@ -1115,12 +1113,27 @@
                     { id: 's28', desc: 'MOLDE XBM2Q2Q', qty: 0.0167, unit: 'und' },
                 ]
             },
+            {
+                id: 'r8', trigger: 'BARRA POT', subitems: [
+                    { id: 'sbp', desc: 'BARRA POT', qty: 1, unit: 'und' }
+                ]
+            },
+            {
+                id: 'r9', trigger: 'BARRA INST', subitems: [
+                    { id: 'sbi1', desc: 'BARRA INST', qty: 1, unit: 'und' },
+                    { id: 'sbi2', desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und' }
+                ]
+            }
 
         ];
 
         // DETALLE variants for CABLE DESNUDO 2/0 AWG (r2)
         // These define which "middle" subitems replace TERMINAL + PERNO
         const DETALLE_VARIANTS = {
+            '020': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+            ],
             '151': [
                 { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
                 { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
@@ -1153,9 +1166,26 @@
                 { desc: 'CARGA 90', qty: 1, unit: 'und', ot: 1 },
                 { desc: 'MOLDE HSC-2G', qty: 1, unit: 'und', ot: 0.0167 }
             ],
-            '166': [
+            '160': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+            ],
+            '161': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
+            ],
+            '166A': [
                 { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
                 { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+            ],
+            '166B': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+            ],
+            '166C': [
+                { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+                { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 },
+                { desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und', ot: 1 }
             ],
             '168': [
                 { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
@@ -1164,7 +1194,8 @@
             '170': [
                 { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
                 { desc: 'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-            ]
+            ],
+            'NA': []
         };
 
         // Known "middle" descriptions that get swapped by DETALLE variants
@@ -1176,12 +1207,16 @@
             'SOLDADURA VS', 'CARGA 90', 'MOLDE HSC-2G',
             'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY',
             'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY',
-            'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY'
+            'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY',
+            'AISLADOR DE RESINA TIPO BARRIL'
         ];
 
         // Apply DETALLE variant: remove old middle items, insert new ones
         function applyDetalleVariant(tagPlano, pkgId, detalleCode) {
-            const variant = DETALLE_VARIANTS[detalleCode];
+            let variant = DETALLE_VARIANTS[detalleCode];
+            if (!variant && detalleCode.startsWith('020')) {
+                variant = DETALLE_VARIANTS['020'];
+            }
             if (!variant) return;
 
             // Find sibling items: same tagPlano, pkgId, ruleId=r2
@@ -1207,26 +1242,28 @@
             let tuberiaItem = siblings.find(sib => sib.desc.toUpperCase().includes('TUBERIA'));
             const cableOt = cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0;
 
-            if (detalleCode === '153') {
+            if (detalleCode === '153' || detalleCode === 'NA') {
                 if (tuberiaItem) {
                     const idx = S.items.indexOf(tuberiaItem);
                     if (idx !== -1) S.items.splice(idx, 1);
                 }
             } else {
+                const tuberiaDesc = detalleCode.startsWith('020') ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"' : 'TUBERIA PVC SCH 80 Ø3/4"';
                 if (!tuberiaItem) {
                     const insertTubAt = cableItem ? S.items.indexOf(cableItem) + 1 : S.items.indexOf(refItem) + 1;
                     tuberiaItem = {
                         id: uid(), pkgId: refItem.pkgId,
-                        desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm',
+                        desc: tuberiaDesc, qty: 1, unit: 'm',
                         notes: '', ruleId: 'r2',
                         material: 'C',
                         plano: refItem.plano, rev: refItem.rev,
                         tagUnico: '', tagPlano: tagPlano,
-                        detalle: detalleCode, metradoOt: detalleCode === '152' ? '1.5' : '1'
+                        detalle: detalleCode, metradoOt: ''
                     };
                     S.items.splice(insertTubAt, 0, tuberiaItem);
                 } else {
-                    tuberiaItem.metradoOt = detalleCode === '152' ? '1.5' : '1';
+                    tuberiaItem.desc = tuberiaDesc;
+                    // Update only detail, preserve exact metradoOt from CSV/UI
                 }
             }
 
@@ -1608,7 +1645,7 @@
             if (S.filterDetalle) res = res.filter(it => it.detalle === S.filterDetalle);
             if (!S.searchQuery) return res;
             const q = S.searchQuery.toLowerCase();
-            return res.filter(it => (it.tagPlano || '').toLowerCase().includes(q));
+            return res.filter(it => (it.tagPlano || '').toLowerCase().startsWith(q));
         };
 
         APP.setDetalleFilter = function (val) {
@@ -1636,7 +1673,8 @@
                             });
                             const detalleRows = sortedVariants.map(([detalleCode, items], rowIdx) => {
                                 const bg = (rowIdx % 2 === 0) ? 'background: rgba(255,255,255,0.02);' : 'background: transparent;';
-                                const itemsWithTuberia = detalleCode === '153' ? [...items] : [...items, { desc: 'TUBERIA PVC SCH 80 Ø3/4"', ot: detalleCode === '152' ? '1.5' : '1' }];
+                                const tuberiaDesc = detalleCode.startsWith('020') ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"' : 'TUBERIA PVC SCH 80 Ø3/4"';
+                                const itemsWithTuberia = detalleCode === '153' ? [...items] : [...items, { desc: tuberiaDesc, ot: 'Var.' }];
 
                                 return itemsWithTuberia.map((item, i) => {
                                     const isLast = i === itemsWithTuberia.length - 1;
@@ -1843,16 +1881,23 @@
                     if (parts.length < 2) continue;
                     const tagRaw = parts[0].trim();
                     const lengthRaw = parseFloat(parts[1].trim());
-                    const detalleRaw = parts.length > 2 ? parts[2].trim() : '';
+                    const tuberiaRaw = parts.length > 2 ? parts[2].trim() : '';
+                    const detalleRaw = parts.length > 3 ? parts[3].trim() : '';
                     if (!tagRaw || isNaN(lengthRaw)) continue;
 
                     let ruleName = null;
                     const tagUp = tagRaw.toUpperCase();
-                    if (tagUp.startsWith('TT')) ruleName = 'SOLDADURA T 4/0';
-                    else if (tagUp.startsWith('T')) ruleName = 'SOLDADURA T 4/0 - 2/0';
+                    const detUp = detalleRaw.toUpperCase();
+                    
+                    if (tagUp.startsWith('PS')) ruleName = 'POZO SIN CAJA REGISTRO';
+                    else if (tagUp.startsWith('PC')) ruleName = 'POZO CON CAJA REGISTRO';
+                    else if (tagUp.startsWith('TT')) ruleName = 'SOLDADURA T 4/0 - 2/0';
+                    else if (tagUp.startsWith('T')) ruleName = 'SOLDADURA T 4/0';
                     else if (tagUp.startsWith('X')) ruleName = 'SOLDADURA X 4/0';
                     else if (tagUp.startsWith('C')) ruleName = 'CABLE DESNUDO 4/0 AWG';
                     else if (tagUp.startsWith('M')) ruleName = 'CABLE DESNUDO 2/0 AWG';
+                    else if (tagUp.startsWith('BP')) ruleName = 'BARRA POT';
+                    else if (tagUp.startsWith('BI')) ruleName = 'BARRA INST';
 
                     if (!ruleName) continue;
                     const rule = S.rules.find(r => r.trigger === ruleName);
@@ -1873,9 +1918,11 @@
                             metradoOt = Math.ceil(0.375 * 0.5 * lengthRaw * 10) / 10;
                         } else if (descUp.includes('MOLDE')) {
                             metradoOt = '0.0167';
-                        } else if (ruleName === 'CABLE DESNUDO 2/0 AWG' && (descUp.includes('TERMINAL') || descUp.includes('PERNO') || descUp.includes('SOLDADURA') || descUp.includes('CARGA') || descUp.includes('TUBERIA'))) {
+                        } else if (ruleName === 'CABLE DESNUDO 2/0 AWG' && descUp.includes('TUBERIA')) {
+                            metradoOt = (tuberiaRaw !== '' && !isNaN(parseFloat(tuberiaRaw))) ? parseFloat(tuberiaRaw) : '';
+                        } else if (ruleName === 'CABLE DESNUDO 2/0 AWG' && (descUp.includes('TERMINAL') || descUp.includes('PERNO') || descUp.includes('SOLDADURA') || descUp.includes('CARGA'))) {
                             metradoOt = '1';
-                        } else if (ruleName && (ruleName.toUpperCase().includes('SOLDADURA') || isPozoRule)) {
+                        } else if (ruleName && (ruleName.toUpperCase().includes('SOLDADURA') || isPozoRule || ruleName.startsWith('BARRA'))) {
                             metradoOt = '1';
                         } else {
                             metradoOt = lengthRaw;
@@ -1890,7 +1937,7 @@
                             rev: (S.customRev || '').toUpperCase(),
                             tagUnico: generateTagUnico(planoVal, tagRaw, mat),
                             tagPlano: tagRaw,
-                            detalle: (detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : '')),
+                            detalle: (detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : (tagRaw.startsWith('BP') ? '166' : (tagRaw.startsWith('BI') ? '166C' : '')))),
                             metradoOt: metradoOt
                         };
                     });
@@ -2560,7 +2607,7 @@
 
             let result = examples.join(', ');
             if (count > 5) {
-                result += `, ... hasta ${getSequentialTag(baseTag, count - 1)}`;
+                result += ', ...';
             }
 
             return result;
