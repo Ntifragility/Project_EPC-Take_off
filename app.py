@@ -44,20 +44,16 @@ async def get_takeoff_items():
 @app.post("/api/takeoff")
 async def save_takeoff_items(items: List[Dict[str, Any]]):
     """
-    Clears old items and batch inserts the fresh takeoff items list.
-    Runs inside a try-except block to handle DB connection failure gracefully.
+    Upserts the takeoff items (updates existing, inserts new) without clearing the database.
     """
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
     
     try:
-        # 1. Clear old records
-        supabase.table("takeoff_items").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute()
-        
-        # 2. Bulk insert new records if any
         if items:
-            response = supabase.table("takeoff_items").insert(items).execute()
-            print(f"Successfully synced {len(items)} items to Supabase.")
+            # Perform upsert based on primary key 'id'
+            response = supabase.table("takeoff_items").upsert(items).execute()
+            print(f"Successfully upserted {len(items)} items to Supabase.")
             return {"status": "success", "count": len(items)}
         
         return {"status": "success", "count": 0}
@@ -65,3 +61,19 @@ async def save_takeoff_items(items: List[Dict[str, Any]]):
     except Exception as e:
         print(f"Database write/sync error: {e}")
         raise HTTPException(status_code=500, detail=f"Database sync failed: {str(e)}")
+
+@app.delete("/api/takeoff/{item_id}")
+async def delete_takeoff_item(item_id: str):
+    """
+    Delete a specific takeoff item from Supabase by its UUID.
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+    
+    try:
+        response = supabase.table("takeoff_items").delete().eq("id", item_id).execute()
+        print(f"Successfully deleted item {item_id} from Supabase.")
+        return {"status": "success", "deleted_id": item_id}
+    except Exception as e:
+        print(f"Database delete error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete item: {str(e)}")
