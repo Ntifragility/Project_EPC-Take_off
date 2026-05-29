@@ -1371,7 +1371,6 @@
             const dbPayload = S.items.map(it => {
                 const pkgName = S.packages.find(p => p.id === it.pkgId)?.name || 'SIN PARTIDA';
                 return {
-                    id: it.id, // Include ID to allow updates
                     material: it.material || '',
                     plano: it.plano || '',
                     rev: it.rev || '',
