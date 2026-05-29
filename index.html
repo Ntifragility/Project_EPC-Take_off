@@ -1024,6 +1024,8 @@
                 onclick="APP.toggleTheme()" id="theme-btn" title="Toggle Theme">☀️</button>
             <button class="btn-ghost" style="padding:4px 10px;font-size:11px" onclick="APP.clearCache()"
                 title="Restablecer Datos">🗑️ RESTABLECER</button>
+            <button class="btn-primary" style="padding:4px 10px;font-size:11px;background:#388bfd;color:#fff;border:1px solid #388bfd" onclick="APP.syncToDatabase()"
+                title="Depositar/Añadir los datos de la pantalla a la base de datos">☁️ GUARDAR EN BD</button>
             <span class="item-count" id="item-count">0 ítems</span>
             <button class="btn-export" onclick="APP.exportCSV()">↓ EXPORTAR CSV</button>
         </div>
@@ -1322,32 +1324,12 @@
         // ── Storage
         async function loadData() {
             try {
-                // Fetch items from our secure Python backend API instead of Supabase directly
-                const response = await fetch('https://epc-take-off.onrender.com/api/takeoff');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const data = await response.json();
-
-                // Map database columns back to your application's state object (S.items)
-                S.items = data.map(db => ({
-                    id: db.id,
-                    pkgId: db.pkg_name, // Mapping text name directly for simplicity
-                    material: db.material,
-                    plano: db.plano,
-                    rev: db.rev,
-                    tagUnico: db.tag_unico,
-                    tagPlano: db.tag_plano,
-                    detalle: db.detalle,
-                    desc: db.description,
-                    qty: db.qty,
-                    metradoOt: db.metrado_ot,
-                    unit: db.unit,
-                    notes: db.notes
-                }));
+                // Read local items progress from localStorage
+                const localItems = localStorage.getItem('epc-items');
+                S.items = localItems ? JSON.parse(localItems) : [];
             } catch (e) {
-                console.error('Error loading backend data:', e.message);
+                console.error('Error loading local items:', e);
                 S.items = [];
-                APP.toast('Error al cargar datos desde el backend', 'warn');
             }
 
             // Fallbacks for structural seed data configurations
@@ -1366,11 +1348,22 @@
             localStorage.setItem('epc-packages', JSON.stringify(S.packages));
             localStorage.setItem('epc-plano', S.customPlano || '');
             localStorage.setItem('epc-rev', S.customRev || '');
+            localStorage.setItem('epc-items', JSON.stringify(S.items));
+        }
+
+        APP.syncToDatabase = async function () {
+            if (S.items.length === 0) {
+                APP.toast('No hay datos en la pantalla para guardar', 'warn');
+                return;
+            }
+
+            if (!confirm(`¿Deseas enviar (añadir) los ${S.items.length} ítems en pantalla a la base de datos?`)) return;
 
             // Map current S.items state array to matching database columns
+            // Since this is an append operation, we OMIT the id field entirely so Supabase generates new UUIDs!
             const dbPayload = S.items.map(it => {
                 const pkgName = S.packages.find(p => p.id === it.pkgId)?.name || 'SIN PARTIDA';
-                const payloadItem = {
+                return {
                     material: it.material || '',
                     plano: it.plano || '',
                     rev: it.rev || '',
@@ -1384,17 +1377,10 @@
                     notes: it.notes || '',
                     pkg_name: pkgName
                 };
-
-                // Include ID only if it is a valid UUID (meaning it is already stored in the DB)
-                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                if (uuidRegex.test(it.id)) {
-                    payloadItem.id = it.id;
-                }
-
-                return payloadItem;
             });
 
             try {
+                APP.toast('Enviando a base de datos...');
                 const response = await fetch('https://epc-take-off.onrender.com/api/takeoff', {
                     method: 'POST',
                     headers: {
@@ -1405,34 +1391,12 @@
                 
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
-                // Fetch the updated items list from the server to refresh any client-side generated temporary IDs
-                const refreshedResponse = await fetch('https://epc-take-off.onrender.com/api/takeoff');
-                if (refreshedResponse.ok) {
-                    const data = await refreshedResponse.json();
-                    S.items = data.map(db => ({
-                        id: db.id,
-                        pkgId: db.pkg_name,
-                        material: db.material,
-                        plano: db.plano,
-                        rev: db.rev,
-                        tagUnico: db.tag_unico,
-                        tagPlano: db.tag_plano,
-                        detalle: db.detalle,
-                        desc: db.description,
-                        qty: db.qty,
-                        metradoOt: db.metrado_ot,
-                        unit: db.unit,
-                        notes: db.notes
-                    }));
-                    APP.render();
-                }
-
-                APP.toast('Sincronizado con éxito');
+                APP.toast('¡Guardado en base de datos con éxito!');
             } catch (e) {
-                APP.toast('Error al sincronizar con el servidor backend', 'warn');
+                APP.toast('Error al guardar en el servidor', 'warn');
                 console.error(e.message);
             }
-        }
+        };
 
         // ── Render engine
         const APP = {};
@@ -2340,26 +2304,10 @@
             if (container) container.innerHTML = APP.htmlTableGroups();
         };
 
-        APP.deleteItem = async function (id) {
+        APP.deleteItem = function (id) {
             if (!confirm('¿Eliminar este ítem?')) return;
-            
-            // If the item exists in the DB (is a valid UUID), delete it from the backend immediately
-            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            if (uuidRegex.test(id)) {
-                try {
-                    const response = await fetch(`https://epc-take-off.onrender.com/api/takeoff/${id}`, {
-                        method: 'DELETE'
-                    });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    APP.toast('Eliminado de la base de datos');
-                } catch (e) {
-                    console.error('Error deleting item from backend:', e.message);
-                    APP.toast('Error al eliminar en el backend', 'warn');
-                    return;
-                }
-            }
-
             S.items = S.items.filter(it => it.id !== id);
+            saveData();
             const container = document.getElementById('table-container');
             if (container) container.innerHTML = APP.htmlTableGroups();
             document.getElementById('item-count').textContent = S.items.length + ' ítem' + (S.items.length !== 1 ? 's' : '');
@@ -2747,8 +2695,9 @@
 
         // ── CACHE
         APP.clearCache = function () {
-            if (confirm('¿Limpiar todos los ítems de la pantalla para iniciar un nuevo metrado? (Esto no modificará la base de datos hasta que hagas clic en Guardar)')) {
+            if (confirm('¿Limpiar todos los ítems de la pantalla para iniciar un nuevo metrado? (Esto no modificará la base de datos)')) {
                 S.items = [];
+                saveData();
                 APP.render();
                 APP.toast('Pantalla restablecida');
             }
@@ -2794,8 +2743,8 @@
                 localStorage.setItem('epc-plano', plano);
             }
 
-            // 3. Inform the user and WAIT for the database to finish downloading
-            APP.toast('Conectando con Supabase...');
+            // 3. Inform the user and load local storage items progress
+            APP.toast('Cargando metrado local...');
             await loadData();
 
             // 4. Finally, paint the layout now that data is safely in memory
