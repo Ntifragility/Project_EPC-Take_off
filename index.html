@@ -2701,12 +2701,10 @@
 
         // ── CACHE
         APP.clearCache = function () {
-            if (confirm('¿Restablecer las reglas, partidas y plano a los valores por defecto? (El metrado guardado en la base de datos no se modificará)')) {
-                localStorage.removeItem('epc-rules');
-                localStorage.removeItem('epc-packages');
-                localStorage.removeItem('epc-plano');
-                localStorage.removeItem('epc-rev');
-                location.reload();
+            if (confirm('¿Limpiar todos los ítems de la pantalla para iniciar un nuevo metrado? (Esto no modificará la base de datos hasta que hagas clic en Guardar)')) {
+                S.items = [];
+                APP.render();
+                APP.toast('Pantalla restablecida');
             }
         };
 
