@@ -2701,10 +2701,11 @@
 
         // ── CACHE
         APP.clearCache = function () {
-            if (confirm('¿Eliminar todos los datos locales y restablecer a los valores por defecto? Esto borrará el metrado, reglas y partidas creadas.')) {
+            if (confirm('¿Restablecer las reglas, partidas y plano a los valores por defecto? (El metrado guardado en la base de datos no se modificará)')) {
                 localStorage.removeItem('epc-rules');
                 localStorage.removeItem('epc-packages');
-                localStorage.removeItem('epc-items');
+                localStorage.removeItem('epc-plano');
+                localStorage.removeItem('epc-rev');
                 location.reload();
             }
         };
