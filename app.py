@@ -10,6 +10,7 @@ load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+TABLE_NAME = os.getenv("MAIN_TABLE", "main_PAT_table")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("WARNING: SUPABASE_URL or SUPABASE_KEY environment variables are missing.")
@@ -35,7 +36,7 @@ async def get_takeoff_items():
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
     
     try:
-        response = supabase.table("takeoff_items").select("*").order("created_at").execute()
+        response = supabase.table(TABLE_NAME).select("*").order("created_at").execute()
         return response.data
     except Exception as e:
         print(f"Database read error: {e}")
@@ -52,7 +53,7 @@ async def save_takeoff_items(items: List[Dict[str, Any]]):
     try:
         if items:
             # Perform upsert based on primary key 'id'
-            response = supabase.table("takeoff_items").upsert(items).execute()
+            response = supabase.table(TABLE_NAME).upsert(items).execute()
             print(f"Successfully upserted {len(items)} items to Supabase.")
             return {"status": "success", "count": len(items)}
         
@@ -71,7 +72,7 @@ async def delete_takeoff_item(item_id: str):
         raise HTTPException(status_code=500, detail="Supabase client not initialized")
     
     try:
-        response = supabase.table("takeoff_items").delete().eq("id", item_id).execute()
+        response = supabase.table(TABLE_NAME).delete().eq("id", item_id).execute()
         print(f"Successfully deleted item {item_id} from Supabase.")
         return {"status": "success", "deleted_id": item_id}
     except Exception as e:
