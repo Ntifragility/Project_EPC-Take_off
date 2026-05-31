@@ -1,0 +1,1708 @@
+import './styles.css';
+
+
+// ── uid
+function uid() { return Math.random().toString(36).slice(2, 10) }
+
+// ── Seed data
+const SEED_RULES = [
+    {
+        id: 'r1', trigger: 'CABLE DESNUDO 4/0 AWG', subitems: [
+            { id: 's1', desc: 'CABLE DESNUDO 4/0 AWG', qty: 1, unit: 'm' },
+            { id: 's2', desc: 'CINTA AMARILLA', qty: 1, unit: 'm' },
+            { id: 's3', desc: 'TIERRA DE CULTIVO', qty: 'length x 0.375 x 0.5', unit: 'm3' },
+        ]
+    },
+    {
+        id: 'r2', trigger: 'CABLE DESNUDO 2/0 AWG', subitems: [
+            { id: 's4', desc: 'CABLE DESNUDO 2/0 AWG', qty: 1, unit: 'm' },
+            { id: 's5', desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm' }
+        ]
+    },
+    {
+        id: 'r3', trigger: 'POZO CON CAJA REGISTRO', subitems: [
+            { id: 's8', desc: 'POZO CON CAJA REGISTRO', qty: 1, unit: 'und' },
+            { id: 's9', desc: 'CEMENTO GEM (11.3 kg x bls)', qty: 1, unit: 'kg' },
+            { id: 's10', desc: 'CAJA REGISTRO 400 x 400 x 300 mm', qty: 1, unit: 'und' },
+            { id: 's11', desc: 'VARILLA COPPERWELD 3/4"X2.4M', qty: 1, unit: 'und' },
+            { id: 's12', desc: 'CONECTOR GK 1429', qty: 1, unit: 'und' },
+            { id: 's13', desc: 'TIERRA DE CULTIVO', qty: 4.71, unit: 'm3' },
+        ]
+    },
+
+    {
+        id: 'r4', trigger: 'POZO SIN CAJA REGISTRO', subitems: [
+            { id: 's13b', desc: 'POZO SIN CAJA REGISTRO', qty: 1, unit: 'und' },
+            { id: 's14', desc: 'CEMENTO GEM (11.3 kg x bls)', qty: 1, unit: 'kg' },
+            { id: 's15', desc: 'VARILLA COPPERWELD 3/4"X2.4M', qty: 1, unit: 'und' },
+            { id: 's16', desc: 'SOLDADURA GT', qty: 1, unit: 'und' },
+            { id: 's17', desc: 'CARGA 115', qty: 1, unit: 'und' },
+            { id: 's18', desc: 'MOLDE M-561', qty: 0.0167, unit: 'und' },
+            { id: 's19', desc: 'TIERRA DE CULTIVO', qty: 4.71, unit: 'm3' },
+        ]
+    },
+
+    {
+        id: 'r5', trigger: 'SOLDADURA T 4/0', subitems: [
+            { id: 's20', desc: 'SOLDADURA T 4/0', qty: 1, unit: 'und' },
+            { id: 's21', desc: 'CARGA 150', qty: 1, unit: 'und' },
+            { id: 's22', desc: 'MOLDE TAC2Q2Q', qty: 0.0167, unit: 'und' },
+        ]
+    },
+
+    {
+        id: 'r6', trigger: 'SOLDADURA T 4/0 - 2/0', subitems: [
+            { id: 's23', desc: 'SOLDADURA T 4/0  - 2/0', qty: 1, unit: 'und' },
+            { id: 's24', desc: 'CARGA 90', qty: 1, unit: 'und' },
+            { id: 's25', desc: 'MOLDE TAC2Q2G', qty: 0.0167, unit: 'und' },
+        ]
+    },
+
+    {
+        id: 'r7', trigger: 'SOLDADURA X 4/0', subitems: [
+            { id: 's26', desc: 'SOLDADURA X 4/0', qty: 1, unit: 'und' },
+            { id: 's27', desc: 'CARGA 250', qty: 1, unit: 'und' },
+            { id: 's28', desc: 'MOLDE XBM2Q2Q', qty: 0.0167, unit: 'und' },
+        ]
+    },
+    {
+        id: 'r8', trigger: 'BARRA POT', subitems: [
+            { id: 'sbp', desc: 'BARRA POT', qty: 1, unit: 'und' }
+        ]
+    },
+    {
+        id: 'r9', trigger: 'BARRA INST', subitems: [
+            { id: 'sbi1', desc: 'BARRA INST', qty: 1, unit: 'und' },
+            { id: 'sbi2', desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und' }
+        ]
+    }
+
+];
+
+// DETALLE variants for CABLE DESNUDO 2/0 AWG (r2)
+// These define which "middle" subitems replace TERMINAL + PERNO
+const DETALLE_VARIANTS = {
+    '020': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '151': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '152': [
+        { desc: 'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '153': [
+        { desc: 'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: '1 c / 3 m', otDynamic: '1c/3m' },
+        { desc: 'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 2, unit: 'und', ot: '2 s / 15 m', otDynamic: 'empty' }
+    ],
+    '154': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '155A': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '155B': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
+    ],
+    '157A': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '157B': [
+        { desc: 'SOLDADURA VS', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'CARGA 90', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'MOLDE HSC-2G', qty: 1, unit: 'und', ot: 0.0167 }
+    ],
+    '160': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '161': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
+    ],
+    '166A': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '166B': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '166C': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 },
+        { desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '168': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    '170': [
+        { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+        { desc: 'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+    ],
+    'NA': []
+};
+
+// Known "middle" descriptions that get swapped by DETALLE variants
+const R2_SWAPPABLE = [
+    'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV',
+    'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
+    'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26',
+    'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
+    'SOLDADURA VS', 'CARGA 90', 'MOLDE HSC-2G',
+    'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY',
+    'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY',
+    'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY',
+    'AISLADOR DE RESINA TIPO BARRIL'
+];
+
+// Apply DETALLE variant: remove old middle items, insert new ones
+function applyDetalleVariant(tagPlano, pkgId, detalleCode) {
+    let variant = DETALLE_VARIANTS[detalleCode];
+    if (!variant && detalleCode.startsWith('020')) {
+        variant = DETALLE_VARIANTS['020'];
+    }
+    if (!variant) return;
+
+    // Find sibling items: same tagPlano, pkgId, ruleId=r2
+    const siblings = S.items.filter(it =>
+        it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId
+    );
+    if (siblings.length === 0) return;
+
+    // Find the index of the first sibling in S.items
+    const firstIdx = S.items.indexOf(siblings[0]);
+
+    // Remove old swappable items
+    const swapUp = R2_SWAPPABLE.map(s => s.toUpperCase());
+    const toRemove = siblings.filter(it => swapUp.includes(it.desc.toUpperCase()));
+    toRemove.forEach(it => {
+        const idx = S.items.indexOf(it);
+        if (idx !== -1) S.items.splice(idx, 1);
+    });
+
+    // Handle TUBERIA dynamic requirements
+    const refItem = siblings[0];
+    const cableItem = siblings.find(sib => sib.desc.toUpperCase().includes('CABLE DESNUDO 2/0 AWG'));
+    let tuberiaItem = siblings.find(sib => sib.desc.toUpperCase().includes('TUBERIA'));
+    const cableOt = cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0;
+
+    if (detalleCode === '153' || detalleCode === 'NA') {
+        if (tuberiaItem) {
+            const idx = S.items.indexOf(tuberiaItem);
+            if (idx !== -1) S.items.splice(idx, 1);
+        }
+    } else {
+        const tuberiaDesc = detalleCode.startsWith('020') ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"' : 'TUBERIA PVC SCH 80 Ø3/4"';
+        if (!tuberiaItem) {
+            const insertTubAt = cableItem ? S.items.indexOf(cableItem) + 1 : S.items.indexOf(refItem) + 1;
+            tuberiaItem = {
+                id: uid(), pkgId: refItem.pkgId,
+                desc: tuberiaDesc, qty: 1, unit: 'm',
+                notes: '', ruleId: 'r2',
+                material: 'C',
+                plano: refItem.plano, rev: refItem.rev,
+                tagUnico: '', tagPlano: tagPlano,
+                detalle: detalleCode, metradoOt: ''
+            };
+            S.items.splice(insertTubAt, 0, tuberiaItem);
+        } else {
+            tuberiaItem.desc = tuberiaDesc;
+            // Update only detail, preserve exact metradoOt from CSV/UI
+        }
+    }
+
+    // Find where to insert (after TUBERIA, or immediately after cable)
+    const insertAt = tuberiaItem && S.items.indexOf(tuberiaItem) !== -1 ? S.items.indexOf(tuberiaItem) + 1 : (cableItem ? S.items.indexOf(cableItem) + 1 : firstIdx + 1);
+
+    const newMiddle = variant.map(v => {
+        let finalOt = v.ot !== undefined ? v.ot : '';
+        if (v.otDynamic === '1c/3m') {
+            finalOt = Math.ceil(cableOt / 3).toString();
+        } else if (v.otDynamic === 'empty') {
+            finalOt = '';
+        }
+        return {
+            id: uid(), pkgId: refItem.pkgId,
+            desc: v.desc, qty: v.qty, unit: v.unit,
+            notes: '', ruleId: 'r2',
+            material: isPrimaryMaterial(v.desc) ? 'P' : 'C',
+            plano: refItem.plano, rev: refItem.rev,
+            tagUnico: '', tagPlano: tagPlano,
+            detalle: detalleCode, metradoOt: finalOt
+        };
+    });
+
+    S.items.splice(insertAt, 0, ...newMiddle);
+
+    // Update DETALLE on all siblings
+    S.items.filter(it =>
+        it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId
+    ).forEach(it => {
+        it.detalle = detalleCode;
+    });
+}
+
+const SEED_PACKAGES = [{ id: 'p1', name: 'GENERAL' }];
+
+// ── State
+const S = {
+    tab: 'takeoff',
+    rules: [], packages: [], items: [],
+    addMode: 'rule', selPkg: null,
+    triggerQuery: '', dropdownOpen: false,
+    searchQuery: '', filterDetalle: '',
+    editingItem: null,
+    customDesc: '', customQty: 1, customUnit: 'und',
+    customPlano: '', customRev: '',
+    collapsedPkgs: new Set(),
+    confirmDelete: null, // item id pending confirm
+    editingRule: null, // {id,trigger,subitems:[]} in modal
+    editingRuleIsNew: false,
+    editingPkg: null, editingPkgName: '',
+};
+
+const API_BASE_URL = 'https://epc-take-off.onrender.com'; // Change to 'http://127.0.0.1:8000' for local dev
+const APP = {};
+
+// ── Storage
+async function loadData() {
+    try {
+        // Read local items progress from localStorage
+        const localItems = localStorage.getItem('epc-items');
+        S.items = localItems ? JSON.parse(localItems) : [];
+    } catch (e) {
+        console.error('Error loading local items:', e);
+        S.items = [];
+    }
+
+    // Fallbacks for structural seed data configurations
+    const r = localStorage.getItem('epc-rules');
+    const p = localStorage.getItem('epc-packages');
+    S.rules = r ? JSON.parse(r) : JSON.parse(JSON.stringify(SEED_RULES));
+    S.packages = p ? JSON.parse(p) : JSON.parse(JSON.stringify(SEED_PACKAGES));
+    S.selPkg = S.packages[0]?.id || null;
+
+    APP.render();
+}
+
+async function saveData() {
+    // Keep local metadata configs on localStorage
+    localStorage.setItem('epc-rules', JSON.stringify(S.rules));
+    localStorage.setItem('epc-packages', JSON.stringify(S.packages));
+    localStorage.setItem('epc-plano', S.customPlano || '');
+    localStorage.setItem('epc-rev', S.customRev || '');
+    localStorage.setItem('epc-items', JSON.stringify(S.items));
+}
+
+APP.syncToDatabase = async function () {
+    if (S.items.length === 0) {
+        APP.toast('No hay datos en la pantalla para guardar', 'warn');
+        return;
+    }
+
+    if (!confirm(`¿Deseas enviar (añadir) los ${S.items.length} ítems en pantalla a la base de datos?`)) return;
+
+    // Map current S.items state array to matching database columns
+    // Since this is an append operation, we OMIT the id field entirely so Supabase generates new UUIDs!
+    const dbPayload = S.items.map(it => {
+        const pkgName = S.packages.find(p => p.id === it.pkgId)?.name || 'SIN PARTIDA';
+        return {
+            material: it.material || '',
+            plano: it.plano || '',
+            rev: it.rev || '',
+            tag_unico: it.tagUnico || '',
+            tag_plano: it.tagPlano || '',
+            detalle: it.detalle || '',
+            description: it.desc,
+            qty: isCountable(it.desc) ? it.qty : null,
+            metrado_ot: it.metradoOt || '',
+            unit: it.unit,
+            notes: it.notes || '',
+            pkg_name: pkgName
+        };
+    });
+
+    try {
+        APP.toast('Enviando a base de datos...');
+        const response = await fetch(`${API_BASE_URL}/api/takeoff`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dbPayload)
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        APP.toast('¡Guardado en base de datos con éxito!');
+    } catch (e) {
+        APP.toast('Error al guardar en el servidor', 'warn');
+        console.error(e.message);
+    }
+};
+
+// ── Render engine
+
+APP.undoLastTrigger = function () {
+    if (!S.undoSnapshot) return;
+    if (!confirm('¿Seguro que deseas deshacer la última inserción? Se eliminarán los ítems creados.')) return;
+    S.items = JSON.parse(S.undoSnapshot);
+    S.undoSnapshot = null;
+    saveData();
+    APP.render();
+    APP.toast('Acción deshecha', 'warn');
+};
+
+APP.render = function () {
+    // Nav tabs
+    ['takeoff', 'rules', 'packages'].forEach(t => {
+        const el = document.getElementById('nav-' + t);
+        if (el) el.className = 'nav-tab' + (S.tab === t ? ' active' : '');
+    });
+    document.getElementById('item-count').textContent = S.items.length + ' ítem' + (S.items.length !== 1 ? 's' : '');
+    const main = document.getElementById('main-content');
+    if (S.tab === 'takeoff') main.innerHTML = APP.htmlTakeoff();
+    else if (S.tab === 'rules') main.innerHTML = APP.htmlRules();
+    else main.innerHTML = APP.htmlPackages();
+};
+
+// ── TAKEOFF VIEW
+APP.htmlTakeoff = function () {
+    const pkgOpts = S.packages.map(p => `<option value="${p.id}"${p.id === S.selPkg ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+    const noPkgs = S.packages.length === 0;
+    const triggerFiltered = S.rules.filter(r => r.trigger.toLowerCase().includes(S.triggerQuery.toLowerCase()));
+
+    const addPanel = `
+  <div class="card add-panel" style="margin-bottom:20px">
+    <div class="add-row">
+      <div class="field">
+<div class="field-label">PARTIDA</div>
+${noPkgs
+            ? `<div style="color:var(--mu);font-size:12px;padding:8px 0">Sin partidas — <a href="#" onclick="APP.setTab('packages');return false" style="color:var(--am)">crear una</a></div>`
+            : `<select onchange="APP.selPkg(this.value)" style="min-width:160px">${pkgOpts}</select>`
+        }
+      </div>
+      <div class="field">
+<div class="field-label">PLANO</div>
+<input id="global-plano" type="text" value="${esc(S.customPlano)}" style="width:200px;text-transform:uppercase" oninput="APP.setCustomField('plano',this.value)">
+      </div>
+      <div class="field">
+<div class="field-label">REV</div>
+<div style="display:flex;align-items:center;gap:4px">
+  <input id="global-rev" type="text" value="${esc(S.customRev)}" style="width:40px;text-transform:uppercase" oninput="APP.setCustomField('rev',this.value)">
+  <button class="btn-ghost" title="Sincronizar todo el metrado" 
+          style="padding:0 8px;height:32px;border-color:var(--am);color:var(--am)"
+          onclick="APP.syncGlobalContext()">
+     🔄
+  </button>
+</div>
+      </div>
+      <div class="field">
+<div class="field-label">MODO</div>
+<div class="mode-toggle">
+  <button class="mode-btn${S.addMode === 'rule' ? ' active' : ''}" onclick="APP.setMode('rule')">REGLA</button>
+  <button class="mode-btn${S.addMode === 'custom' ? ' active' : ''}" onclick="APP.setMode('custom')">MANUAL</button>
+</div>
+      </div>
+      <div class="field">
+<div class="field-label">LOTE CSV</div>
+<label class="btn-ghost" style="cursor:pointer;padding:8px 12px;font-size:12px;display:flex;align-items:center;height:100%;border-color:var(--am);color:var(--am);font-weight:700">
+    + SUBIR CSV
+    <input type="file" accept=".csv" style="display:none" onchange="APP.handleCSVUpload(event)">
+</label>
+      </div>
+      ${S.addMode === 'rule' ? `
+      <div class="field" style="flex:1">
+<div class="field-label">BUSCAR REGLA / DISPARADOR</div>
+<div class="ac-wrap">
+  <input class="ac-input" id="trigger-input" type="text" placeholder="Escribir para buscar reglas..."
+    value="${esc(S.triggerQuery)}"
+    oninput="APP.onTriggerInput(this.value)"
+    onfocus="APP.onTriggerFocus()"
+    onblur="APP.onTriggerBlur()"
+    onkeydown="APP.onTriggerKey(event)">
+  <div class="ac-dropdown" id="trigger-dropdown">
+    ${triggerFiltered.length === 0
+                ? `<div class="ac-empty">Sin coincidencias</div>`
+                : triggerFiltered.map(r => `
+        <div class="ac-option" onmousedown="APP.applyTrigger('${r.id}')">
+          <div class="ac-opt-name">${esc(r.trigger)}</div>
+          <div class="ac-opt-sub">${r.subitems.length} ítem${r.subitems.length !== 1 ? 's' : ''} se agregarán</div>
+        </div>`).join('')
+            }
+  </div>
+</div>
+      </div>`: `
+      <div class="field" style="flex:2;min-width:200px">
+<div class="field-label">DESCRIPCIÓN</div>
+<input id="custom-desc" type="text" value="${esc(S.customDesc)}"
+  style="font-family:var(--mo);font-size:12px"
+  placeholder="Descripción del ítem..."
+  oninput="APP.setCustomField('desc',this.value)"
+  onkeydown="if(event.key==='Enter')APP.addCustomItem()">
+      </div>
+      <div class="field">
+<div class="field-label">CANTIDAD</div>
+<input id="custom-qty" type="number" min="0" value="${S.customQty}" style="width:84px"
+  oninput="APP.setCustomField('qty',+this.value)">
+      </div>
+      <div class="field">
+<div class="field-label">UNIDAD</div>
+<input id="custom-unit" type="text" value="${esc(S.customUnit)}" style="width:80px;text-transform:uppercase"
+  oninput="APP.setCustomField('unit',this.value.toUpperCase())"
+  onkeydown="if(event.key==='Enter')APP.addCustomItem()">
+      </div>
+      <div class="field" style="justify-content:flex-end">
+<button class="btn-primary" onclick="APP.addCustomItem()">+ AGREGAR</button>
+      </div>`}
+    </div>
+  </div>`;
+
+    const searchBar = `
+  <div class="search-bar">
+    <input class="search-input" id="search-input" type="text" placeholder="🔍  Buscar en el metrado..."
+      value="${esc(S.searchQuery)}" oninput="APP.setSearch(this.value)">
+    ${S.searchQuery ? `<button class="btn-ghost btn-sm" onclick="APP.clearSearch()">✕ LIMPIAR</button>` : ''}
+    <div style="flex:1"></div>
+    ${S.undoSnapshot ? `<button class="btn-ghost btn-sm btn-danger" title="Deshacer la última regla aplicada" onclick="APP.undoLastTrigger()">↩ DESHACER ADICIÓN</button>` : ''}
+    <span class="item-count">${APP.filteredItems().length} / ${S.items.length} ítems</span>
+  </div>`;
+
+    const table = `<div id="table-container">${APP.htmlTableGroups()}</div>`;
+
+    return addPanel + searchBar + table;
+};
+
+APP.htmlTableGroups = function () {
+    const filtered = APP.filteredItems();
+    if (S.items.length === 0) {
+        return `<div class="empty"><div class="empty-icon">⚡</div><div class="empty-title">Sin ítems aún</div><div class="empty-sub">Usa una regla o agrega ítems manualmente</div></div>`;
+    }
+    if (filtered.length === 0) {
+        return `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Sin resultados</div><div class="empty-sub">Prueba con otra búsqueda</div></div>`;
+    }
+    const groups = [];
+    S.packages.forEach(pkg => {
+        const its = filtered.filter(it => it.pkgId === pkg.id);
+        if (its.length > 0) groups.push({ pkg, its });
+    });
+    const unassigned = filtered.filter(it => !S.packages.find(p => p.id === it.pkgId));
+    if (unassigned.length > 0) groups.push({ pkg: { id: '__none', name: 'SIN PARTIDA' }, its: unassigned });
+    if (groups.length === 0) return `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Sin resultados</div></div>`;
+    return groups.map(({ pkg, its }) => APP.htmlGroup(pkg, its)).join('');
+};
+
+APP.htmlGroup = function (pkg, items) {
+    const collapsed = S.collapsedPkgs.has(pkg.id);
+    return `
+  <div class="pkg-group">
+    <div class="pkg-header${collapsed ? ' collapsed' : ''}" onclick="APP.togglePkg('${pkg.id}')">
+      <div class="pkg-header-left">
+<span class="pkg-chevron">${collapsed ? '▶' : '▼'}</span>
+<span class="pkg-name-lbl">${esc(pkg.name)}</span>
+      </div>
+      <span class="pkg-count-lbl">${items.length} ítem${items.length !== 1 ? 's' : ''}</span>
+    </div>
+    ${collapsed ? '' :
+            `<div class="pkg-body">
+      <table>
+<colgroup><col class="c-n"><col class="c-mat"><col class="c-plano"><col class="c-rev"><col class="c-t-unico"><col class="c-t-plano"><col class="c-det"><col class="c-d"><col class="c-q"><col class="c-mo"><col class="c-u"><col class="c-no"><col class="c-a"></colgroup>
+<thead>
+  <tr style="color:var(--di); opacity:0.8">
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">40px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">40px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">170px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">30px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">140px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">75px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">95px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">AUTO</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">70px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">75px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">70px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">120px</th>
+    <th style="padding:2px;font-size:10px;font-weight:400;border-bottom:none;font-family:var(--mo)">82px</th>
+  </tr>
+  <tr>
+    <th>#</th><th>MAT</th><th>PLANO</th><th>REV</th><th>TAG ÚNICO</th><th>TAG EN PLANO</th>
+    <th style="padding:0">
+      <select style="background:transparent;border:none;color:inherit;font-family:inherit;font-weight:inherit;font-size:inherit;width:100%;cursor:pointer;outline:none"
+        onchange="APP.setDetalleFilter(this.value)">
+        <option value="">DETALLE ▼</option>
+        ${[...new Set(S.items.map(i => i.detalle).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })).map(d =>
+                `<option value="${d}" style="color:#000"${d === S.filterDetalle ? ' selected' : ''}>${d}</option>`
+            ).join('')}
+      </select>
+    </th>
+    <th>DESCRIPCIÓN</th><th>CANT.</th><th>METRADO OT</th><th>UNID</th><th>NOTAS</th><th></th>
+  </tr>
+</thead>
+<tbody>
+  ${items.map((it, idx) => APP.htmlRow(it, idx + 1)).join('')}
+</tbody>
+      </table>
+    </div>`}
+  </div>`;
+};
+
+APP.htmlRow = function (it, idx) {
+    if (S.editingItem === it.id) {
+        return `
+    <tr class="tr-edit">
+      <td class="td-n">${idx}</td>
+      <td><input class="edit-input edit-input-mono" id="edit-mat" type="text" value="${esc(it.material || '')}" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td><input class="edit-input edit-input-mono" id="edit-plano" type="text" value="${esc(it.plano || '')}" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td><input class="edit-input edit-input-mono" id="edit-rev" type="text" value="${esc(it.rev || '')}" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td><input class="edit-input edit-input-mono" id="edit-t-unico" type="text" value="${esc(it.tagUnico || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td><input class="edit-input edit-input-mono" id="edit-t-plano" type="text" value="${esc(it.tagPlano || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td>
+${it.ruleId === 'r2'
+                ? `<select class="edit-input edit-input-mono" id="edit-det" onchange="APP.saveItem('${it.id}')" style="width:100%;height:100%;background:rgba(255,255,255,0.05);color:inherit;border:none">
+         <option value=""></option>
+         ${Object.keys(DETALLE_VARIANTS).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })).map(k => `<option value="${k}"${it.detalle === k ? ' selected' : ''}>${k}</option>`).join('')}
+       </select>`
+                : `<input class="edit-input edit-input-mono" id="edit-det" type="text" value="${esc(it.detalle || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')">`
+            }
+      </td>
+      <td class="td-d" style="font-family:var(--mo);font-size:11px">${esc(it.desc)}</td>
+      <td>${isCountable(it.desc) ? `<input class="edit-input edit-input-mono" id="edit-qty" type="number" min="0" value="${it.qty}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')">` : `<input type="hidden" id="edit-qty" value="${it.qty}">`}</td>
+      <td><input class="edit-input edit-input-mono" id="edit-mot" type="text" value="${esc(it.metradoOt || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td><input class="edit-input edit-input-mono" id="edit-unit" type="text" value="${esc(it.unit)}" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')"></td>
+      <td><input class="edit-input" id="edit-notes" type="text" value="${esc(it.notes || '')}" placeholder="Notas..." onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}');if(event.key==='Escape')APP.cancelEdit()"></td>
+      <td class="td-a"><div class="act-row">
+<button class="btn-green" onclick="APP.saveItem('${it.id}')">✓ OK</button>
+<button class="btn-icon" onclick="APP.cancelEdit()">✕</button>
+      </div></td>
+    </tr>`;
+    }
+    return `
+  <tr class="tr-row">
+    <td class="td-n">${idx}</td>
+    <td class="td-u" style="color:var(--am);font-weight:bold">${esc(it.material || '')}</td>
+    <td class="td-u">${esc(it.plano || '')}</td>
+    <td class="td-u">${esc(it.rev || '')}</td>
+    <td class="td-u">${esc(it.tagUnico || '')}</td>
+    <td class="td-u">${esc(it.tagPlano || '')}</td>
+    <td class="td-u">${esc(it.detalle || '')}</td>
+    <td class="td-d">${esc(it.desc)}</td>
+    <td class="td-q">${isCountable(it.desc) ? it.qty : ''}</td>
+    <td class="td-u">${esc(it.metradoOt || '')}</td>
+    <td class="td-u">${esc(it.unit)}</td>
+    <td class="td-no${it.notes ? ' has-notes' : ''}">${it.notes ? esc(it.notes) : '—'}</td>
+    <td class="td-a"><div class="act-row">
+      <button class="btn-icon" onclick="APP.editItem('${it.id}')">✎</button>
+      <button class="btn-icon btn-danger" onclick="APP.deleteItem('${it.id}')">✕</button>
+    </div></td>
+  </tr>`;
+};
+
+APP.filteredItems = function () {
+    let res = S.items;
+    if (S.filterDetalle) res = res.filter(it => it.detalle === S.filterDetalle);
+    if (!S.searchQuery) return res;
+    const q = S.searchQuery.toLowerCase();
+    return res.filter(it => (it.tagPlano || '').toLowerCase().startsWith(q));
+};
+
+APP.setDetalleFilter = function (val) {
+    S.filterDetalle = val;
+    const container = document.getElementById('table-container');
+    if (container) container.innerHTML = APP.htmlTableGroups();
+};
+
+// ── RULES VIEW
+APP.htmlRules = function () {
+    return `
+  <div class="view-hd">
+    <div><div class="view-title">REGLAS DE AUTO-LLENADO</div>
+    <div class="view-sub">Cuando se selecciona un disparador, sus ítems se agregan automáticamente al metrado.</div></div>
+    <button class="btn-primary" onclick="APP.openNewRule()">+ NUEVA REGLA</button>
+  </div>
+  ${S.rules.length === 0
+            ? `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Sin reglas</div><div class="empty-sub">Crea tu primera regla para empezar</div></div>`
+            : S.rules.map(r => {
+                // Special handling for CABLE DESNUDO 2/0 AWG rule to show DETALLE variants
+                if (r.id === 'r2') {
+                    // Generate table of DETALLE variants
+                    const sortedVariants = Object.entries(DETALLE_VARIANTS).sort((a, b) => {
+                        return a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' });
+                    });
+                    const detalleRows = sortedVariants.map(([detalleCode, items], rowIdx) => {
+                        const bg = (rowIdx % 2 === 0) ? 'background: rgba(255,255,255,0.02);' : 'background: transparent;';
+                        const tuberiaDesc = detalleCode.startsWith('020') ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"' : 'TUBERIA PVC SCH 80 Ø3/4"';
+                        const itemsWithTuberia = detalleCode === '153' ? [...items] : [...items, { desc: tuberiaDesc, ot: 'Var.' }];
+
+                        return itemsWithTuberia.map((item, i) => {
+                            const isLast = i === itemsWithTuberia.length - 1;
+                            const bb = isLast ? `border-bottom:2px solid var(--b1);` : `border-bottom:1px solid var(--b2);`;
+
+                            if (i === 0) {
+                                return `
+        <tr style="${bb} ${bg}">
+          <td rowspan="${itemsWithTuberia.length}" style="border-bottom:2px solid var(--b1);border-right:1px solid var(--b1);padding:8px 10px;vertical-align:middle;text-align:center">
+             <span style="background:rgba(255,166,0,0.1);border:1px solid var(--am);border-radius:4px;padding:4px 8px;display:inline-block;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold">${detalleCode}</span>
+          </td>
+          <td style="border-right:1px solid var(--b1);padding:8px 10px;font-family:var(--mo);font-size:11.5px;color:var(--mu);vertical-align:middle;line-height:1.4">${esc(item.desc)}</td>
+          <td style="padding:8px 10px;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold;vertical-align:middle;text-align:center">${item.ot}</td>
+        </tr>`;
+                            } else {
+                                return `
+        <tr style="${bb} ${bg}">
+          <td style="border-right:1px solid var(--b1);padding:8px 10px;font-family:var(--mo);font-size:11.5px;color:var(--mu);vertical-align:middle;line-height:1.4">${esc(item.desc)}</td>
+          <td style="padding:8px 10px;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold;vertical-align:middle;text-align:center">${item.ot}</td>
+        </tr>`;
+                            }
+                        }).join('');
+                    }).join('');
+
+                    return `
+    <div class="rule-card">
+      <div class="rule-card-row">
+<div style="flex:1">
+  <div class="rule-trigger">⚡ ${esc(r.trigger)}</div>
+  <div style="color:var(--am);font-size:11px;margin-bottom:8px;font-family:var(--mo);padding-left:14px">
+    ⚠️ Los ítems 3 y 4 cambian según el DETALLE seleccionado:
+  </div>
+  
+  <div style="margin:12px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--b1);border-radius:4px">
+    <table style="width:100%;min-width:550px;border-collapse:collapse;font-family:var(--mo);font-size:11px;">
+      <colgroup>
+        <col style="width:80px">
+        <col style="width:auto">
+        <col style="width:80px">
+      </colgroup>
+      <thead>
+        <tr style="background:var(--s2);">
+          <th style="border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);padding:8px;text-align:center;color:var(--am);font-weight:bold">DETALLE</th>
+          <th style="border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);padding:8px;text-align:left;color:var(--am);font-weight:bold">ÍTEMS DEL DETALLE (Incluye Tuberia según aplique)</th>
+          <th style="border-bottom:1px solid var(--b1);padding:8px;text-align:center;color:var(--am);font-weight:bold">METRADO OT</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${detalleRows}
+      </tbody>
+    </table>
+  </div>
+  
+  <div style="color:var(--mu);font-size:11px;margin:12px 0;font-family:var(--mo);padding-left:14px">
+    <strong>Base de la regla (ítems 1 y 2 siempre iguales):</strong>
+  </div>
+  <div class="rule-subitems">
+    ${r.subitems.slice(0, 2).map((s, i) => `
+    <div class="rule-sub">
+      <span class="rule-sub-n">${i + 1}.</span>
+      <span class="rule-sub-d">${esc(s.desc)}</span>
+      <span class="rule-sub-q">${s.qty}</span>
+      <span style="color:var(--mu)">${esc(s.unit)}</span>
+    </div>`).join('')}
+    <div class="rule-sub" style="color:var(--di);font-style:italic">
+      <span class="rule-sub-n">3-4.</span>
+      <span class="rule-sub-d">Varían según DETALLE seleccionado (ver tabla arriba)</span>
+      <span class="rule-sub-q">1</span>
+      <span style="color:var(--mu)">und</span>
+    </div>
+  </div>
+</div>
+<div class="rule-card-acts">
+  <button class="btn-ghost btn-sm" onclick="APP.openEditRule('${r.id}')">EDITAR</button>
+  <button class="btn-ghost btn-sm btn-danger" onclick="APP.deleteRule('${r.id}')">ELIMINAR</button>
+</div>
+      </div>
+    </div>`;
+                } else {
+                    return `
+    <div class="rule-card">
+      <div class="rule-card-row">
+<div style="flex:1">
+  <div class="rule-trigger">⚡ ${esc(r.trigger)}</div>
+  <div class="rule-subitems">
+    ${r.subitems.map((s, i) => `
+    <div class="rule-sub">
+      <span class="rule-sub-n">${i + 1}.</span>
+      <span class="rule-sub-d">${esc(s.desc)}</span>
+      <span class="rule-sub-q">${s.qty}</span>
+      <span style="color:var(--mu)">${esc(s.unit)}</span>
+    </div>`).join('')}
+  </div>
+</div>
+<div class="rule-card-acts">
+  <button class="btn-ghost btn-sm" onclick="APP.openEditRule('${r.id}')">EDITAR</button>
+  <button class="btn-ghost btn-sm btn-danger" onclick="APP.deleteRule('${r.id}')">ELIMINAR</button>
+</div>
+      </div>
+    </div>`;
+                }
+            }).join('')
+        }`;
+};
+
+// ── PACKAGES VIEW
+APP.htmlPackages = function () {
+    return `
+  <div class="view-hd">
+    <div><div class="view-title">GESTIÓN DE PARTIDAS</div>
+    <div class="view-sub">Organiza el metrado por frentes, áreas o paquetes de trabajo.</div></div>
+  </div>
+  <div class="pkg-add-row">
+    <input id="new-pkg-input" type="text" placeholder="Nombre de la partida..."
+      style="flex:1;text-transform:uppercase"
+      onkeydown="if(event.key==='Enter')APP.addPackage()">
+    <button class="btn-primary" onclick="APP.addPackage()">+ AGREGAR</button>
+  </div>
+  <div class="pkg-list">
+    ${S.packages.length === 0
+            ? `<div style="color:var(--mu);font-size:13px;text-align:center;padding:20px 0">Sin partidas creadas</div>`
+            : S.packages.map(p => `
+      <div class="pkg-item">
+<span class="pkg-item-icon">📁</span>
+${S.editingPkg === p.id ? `
+  <div class="pkg-edit-row">
+    <input id="edit-pkg-input" type="text" value="${esc(S.editingPkgName)}" style="flex:1;text-transform:uppercase"
+      onkeydown="if(event.key==='Enter')APP.savePkg('${p.id}');if(event.key==='Escape')APP.cancelEditPkg()"
+      oninput="S.editingPkgName=this.value.toUpperCase()">
+    <button class="btn-green" onclick="APP.savePkg('${p.id}')">✓</button>
+    <button class="btn-icon" onclick="APP.cancelEditPkg()">✕</button>
+  </div>
+`: `
+  <span class="pkg-item-name">${esc(p.name)}</span>
+  <div class="pkg-item-acts">
+    <button class="btn-ghost btn-sm" onclick="APP.editPkg('${p.id}')">EDITAR</button>
+    <button class="btn-ghost btn-sm btn-danger" onclick="APP.deletePkg('${p.id}')">ELIMINAR</button>
+  </div>
+`}
+      </div>`).join('')
+        }
+  </div>`;
+};
+
+// ── ACTIONS: Takeoff
+APP.setTab = function (t) { S.tab = t; S.editingItem = null; S.editingPkg = null; APP.render() };
+APP.setMode = function (m) { S.addMode = m; APP.render() };
+APP.selPkg = function (id) { S.selPkg = id };
+
+APP.onTriggerInput = function (v) {
+    S.triggerQuery = v;
+    APP.updateDropdown();
+};
+APP.onTriggerFocus = function () {
+    const dd = document.getElementById('trigger-dropdown');
+    if (dd) { dd.style.display = 'block'; APP.updateDropdown(); }
+};
+APP.onTriggerBlur = function () {
+    setTimeout(() => {
+        const dd = document.getElementById('trigger-dropdown');
+        if (dd) dd.style.display = 'none';
+    }, 160);
+};
+APP.onTriggerKey = function (e) {
+    if (e.key === 'Escape') {
+        S.triggerQuery = '';
+        const inp = document.getElementById('trigger-input');
+        if (inp) inp.value = '';
+        const dd = document.getElementById('trigger-dropdown');
+        if (dd) dd.style.display = 'none';
+    }
+};
+APP.updateDropdown = function () {
+    const dd = document.getElementById('trigger-dropdown');
+    if (!dd) return;
+    const q = S.triggerQuery.toLowerCase();
+    const filtered = q ? S.rules.filter(r => r.trigger.toLowerCase().includes(q)) : S.rules;
+    dd.style.display = 'block';
+    dd.innerHTML = filtered.length === 0
+        ? `<div class="ac-empty">Sin coincidencias</div>`
+        : filtered.map(r => `
+      <div class="ac-option" onmousedown="APP.applyTrigger('${r.id}')">
+<div class="ac-opt-name">${esc(r.trigger)}</div>
+<div class="ac-opt-sub">${r.subitems.length} ítem${r.subitems.length !== 1 ? 's' : ''} se agregarán</div>
+      </div>`).join('');
+};
+
+APP.handleCSVUpload = function (event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const text = e.target.result;
+        const rows = text.split(/\r?\n/).filter(r => r.trim());
+        if (rows.length < 2) { APP.toast('CSV vacío o inválido', 'warn'); event.target.value = ''; return; }
+
+        let addedCount = 0;
+        const pkgId = S.selPkg || S.packages[0]?.id || null;
+        const preSnapshot = JSON.stringify(S.items);
+
+        // Saltar encabezado
+        for (let i = 1; i < rows.length; i++) {
+            const parts = rows[i].split(/[,;]/);
+            if (parts.length < 2) continue;
+            const tagRaw = parts[0].trim();
+            const lengthRaw = parseFloat(parts[1].trim());
+            const tuberiaRaw = parts.length > 2 ? parts[2].trim() : '';
+            const detalleRaw = parts.length > 3 ? parts[3].trim() : '';
+            if (!tagRaw || isNaN(lengthRaw)) continue;
+
+            let ruleName = null;
+            const tagUp = tagRaw.toUpperCase();
+            const detUp = detalleRaw.toUpperCase();
+
+            if (tagUp.startsWith('PS')) ruleName = 'POZO SIN CAJA REGISTRO';
+            else if (tagUp.startsWith('PC')) ruleName = 'POZO CON CAJA REGISTRO';
+            else if (tagUp.startsWith('TT')) ruleName = 'SOLDADURA T 4/0 - 2/0';
+            else if (tagUp.startsWith('T')) ruleName = 'SOLDADURA T 4/0';
+            else if (tagUp.startsWith('X')) ruleName = 'SOLDADURA X 4/0';
+            else if (tagUp.startsWith('C')) ruleName = 'CABLE DESNUDO 4/0 AWG';
+            else if (tagUp.startsWith('M')) ruleName = 'CABLE DESNUDO 2/0 AWG';
+            else if (tagUp.startsWith('BP')) ruleName = 'BARRA POT';
+            else if (tagUp.startsWith('BI')) ruleName = 'BARRA INST';
+
+            if (!ruleName) continue;
+            const rule = S.rules.find(r => r.trigger === ruleName);
+            if (!rule) continue;
+
+            const planoVal = (S.customPlano || '').toUpperCase();
+            const newItems = rule.subitems.map((s, idx) => {
+                const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
+                let metradoOt = '';
+                const descUp = s.desc.toUpperCase();
+                const isPozoRule = ruleName && ruleName.toUpperCase().includes('POZO');
+
+                if (isPozoRule && descUp.includes('TIERRA DE CULTIVO')) {
+                    metradoOt = '4.71';
+                } else if (isPozoRule && descUp.includes('CEMENTO GEM')) {
+                    metradoOt = '22.6';
+                } else if (descUp.includes('TIERRA DE CULTIVO')) {
+                    metradoOt = Math.ceil(0.375 * 0.5 * lengthRaw * 10) / 10;
+                } else if (descUp.includes('MOLDE')) {
+                    metradoOt = '0.0167';
+                } else if (ruleName === 'CABLE DESNUDO 2/0 AWG' && descUp.includes('TUBERIA')) {
+                    metradoOt = (tuberiaRaw !== '' && !isNaN(parseFloat(tuberiaRaw))) ? parseFloat(tuberiaRaw) : '';
+                } else if (ruleName === 'CABLE DESNUDO 2/0 AWG' && (descUp.includes('TERMINAL') || descUp.includes('PERNO') || descUp.includes('SOLDADURA') || descUp.includes('CARGA'))) {
+                    metradoOt = '1';
+                } else if (ruleName && (ruleName.toUpperCase().includes('SOLDADURA') || isPozoRule || ruleName.startsWith('BARRA'))) {
+                    metradoOt = '1';
+                } else {
+                    metradoOt = lengthRaw;
+                }
+                return {
+                    id: uid(), pkgId,
+                    desc: s.desc,
+                    qty: s.qty,
+                    unit: s.unit, notes: '', ruleId: rule.id,
+                    material: mat,
+                    plano: planoVal,
+                    rev: (S.customRev || '').toUpperCase(),
+                    tagUnico: generateTagUnico(planoVal, tagRaw, mat),
+                    tagPlano: tagRaw,
+                    detalle: (detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : (tagRaw.startsWith('BP') ? '166' : (tagRaw.startsWith('BI') ? '166C' : '')))),
+                    metradoOt: metradoOt
+                };
+            });
+            // Add .01, .02 suffixes only when 2+ P items share the same tagPlano
+            const pItems = newItems.filter(it => it.material === 'P' && it.tagUnico);
+            const tagGroups = {};
+            pItems.forEach(it => {
+                if (!tagGroups[it.tagPlano]) tagGroups[it.tagPlano] = [];
+                tagGroups[it.tagPlano].push(it);
+            });
+            Object.values(tagGroups).forEach(group => {
+                if (group.length > 1) {
+                    group.forEach((it, i) => {
+                        it.tagUnico += '.' + String(i + 1).padStart(2, '0');
+                    });
+                }
+            });
+            S.items.push(...newItems);
+
+            if (rule.id === 'r2') {
+                const rowDetalle = detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : '');
+                if (rowDetalle) {
+                    applyDetalleVariant(tagRaw, pkgId, rowDetalle.toUpperCase());
+                }
+            }
+
+            addedCount += newItems.length;
+        }
+
+        event.target.value = '';
+        if (addedCount > 0) {
+            S.undoSnapshot = preSnapshot;
+            saveData();
+            APP.render();
+            APP.toast(`${addedCount} ítems agregados desde CSV`);
+        } else {
+            APP.toast('No se encontraron reglas aplicables', 'warn');
+        }
+    };
+    reader.readAsText(file);
+};
+
+APP.applyTrigger = function (ruleId) {
+    const rule = S.rules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    let numInstances = 1;
+    const upTrigger = rule.trigger.toUpperCase();
+
+    // Check if rule is CABLE DESNUDO 4/0 AWG or CABLE DESNUDO 2/0 AWG
+    const isCableRule = upTrigger.includes('CABLE DESNUDO 4/0 AWG') || upTrigger.includes('CABLE DESNUDO 2/0 AWG');
+
+    if (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO') || isCableRule) {
+        const countInput = window.prompt(`¿Cuántas veces deseas agregar la regla:\n"${rule.trigger}"?`, '1');
+        if (countInput === null) return; // Cancelled
+        numInstances = parseInt(countInput, 10);
+        if (isNaN(numInstances) || numInstances < 1) return;
+    }
+
+    // For SOLDADURA or POZO rules with multiple instances, ask for base TAG EN PLANO
+    let baseTagPlano = '';
+    if (numInstances > 1 && (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO') || isCableRule)) {
+        baseTagPlano = window.prompt(`Ingresa el TAG EN PLANO BASE (ej: M04) para ${numInstances} instancias de:\n"${rule.trigger}"\n\nSe crearán secuencialmente: ${getSequentialTagsExample('M04', numInstances)}`, '');
+        if (baseTagPlano === null) return; // Cancelled
+    } else {
+        baseTagPlano = window.prompt(`Ingresa el TAG EN PLANO para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`);
+        if (baseTagPlano === null) return; // Cancelled
+        baseTagPlano = baseTagPlano || '';
+    }
+
+    // For CABLE DESNUDO 2/0 AWG, use DETALLE '151' as standard
+    let detalle = '';
+    const tagForDetalle = (baseTagPlano || '').trim().toUpperCase();
+    const startsWithC = tagForDetalle.startsWith('C');
+    const defaultDet = startsWithC ? '167/G1' : '';
+
+    if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+        detalle = '151'; // Standard DETALLE
+    } else {
+        detalle = window.prompt(`Ingresa el DETALLE para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`, defaultDet);
+        if (detalle === null) return; // Cancelled
+        detalle = detalle || '';
+    }
+
+    const planoVal = (S.customPlano || '').toUpperCase();
+    const pkgId = S.selPkg || S.packages[0]?.id || null;
+    const preSnapshot = JSON.stringify(S.items);
+
+    const newItems = [];
+    for (let i = 0; i < numInstances; i++) {
+        // Calculate sequential tagPlano for each instance
+        let currentTagPlano = baseTagPlano;
+        if (numInstances > 1 && baseTagPlano) {
+            currentTagPlano = getSequentialTag(baseTagPlano, i);
+        }
+
+        rule.subitems.forEach((s) => {
+            const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
+            // For SOLDADURA or POZO rules, set METRADO OT to 1
+            const isSoldaduraPozo = upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO');
+
+            let metradoOt = '';
+            const descUp = s.desc.toUpperCase();
+            const isPozoTrigger = upTrigger.includes('POZO');
+
+            if (isPozoTrigger && descUp.includes('TIERRA DE CULTIVO')) {
+                metradoOt = '4.71';
+            } else if (isPozoTrigger && descUp.includes('CEMENTO GEM')) {
+                metradoOt = '22.6';
+            } else if (isSoldaduraPozo) {
+                metradoOt = '1';
+            } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+                // For CABLE DESNUDO 2/0 AWG rule, set METRADO OT = 1 for TERMINAL, PERNO, SOLDADURA, CARGA, TUBERIA items
+                const descUpper = s.desc.toUpperCase();
+                if (descUpper.includes('TERMINAL') || descUpper.includes('PERNO') ||
+                    descUpper.includes('SOLDADURA') || descUpper.includes('CARGA') ||
+                    descUpper.includes('TUBERIA')) {
+                    metradoOt = '1';
+                }
+            }
+            // For all rules, set METRADO OT = 0.0167 for MOLDE items
+            if (s.desc.toUpperCase().includes('MOLDE')) {
+                metradoOt = '0.0167';
+            }
+
+            newItems.push({
+                id: uid(), pkgId,
+                desc: s.desc, qty: s.qty, unit: s.unit, notes: '', ruleId: rule.id,
+                material: mat,
+                plano: planoVal,
+                rev: (S.customRev || '').toUpperCase(),
+                tagUnico: generateTagUnico(planoVal, currentTagPlano, mat),
+                tagPlano: currentTagPlano,
+                detalle: detalle,
+                metradoOt: metradoOt
+            });
+        });
+    }
+
+    // Add .01, .02 suffixes only when 2+ P items share the same tagPlano
+    const pItems = newItems.filter(it => it.material === 'P' && it.tagUnico);
+    const tagGroups = {};
+    pItems.forEach(it => {
+        if (!tagGroups[it.tagPlano]) tagGroups[it.tagPlano] = [];
+        tagGroups[it.tagPlano].push(it);
+    });
+    Object.values(tagGroups).forEach(group => {
+        if (group.length > 1) {
+            group.forEach((it, i) => {
+                it.tagUnico += '.' + String(i + 1).padStart(2, '0');
+            });
+        }
+    });
+    S.items.push(...newItems);
+
+    // Execute DETALLE substitutions after elements are successfully mounted onto S.items!
+    if (rule.id === 'r2') {
+        const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
+        uniqueTags.forEach(tag => applyDetalleVariant(tag, pkgId, detalle));
+    }
+
+    S.triggerQuery = '';
+    S.undoSnapshot = preSnapshot;
+    saveData();
+    APP.render();
+    APP.toast(`${newItems.length} ítems agregados`);
+};
+
+APP.setCustomField = function (f, v) {
+    if (f === 'plano') S.customPlano = v.toUpperCase();
+    else if (f === 'rev') S.customRev = v.toUpperCase();
+    else if (f === 'desc') S.customDesc = v;
+    else if (f === 'qty') S.customQty = v;
+    else if (f === 'unit') S.customUnit = v;
+};
+
+APP.syncGlobalContext = function () {
+    if (S.items.length === 0) { APP.toast('No hay ítems para actualizar', 'warn'); return; }
+    if (!S.customPlano || S.customPlano.split('-').length < 6) {
+        APP.toast('Ingresa un PLANO válido antes de sincronizar', 'warn');
+        return;
+    }
+
+    const msg = `¿Actualizar los ${S.items.length} ítems del metrado con el nuevo PLANO y REV?\n\n` +
+        `PLANO: ${S.customPlano}\n` +
+        `REV: ${S.customRev || '-'}\n\n` +
+        `Esto recalculará todos los TAG ÚNICO.`;
+    if (!confirm(msg)) return;
+
+    // Group by original tagPlano to maintain suffixes correctly
+    const groups = {};
+    S.items.forEach(it => {
+        it.plano = S.customPlano;
+        it.rev = (S.customRev || '').toUpperCase();
+
+        // Recalculate base Tag Unico
+        const mat = it.material || (isPrimaryMaterial(it.desc) ? 'P' : 'C');
+        it.material = mat;
+        it.tagUnico = generateTagUnico(it.plano, it.tagPlano, mat);
+
+        if (mat === 'P' && it.tagPlano) {
+            if (!groups[it.tagPlano]) groups[it.tagPlano] = [];
+            groups[it.tagPlano].push(it);
+        }
+    });
+
+    // Re-apply suffixes for P items sharing the same tagPlano
+    Object.values(groups).forEach(group => {
+        if (group.length > 1) {
+            group.forEach((it, i) => {
+                it.tagUnico += '.' + String(i + 1).padStart(2, '0');
+            });
+        }
+    });
+
+    saveData();
+    APP.render();
+    APP.toast('Metrado actualizado con el nuevo PLANO');
+};
+
+APP.addCustomItem = function () {
+    const desc = (document.getElementById('custom-desc')?.value || S.customDesc).trim();
+    if (!desc) { APP.toast('Ingresa una descripción', 'warn'); return; }
+    const qty = +(document.getElementById('custom-qty')?.value || S.customQty);
+    const unit = (document.getElementById('custom-unit')?.value || S.customUnit).toUpperCase() || 'UND';
+    const pkgId = S.selPkg || S.packages[0]?.id || null;
+    S.items.push({
+        id: uid(), pkgId, desc, qty, unit, notes: '',
+        material: 'P',
+        plano: (S.customPlano || '').toUpperCase(),
+        rev: (S.customRev || '').toUpperCase(),
+        tagUnico: '', tagPlano: '', detalle: '', metradoOt: ''
+    });
+    S.customDesc = ''; S.customQty = 1; S.customUnit = 'UND';
+    saveData();
+    APP.render();
+    APP.toast('Ítem agregado');
+};
+
+APP.setSearch = function (v) {
+    S.searchQuery = v;
+    const container = document.getElementById('table-container');
+    if (container) container.innerHTML = APP.htmlTableGroups();
+    // also update count in search bar
+    const countEl = document.querySelector('.search-bar .item-count');
+    if (countEl) countEl.textContent = APP.filteredItems().length + ' / ' + S.items.length + ' ítems';
+};
+APP.clearSearch = function () {
+    S.searchQuery = '';
+    APP.render();
+};
+
+APP.togglePkg = function (pkgId) {
+    if (S.collapsedPkgs.has(pkgId)) S.collapsedPkgs.delete(pkgId);
+    else S.collapsedPkgs.add(pkgId);
+    const container = document.getElementById('table-container');
+    if (container) container.innerHTML = APP.htmlTableGroups();
+};
+
+APP.editItem = function (id) {
+    S.editingItem = id;
+    const container = document.getElementById('table-container');
+    if (container) container.innerHTML = APP.htmlTableGroups();
+    // Focus qty input
+    setTimeout(() => { const el = document.getElementById('edit-qty'); if (el) { el.select(); } }, 50);
+};
+
+APP.saveItem = function (id) {
+    const qty = +(document.getElementById('edit-qty')?.value || 0);
+    const unit = (document.getElementById('edit-unit')?.value || '').toUpperCase();
+    const notes = document.getElementById('edit-notes')?.value || '';
+    const material = (document.getElementById('edit-mat')?.value || '').toUpperCase();
+    const plano = (document.getElementById('edit-plano')?.value || '').toUpperCase();
+    const rev = (document.getElementById('edit-rev')?.value || '').toUpperCase();
+    const tagUnico = document.getElementById('edit-t-unico')?.value || '';
+    const tagPlano = document.getElementById('edit-t-plano')?.value || '';
+    const detalle = document.getElementById('edit-det')?.value || '';
+    const metradoOt = document.getElementById('edit-mot')?.value || '';
+
+    const it = S.items.find(i => i.id === id);
+    const oldDetalle = it ? (it.detalle || '') : '';
+    const oldMetradoOt = it ? (it.metradoOt || '') : '';
+    if (it) { Object.assign(it, { qty, unit, notes, material, plano, rev, tagUnico, tagPlano, detalle, metradoOt }); }
+
+    // If DETALLE changed on a CABLE DESNUDO 2/0 AWG group item, swap siblings
+    if (it && it.ruleId === 'r2' && detalle !== oldDetalle && detalle) {
+        applyDetalleVariant(it.tagPlano, it.pkgId, detalle.toUpperCase());
+    } else if (it && it.ruleId && detalle !== oldDetalle) {
+        // For any other rule, just sync the DETALLE text across its group siblings
+        S.items.filter(sib =>
+            sib.ruleId === it.ruleId &&
+            sib.tagPlano === it.tagPlano &&
+            sib.pkgId === it.pkgId
+        ).forEach(sib => { sib.detalle = detalle; });
+    }
+
+    // If CABLE DESNUDO 4/0 AWG METRADO OT changed, update corresponding TIERRA DE CULTIVO
+    if (it && it.ruleId === 'r1' && it.desc.toUpperCase().includes('CABLE DESNUDO 4/0 AWG') && metradoOt !== oldMetradoOt) {
+        // Find all items in the same set (same ruleId, tagPlano, pkgId)
+        const setItems = S.items.filter(sib =>
+            sib.ruleId === it.ruleId &&
+            sib.tagPlano === it.tagPlano &&
+            sib.pkgId === it.pkgId
+        );
+
+        // Update CINTA AMARILLA with same METRADO OT
+        const cintaItem = setItems.find(sib => sib.desc.toUpperCase().includes('CINTA AMARILLA'));
+        if (cintaItem) {
+            cintaItem.metradoOt = metradoOt;
+        }
+
+        // Calculate and update TIERRA DE CULTIVO: 0.375 * 0.5 * cableMetradoOt
+        const tierraItem = setItems.find(sib => sib.desc.toUpperCase().includes('TIERRA DE CULTIVO'));
+        if (tierraItem) {
+            const cableValue = parseFloat(metradoOt) || 0;
+            const tierraValue = 0.375 * 0.5 * cableValue;
+            tierraItem.metradoOt = tierraValue.toFixed(2);
+        }
+    }
+
+    // If CABLE DESNUDO 2/0 AWG METRADO OT changed, update corresponding PRENSA PARALELA if DETALLE is 153
+    if (it && it.ruleId === 'r2' && it.desc.toUpperCase().includes('CABLE DESNUDO 2/0 AWG') && metradoOt !== oldMetradoOt) {
+        const setItems = S.items.filter(sib =>
+            sib.ruleId === it.ruleId &&
+            sib.tagPlano === it.tagPlano &&
+            sib.pkgId === it.pkgId
+        );
+
+        if (it.detalle === '153') {
+            const prensaItems = setItems.filter(sib => sib.desc.toUpperCase().includes('PRENSA PARALELA 1 CONDUCTOR'));
+            const cableValue = parseFloat(metradoOt) || 0;
+            const computed = Math.ceil(cableValue / 3).toString();
+
+            prensaItems.forEach(p => {
+                p.metradoOt = computed;
+            });
+        }
+    }
+
+    S.editingItem = null;
+    saveData();
+    const container = document.getElementById('table-container');
+    if (container) container.innerHTML = APP.htmlTableGroups();
+    APP.toast('Ítem actualizado');
+};
+
+APP.cancelEdit = function () {
+    S.editingItem = null;
+    const container = document.getElementById('table-container');
+    if (container) container.innerHTML = APP.htmlTableGroups();
+};
+
+APP.deleteItem = function (id) {
+    if (!confirm('¿Eliminar este ítem?')) return;
+    S.items = S.items.filter(it => it.id !== id);
+    saveData();
+    const container = document.getElementById('table-container');
+    if (container) container.innerHTML = APP.htmlTableGroups();
+    document.getElementById('item-count').textContent = S.items.length + ' ítem' + (S.items.length !== 1 ? 's' : '');
+    APP.toast('Ítem eliminado');
+};
+
+// ── ACTIONS: Rules (modal)
+APP.openNewRule = function () {
+    S.editingRule = { id: uid(), trigger: '', subitems: [{ id: uid(), desc: '', qty: 1, unit: 'UND' }] };
+    S.editingRuleIsNew = true;
+    document.getElementById('modal-title').textContent = 'NUEVA REGLA';
+    APP.renderRuleModal();
+    document.getElementById('modal-overlay').style.display = 'flex';
+    setTimeout(() => { const el = document.getElementById('modal-trigger'); if (el) el.focus(); }, 100);
+};
+
+APP.openEditRule = function (id) {
+    const rule = S.rules.find(r => r.id === id);
+    if (!rule) return;
+    S.editingRule = JSON.parse(JSON.stringify(rule));
+    S.editingRuleIsNew = false;
+    document.getElementById('modal-title').textContent = 'EDITAR REGLA';
+    APP.renderRuleModal();
+    document.getElementById('modal-overlay').style.display = 'flex';
+};
+
+APP.renderRuleModal = function () {
+    const r = S.editingRule;
+    document.getElementById('modal-body').innerHTML = `
+    <div class="mb-16">
+      <div class="field-label" style="margin-bottom:6px">DISPARADOR</div>
+      <input id="modal-trigger" type="text" value="${esc(r.trigger)}"
+style="width:100%;font-family:var(--mo);font-size:12px"
+placeholder="Ej: CABLE DESNUDO 4/0 AWG"
+oninput="S.editingRule.trigger=this.value.toUpperCase();this.value=S.editingRule.trigger">
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<div class="field-label">ÍTEMS ASOCIADOS</div>
+<button class="btn-ghost btn-sm" onclick="APP.addModalSubitem()">+ ÍTEM</button>
+      </div>
+      <div id="modal-subitems">
+${r.subitems.length === 0
+            ? `<div style="color:var(--mu);font-size:12px;text-align:center;padding:14px 0">Sin ítems — agrega al menos uno</div>`
+            : r.subitems.map((s, i) => `
+  <div class="sub-row" id="sub-row-${s.id}">
+    <span class="sub-n">${i + 1}</span>
+    <input type="text" value="${esc(s.desc)}" style="flex:3;font-family:var(--mo);font-size:11px"
+      placeholder="Descripción..." oninput="APP.updateSubitem('${s.id}','desc',this.value)">
+    <input type="text" value="${s.qty}" style="width:130px;font-family:var(--mo);font-size:11px"
+      oninput="APP.updateSubitem('${s.id}','qty',this.value)">
+    <input type="text" value="${esc(s.unit)}" style="width:70px;text-transform:uppercase"
+      oninput="APP.updateSubitem('${s.id}','unit',this.value.toUpperCase())">
+    <button class="sub-del" onclick="APP.removeSubitem('${s.id}')" title="Eliminar">✕</button>
+  </div>`).join('')
+        }
+      </div>
+    </div>`;
+};
+
+APP.addModalSubitem = function () {
+    if (!S.editingRule) return;
+    S.editingRule.subitems.push({ id: uid(), desc: '', qty: 1, unit: 'UND' });
+    APP.renderRuleModal();
+    // Focus last desc input
+    setTimeout(() => {
+        const rows = document.querySelectorAll('#modal-subitems .sub-row');
+        const last = rows[rows.length - 1];
+        if (last) last.querySelector('input')?.focus();
+    }, 50);
+};
+
+APP.updateSubitem = function (id, field, value) {
+    const s = S.editingRule?.subitems.find(x => x.id === id);
+    if (s) {
+        if (field === 'qty') {
+            const num = Number(value);
+            s[field] = isNaN(num) || value.trim() === '' ? value : num;
+        } else {
+            s[field] = value;
+        }
+    }
+};
+
+APP.removeSubitem = function (id) {
+    if (!S.editingRule) return;
+    S.editingRule.subitems = S.editingRule.subitems.filter(s => s.id !== id);
+    APP.renderRuleModal();
+};
+
+APP.saveRule = function () {
+    const r = S.editingRule;
+    if (!r) return;
+    // Collect current input values
+    const triggerInput = document.getElementById('modal-trigger');
+    if (triggerInput) r.trigger = triggerInput.value.toUpperCase();
+    if (!r.trigger.trim()) { APP.toast('El disparador no puede estar vacío', 'warn'); return; }
+    if (r.subitems.length === 0) { APP.toast('Agrega al menos un ítem', 'warn'); return; }
+    // Collect subitem inputs
+    r.subitems.forEach(s => {
+        const row = document.getElementById('sub-row-' + s.id);
+        if (row) {
+            const inputs = row.querySelectorAll('input');
+            s.desc = inputs[0]?.value || s.desc;
+            s.qty = +(inputs[1]?.value || s.qty);
+            s.unit = (inputs[2]?.value || s.unit).toUpperCase();
+        }
+    });
+    if (S.editingRuleIsNew) S.rules.push(r);
+    else { const i = S.rules.findIndex(x => x.id === r.id); if (i >= 0) S.rules[i] = r; }
+    saveData();
+    APP.closeModal();
+    APP.render();
+    APP.toast(S.editingRuleIsNew ? 'Regla creada' : 'Regla actualizada');
+};
+
+APP.deleteRule = function (id) {
+    if (!confirm('¿Eliminar esta regla?')) return;
+    S.rules = S.rules.filter(r => r.id !== id);
+    saveData();
+    APP.render();
+    APP.toast('Regla eliminada');
+};
+
+APP.closeModal = function () {
+    document.getElementById('modal-overlay').style.display = 'none';
+    const saveBtn = document.getElementById('modal-save');
+    if (saveBtn) saveBtn.style.display = 'inline-flex';
+    S.editingRule = null;
+};
+APP.closeModalOnBackdrop = function (e) {
+    if (e.target === document.getElementById('modal-overlay')) APP.closeModal();
+};
+
+APP.showMatSummaryModal = function () {
+    const pItems = S.items.filter(it => it.material === 'P');
+    const summaryMap = {};
+    pItems.forEach(it => {
+        const key = it.desc;
+        if (!summaryMap[key]) {
+            summaryMap[key] = { desc: it.desc, unit: it.unit, qty: 0 };
+        }
+        const num = parseFloat(it.metradoOt);
+        if (!isNaN(num)) {
+            summaryMap[key].qty += num;
+        }
+    });
+    const sortedKeys = Object.keys(summaryMap).sort();
+
+    const circ40Count = new Set(S.items.filter(it => it.desc && it.desc.includes('CABLE DESNUDO 4/0 AWG') && it.tagPlano).map(it => it.tagPlano)).size;
+    const circ20Count = new Set(S.items.filter(it => it.desc && it.desc.includes('CABLE DESNUDO 2/0 AWG') && it.tagPlano).map(it => it.tagPlano)).size;
+
+    let html = '<div style="max-height:500px; overflow-y:auto; overflow-x:hidden; padding-right:6px; display:flex; flex-direction:column; gap:10px; margin-top:5px;">';
+
+
+
+
+    if (sortedKeys.length === 0) {
+        html += '<div style="text-align:center; padding:40px 20px; color:var(--mu); background:var(--s2); border-radius:12px; font-size:13px; letter-spacing:0.5px; border:1px dashed var(--b2);">No hay ítems registrados con MAT "P" en el proyecto actual.</div>';
+    } else {
+        sortedKeys.forEach(k => {
+            const item = summaryMap[k];
+            const formattedQty = Math.round(item.qty * 100) / 100;
+            let circuitBadge = '';
+            if (k.includes('CABLE DESNUDO 4/0 AWG')) {
+                circuitBadge = `<div style="font-size:15px; color:var(--mu); letter-spacing:1px; text-transform:uppercase; margin-top:6px;">CIRCUITOS / <span style="color:var(--text); font-weight:700">${circ40Count}</span></div>`;
+            } else if (k.includes('CABLE DESNUDO 2/0 AWG')) {
+                circuitBadge = `<div style="font-size:15px; color:var(--mu); letter-spacing:1px; text-transform:uppercase; margin-top:6px;">CIRCUITOS / <span style="color:var(--text); font-weight:700">${circ20Count}</span></div>`;
+            }
+
+            html += `
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; background:var(--s2); border:1px solid var(--b2); border-radius:10px; padding:16px 20px; transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1); cursor:default;" onmouseover="this.style.borderColor='var(--am)';this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow, 0 4px 12px rgba(0,0,0,0.15))';" onmouseout="this.style.borderColor='var(--b2)';this.style.transform='none';this.style.boxShadow='none';">
+                    <div style="flex:1 1 200px; min-width:0; margin-right:15px; margin-bottom:8px;">
+                        <div style="font-family:var(--mo); font-size:13px; font-weight:600; color:var(--text); line-height:1.4;">${esc(item.desc)}</div>
+                        ${circuitBadge ? circuitBadge : ''}
+                        <div style="font-size:10px; color:var(--mu); letter-spacing:1.5px; text-transform:uppercase; margin-top:${circuitBadge ? '2px' : '6px'};">UNIDAD / <span style="color:var(--text); font-weight:700">${esc(item.unit)}</span></div>
+                    </div>
+                    <div style="flex-shrink:0; text-align:right;">
+                        <div style="font-size:9px; color:var(--mu); letter-spacing:1px; margin-bottom:4px; text-transform:uppercase">M E T R A D O</div>
+                        <div style="font-family:var(--mo); font-size:22px; font-weight:700; color:var(--am); text-shadow:0 0 16px rgba(255,166,0,0.25);">${formattedQty}</div>
+                    </div>
+                </div>`;
+        });
+    }
+    html += '</div>';
+
+    document.getElementById('modal-title').textContent = 'RESUMEN DE MATERIALES (P)';
+    document.getElementById('modal-body').innerHTML = html;
+
+    const saveBtn = document.getElementById('modal-save');
+    if (saveBtn) saveBtn.style.display = 'none';
+
+    const modBox = document.getElementById('modal-box');
+    if (modBox) modBox.style.maxWidth = '640px';
+
+    document.getElementById('modal-overlay').style.display = 'flex';
+};
+
+// ── ACTIONS: Packages
+APP.addPackage = function () {
+    const inp = document.getElementById('new-pkg-input');
+    const name = (inp?.value || '').trim().toUpperCase();
+    if (!name) { APP.toast('Ingresa un nombre', 'warn'); return; }
+    S.packages.push({ id: uid(), name });
+    if (!S.selPkg) S.selPkg = S.packages[0].id;
+    saveData();
+    APP.render();
+    APP.toast('Partida creada');
+};
+
+APP.editPkg = function (id) {
+    const pkg = S.packages.find(p => p.id === id);
+    if (!pkg) return;
+    S.editingPkg = id;
+    S.editingPkgName = pkg.name;
+    APP.render();
+    setTimeout(() => {
+        const el = document.getElementById('edit-pkg-input');
+        if (el) { el.focus(); el.select(); }
+    }, 50);
+};
+
+APP.savePkg = function (id) {
+    const inp = document.getElementById('edit-pkg-input');
+    const name = (inp?.value || S.editingPkgName).trim().toUpperCase();
+    if (!name) return;
+    const pkg = S.packages.find(p => p.id === id);
+    if (pkg) pkg.name = name;
+    S.editingPkg = null;
+    saveData();
+    APP.render();
+    APP.toast('Partida actualizada');
+};
+
+APP.cancelEditPkg = function () {
+    S.editingPkg = null;
+    APP.render();
+};
+
+APP.deletePkg = function (id) {
+    const pkg = S.packages.find(p => p.id === id);
+    const itemsInPkg = S.items.filter(it => it.pkgId === id).length;
+    const msg = `¿Eliminar la partida "${pkg?.name}"?` + (itemsInPkg > 0 ? `\n\nEsto también eliminará ${itemsInPkg} ítem${itemsInPkg !== 1 ? 's' : ''} del metrado.` : '');
+    if (!confirm(msg)) return;
+    S.packages = S.packages.filter(p => p.id !== id);
+    S.items = S.items.filter(it => it.pkgId !== id);
+    if (S.selPkg === id) S.selPkg = S.packages[0]?.id || null;
+    saveData();
+    APP.render();
+    APP.toast('Partida eliminada');
+};
+
+// ── CSV EXPORT
+APP.exportCSV = function () {
+    if (S.items.length === 0) { APP.toast('Sin ítems para exportar', 'warn'); return; }
+    const cols = ['PARTIDA', 'MATERIAL', 'PLANO', 'REV', 'TAG UNICO', 'TAG EN PLANO', 'DETALLE', 'DESCRIPCION', 'CANTIDAD', 'METRADO OT', 'UNIDAD', 'NOTAS'];
+    const rows = S.items.map(it => {
+        const pkg = S.packages.find(p => p.id === it.pkgId)?.name || 'SIN PARTIDA';
+        return [pkg, it.material || '', it.plano || '', it.rev || '', it.tagUnico || '', it.tagPlano || '', it.detalle || '', it.desc, isCountable(it.desc) ? it.qty : '', it.metradoOt || '', it.unit, it.notes || ''];
+    });
+    const csv = [cols, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `metrado_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    APP.toast(`${S.items.length} ítems exportados`);
+};
+
+// ── TOAST
+let toastTimer = null;
+APP.toast = function (msg, type) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'toast' + (type === 'warn' ? ' warn' : '');
+    el.style.display = 'block';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2800);
+};
+
+// ── UTILITY
+function esc(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Helper to determine if an item should be primary material (P)
+function isPrimaryMaterial(desc) {
+    const primaryList = [
+        'BARRA',
+        'CABLE DESNUDO 4/0 AWG',
+        'CABLE DESNUDO 2/0 AWG',
+        'CAJA REGISTRO 400 x 400 x 300 mm',
+        'CEMENTO GEM (11.3 kg x bls)',
+        'CONECTOR GK 1429',
+        'PARARRAYO EN POSTE DE 15M',
+        'PARARRAYO EN POSTE DE 3M',
+        'POSTE 15 M',
+        'SOLDADURA GT',
+        'SOLDADURA T 4/0',
+        'SOLDADURA VS',
+        'SOLDADURA X 4/0',
+        'TERMINAL DE COBRE 5/8"X48" MODELO',
+        'TUBERIA PVC SCH 80 Ø1"',
+        'TUBERIA PVC SCH 80 Ø3/4"',
+        'VARILLA COPPERWELD 3/4"X2.4M'
+    ];
+    const up = desc.toUpperCase();
+    return primaryList.some(p => up.includes(p.toUpperCase()));
+}
+
+// Helper to determine if an item should show quantity (CANT. column)
+function isCountable(desc) {
+    const list = [
+        'BARRA',
+        'CABLE DESNUDO 2/0 AWG',
+        'CABLE DESNUDO 4/0 AWG',
+        'CEMENTO GEM',
+        'PARARRAYO EN POSTE DE 15M',
+        'PARARRAYO EN POSTE DE 3M',
+        'POSTE 15 M',
+        'POZO CON CAJA REGISTRO',
+        'POZO SIN CAJA REGISTRO',
+        'SOLDADURA T 4/0',
+        'SOLDADURA VS',
+        'SOLDADURA X 4/0',
+        'TERMINAL DE COBRE 5/8"X48"',
+        'TUBERIA PVC SCH 80 Ø1"',
+        'TUBERIA PVC SCH 80 Ø3/4"'
+    ];
+    const up = desc.toUpperCase();
+    return list.some(p => up.includes(p));
+}
+
+// Helper: generate TAG UNICO from PLANO + TAG EN PLANO
+// PLANO format: P22-DA-2151-07-GL-001 → extract parts[2]+parts[4]+parts[5]+"."+tagPlano
+function generateTagUnico(plano, tagPlano, material) {
+    if (material !== 'P' || !plano || !tagPlano) return '';
+    const parts = plano.split('-');
+    if (parts.length < 6) return '';
+    return parts[2] + parts[4] + parts[5] + '.' + tagPlano;
+}
+
+// Helper: Generate sequential tag from base tag and index
+// Example: getSequentialTag('M04', 0) → 'M04', getSequentialTag('M04', 1) → 'M05', getSequentialTag('M04', 2) → 'M06'
+function getSequentialTag(baseTag, index) {
+    if (!baseTag) return '';
+
+    // Find the numeric part at the end of the tag
+    const match = baseTag.match(/^(.*?)(\d+)$/);
+    if (!match) return baseTag; // If no number found, return as-is
+
+    const prefix = match[1];
+    const number = parseInt(match[2], 10);
+
+    // Calculate new number: base number + index
+    const newNumber = number + index;
+
+    // Format with same number of digits (preserve leading zeros)
+    const originalDigits = match[2].length;
+    const formattedNumber = String(newNumber).padStart(originalDigits, '0');
+
+    return prefix + formattedNumber;
+}
+
+// Helper: Generate example of sequential tags for display in prompt
+// Example: getSequentialTagsExample('M04', 5) → 'M04, M05, M06, M07, M08'
+function getSequentialTagsExample(baseTag, count) {
+    if (!baseTag || count <= 1) return baseTag || '';
+
+    const examples = [];
+    for (let i = 0; i < Math.min(count, 5); i++) { // Show max 5 examples
+        examples.push(getSequentialTag(baseTag, i));
+    }
+
+    let result = examples.join(', ');
+    if (count > 5) {
+        result += ', ...';
+    }
+
+    return result;
+}
+
+// ── CACHE
+APP.clearCache = function () {
+    if (confirm('¿Limpiar todos los ítems de la pantalla para iniciar un nuevo metrado? (Esto no modificará la base de datos)')) {
+        S.items = [];
+        saveData();
+        APP.render();
+        APP.toast('Pantalla restablecida');
+    }
+};
+
+// ── THEME
+APP.toggleTheme = function () {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('epc-theme', isLight ? 'light' : 'dark');
+    const tb = document.getElementById('theme-btn');
+    if (tb) tb.textContent = isLight ? '🌙' : '☀️';
+};
+
+// ── INIT
+// Replace everything from your old theme/loadData block to APP.render() with this:
+(async function initApp() {
+    // 1. Restore theme safely
+    if (localStorage.getItem('epc-theme') === 'light') {
+        document.body.classList.add('light-theme');
+        const tb = document.getElementById('theme-btn');
+        if (tb) tb.textContent = '🌙';
+    }
+
+    // 2. Run your mandatory PLANO prompt if it's a first-time user
+    if (!localStorage.getItem('epc-plano')) {
+        let plano = '';
+        while (true) {
+            plano = (window.prompt(
+                '⚡ BIENVENIDO A EPC TAKEOFF\n\n' +
+                'Ingresa el PLANO del proyecto.\n' +
+                'Formato requerido (6 partes separadas por guión):\n\n' +
+                '  P22-DA-2151-07-GL-001\n\n' +
+                'Este valor se usará para generar el TAG ÚNICO automáticamente.'
+            ) || '').trim().toUpperCase();
+            if (plano && plano.split('-').length >= 6) break;
+            window.alert(
+                '❌ PLANO inválido.\n\n' +
+                'Debe tener al menos 6 partes separadas por guión.\n' +
+                'Ejemplo: P22-DA-2151-07-GL-001'
+            );
+        }
+        S.customPlano = plano;
+        localStorage.setItem('epc-plano', plano);
+    }
+
+    // 3. Inform the user and load local storage items progress
+    APP.toast('Cargando metrado local...');
+    await loadData();
+
+    // 4. Finally, paint the layout now that data is safely in memory
+    APP.render();
+})();
+
+// Keyboard shortcut: Escape closes modal
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('modal-overlay').style.display !== 'none') APP.closeModal();
+});
+    
