@@ -1024,8 +1024,10 @@
                 onclick="APP.toggleTheme()" id="theme-btn" title="Toggle Theme">☀️</button>
             <button class="btn-ghost" style="padding:4px 10px;font-size:11px" onclick="APP.clearCache()"
                 title="Restablecer Datos">🗑️ RESTABLECER</button>
-            <button class="btn-primary" style="padding:4px 10px;font-size:11px;background:#388bfd;color:#fff;border:1px solid #388bfd" onclick="APP.syncToDatabase()"
-                title="Depositar/Añadir los datos de la pantalla a la base de datos">☁️ GUARDAR EN BD</button>
+            <button class="btn-primary"
+                style="padding:4px 10px;font-size:11px;background:#388bfd;color:#fff;border:1px solid #388bfd"
+                onclick="APP.syncToDatabase()" title="Depositar/Añadir los datos de la pantalla a la base de datos">☁️
+                GUARDAR EN BD</button>
             <span class="item-count" id="item-count">0 ítems</span>
             <button class="btn-export" onclick="APP.exportCSV()">↓ EXPORTAR CSV</button>
         </div>
@@ -1390,9 +1392,9 @@
                     },
                     body: JSON.stringify(dbPayload)
                 });
-                
+
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
+
                 APP.toast('¡Guardado en base de datos con éxito!');
             } catch (e) {
                 APP.toast('Error al guardar en el servidor', 'warn');
