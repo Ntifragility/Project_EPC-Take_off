@@ -1323,6 +1323,7 @@
             editingPkg: null, editingPkgName: '',
         };
 
+        const API_BASE_URL = 'https://epc-take-off.onrender.com'; // Change to 'http://127.0.0.1:8000' for local dev
         const APP = {};
 
         // ── Storage
@@ -1385,7 +1386,7 @@
 
             try {
                 APP.toast('Enviando a base de datos...');
-                const response = await fetch('https://epc-take-off.onrender.com/api/takeoff', {
+                const response = await fetch(`${API_BASE_URL}/api/takeoff`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
