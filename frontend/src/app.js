@@ -80,75 +80,150 @@ const SEED_RULES = [
 ];
 
 // DETALLE variants for CABLE DESNUDO 2/0 AWG (r2)
-// These define which "middle" subitems replace TERMINAL + PERNO
-const DETALLE_VARIANTS = {
-    '020': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '151': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '152': [
-        { desc: 'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '153': [
-        { desc: 'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: '1 c / 3 m', otDynamic: '1c/3m' },
-        { desc: 'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 2, unit: 'und', ot: '2 s / 15 m', otDynamic: 'empty' }
-    ],
-    '154': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '155A': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '155B': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
-    ],
-    '157A': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '157B': [
-        { desc: 'SOLDADURA VS', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'CARGA 90', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'MOLDE HSC-2G', qty: 1, unit: 'und', ot: 0.0167 }
-    ],
-    '160': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '161': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
-    ],
-    '166A': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '166B': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '166C': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 },
-        { desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '168': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '170': [
-        { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-        { desc: 'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    'NA': []
+// These define which area-specific "middle" subitems replace TERMINAL + PERNO.
+const DETALLE_VARIANTS_BY_AREA = {
+    'AREA SECA': {
+        '020': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '151': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '152': [
+            { desc: 'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '153': [
+            { desc: 'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: '1 c / 3 m', otDynamic: '1c/3m' },
+            { desc: 'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 2, unit: 'und', ot: '2 s / 15 m', otDynamic: 'empty' }
+        ],
+        '154': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '155A': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '155B': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
+        ],
+        '157A': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '157B': [
+            { desc: 'SOLDADURA VS', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'CARGA 90', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'MOLDE HSC-2G', qty: 1, unit: 'und', ot: 0.0167 }
+        ],
+        '160': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '161': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
+        ],
+        '166A': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '166B': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '166C': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 },
+            { desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '168': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '170': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
+        ],
+        'NA': []
+    },
+    'AREA HUEMDA': {
+        '010/17A': [
+            { desc: 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 3/8"X1" DE ACERO INOXIDABLE 316 CON ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'BARRA DE COBRE CON AGUJEROS 11mm, SIN AISLADORES TIPO CB14412 THERMOWELD O SIMILAR', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '010/17B': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 3/8"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+        ],
+        '008/5': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+        ],
+        '009/8': [
+            { desc: 'RIEL UNISTRUT ACERO GALVANIZADO 41X41X2.7mm. L= 1metro', qty: 1, unit: 'm', ot: 'Var.' },
+            { desc: 'ABRAZADERA UNISTRUT PARA TUBERIA PVC 3/4" ACERO GALVANIZADO', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+        ],
+        '009/9': [
+            { desc: 'ABRAZADERA (T&B OCAL O SIMILAR) INOX DE 1"', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO MAQUINADO 1/4" X 1/4" ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA DE CERRADURA', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø1"', qty: 1, unit: 'm', ot: 'Var.' },
+            { desc: 'TACO DE EXPANSION METALICO, TIPO ACERO 1/4"', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'CONECTOR TIPO BURNDY', qty: 1, unit: 'und', ot: 1 }
+        ],
+        '009/10': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+        ],
+        '010/13': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+        ],
+        '010/14': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+        ],
+        '010/15': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+        ],
+        '009/12B': [
+            { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
+            { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+        ]
+    }
 };
+const DETALLE_VARIANTS = Object.fromEntries(
+    Object.values(DETALLE_VARIANTS_BY_AREA).flatMap(area => Object.entries(area))
+);
+const AUTO_TUBERIA_AREAS = ['AREA SECA'];
+
+function detalleEntriesByArea() {
+    return Object.entries(DETALLE_VARIANTS_BY_AREA).map(([area, variants]) => ({
+        area,
+        entries: Object.entries(variants).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
+    }));
+}
+
+function getDetalleArea(detalleCode) {
+    return Object.entries(DETALLE_VARIANTS_BY_AREA).find(([, variants]) => variants[detalleCode])?.[0] || '';
+}
+
+function shouldAutoManageTuberia(detalleCode) {
+    return AUTO_TUBERIA_AREAS.includes(getDetalleArea(detalleCode));
+}
 
 // Known "middle" descriptions that get swapped by DETALLE variants
 const R2_SWAPPABLE = [
@@ -160,7 +235,78 @@ const R2_SWAPPABLE = [
     'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY',
     'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY',
     'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY',
-    'AISLADOR DE RESINA TIPO BARRIL'
+    'AISLADOR DE RESINA TIPO BARRIL',
+    'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE',
+    'PERNO 3/8"X1" DE ACERO INOXIDABLE 316 CON ARANDELA PLANA Y UNA DE PRESIÓN',
+    'BARRA DE COBRE CON AGUJEROS 11mm, SIN AISLADORES TIPO CB14412 THERMOWELD O SIMILAR',
+    'RIEL UNISTRUT ACERO GALVANIZADO 41X41X2.7mm. L= 1metro',
+    'ABRAZADERA UNISTRUT PARA TUBERIA PVC 3/4" ACERO GALVANIZADO',
+    'TUBERIA PVC SCH 80 Ø1"',
+    'ABRAZADERA (T&B OCAL O SIMILAR) INOX DE 1"',
+    'PERNO MAQUINADO 1/4" X 1/4" ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA DE CERRADURA',
+    'TACO DE EXPANSION METALICO, TIPO ACERO 1/4"',
+    'CONECTOR TIPO BURNDY',
+    'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV',
+    'PERNO 1/2"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
+    'PERNO 3/8"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN'
+];
+
+// Canalizado rules are kept separate from PAT so rules and takeoff items never mix.
+const SEED_CANALIZADO_RULES = [
+    {
+        id: 'can-r001-ext', trigger: 'DETALLE 001/1 - TRAPECIO - AREA EXTERIOR', subitems: [
+            { id: 'can-s001', desc: 'VARILLA ROSCADA DE ACERO GALVANIZADO REVESTIDO DE PVC DE 13mm (1/2")Ø, CAT. N°PBH193–1/2x10, MCA. CROUSE HINDS O SIMILAR.', qty: 2.2, unit: 'und' },
+            { id: 'can-s002', desc: 'TUERCA HEXAGONAL DE ACERO INOXIDABLE DE 1/2"Ø.', qty: 10, unit: 'und' },
+            { id: 'can-s003', desc: 'ARANDELA PLANA DE ACERO INOXIDABLE, DE 1/2"Ø.', qty: 10, unit: 'und' },
+            { id: 'can-s004', desc: 'ARANDELA PRESIÓN DE ACERO INOXIDABLE, DE 1/2"Ø.', qty: 6, unit: 'und' },
+            { id: 'can-s005', desc: 'RIEL PERFORMADO DE ACERO GALVANIZADO CON CUBIERTA EXTERIOR DE PVC, CAT. PBSH1000–10, MCA. CROUSE HINDS O SIMILAR. VER TABLA N°1', qty: 1.7, unit: 'und' },
+            { id: 'can-s006', desc: 'TORNILLO CABEZA HEXAGONAL DE ACERO INOXIDABLE DE 1/2"Ø.', qty: 4, unit: 'und' },
+            { id: 'can-s007', desc: 'TUERCA CON RESORTE DE ACERO GALVANIZADO DE 1/2"Ø, CON CUBIERTA EXTERIOR DE PVC E INTERIOR DE URETANO, CAT. PBB911–1/2 MCA. CROUSE HINDS O SIMILAR.', qty: 4, unit: 'und' },
+            { id: 'can-s008', desc: 'MORDAZA DE ACERO GALVANIZADO PARA BANDEJA (CLEMA) DE 2 1/4", CAT. 9A–1205 MCA. B–LINE O SIMILAR.', qty: 4, unit: 'und' },
+            { id: 'can-s009', desc: 'PLACA DE CONEXIÓN PLANA DE ACERO GALVANIZADO REVESTIDO EN PVC DE 1/2", CAT. PBB914 1/2 MCA. CROUSE HINDS O SIMILAR.', qty: 6, unit: 'und' },
+            { id: 'can-s010', desc: 'TACO DE EXPANSIÓN DE ACERO INOXIDABLE 1/2"Ø. (NOTA 4)', qty: 2, unit: 'und' }
+        ]
+    },
+    {
+        id: 'can-r001-cor', trigger: 'DETALLE 001/1 - TRAPECIO - AREA ALTA CORROSIVA', subitems: [
+            { id: 'can-s011', desc: 'VARILLA ROSCADA DE ACERO INOXIDABLE NORMA AISI 316, DE (1/2")Ø, CAT. N°HTH050 ST, MCA. UNISTRUT O SIMILAR.', qty: 2.2, unit: 'und' },
+            { id: 'can-s012', desc: 'TUERCA HEXAGONAL DE ACERO INOXIDABLE DE 1/2"Ø.', qty: 10, unit: 'und' },
+            { id: 'can-s013', desc: 'ARANDELA PLANA DE ACERO INOXIDABLE, DE 1/2"Ø.', qty: 10, unit: 'und' },
+            { id: 'can-s014', desc: 'ARANDELA PRESIÓN DE ACERO INOXIDABLE, DE 1/2"Ø O 3/8" SEGÚN APLIQUE.', qty: 6, unit: 'und' },
+            { id: 'can-s015', desc: 'RIEL PREFORMADO DE ACERO INOXIDABLE NORMA AISI 316, CAT. P1000T–10ST, MCA. UNISTRUT O SIMILAR. (VER TABLA N°1)', qty: 1.7, unit: 'und' },
+            { id: 'can-s016', desc: 'TORNILLO CABEZA HEXAGONAL DE ACERO INOXIDABLE DE 3/8"Ø.', qty: 4, unit: 'und' },
+            { id: 'can-s017', desc: 'TUERCA CON RESORTE DE ACERO INOXIDABLE NORMA AISI 316 DE 1/2"Ø O 3/8" SEGÚN APLIQUE, CAT. P1010M12 O P1008M10 MCA. UNISTRUT O SIMILAR.', qty: 4, unit: 'und' },
+            { id: 'can-s018', desc: 'MORDAZA DE FIBRA DE VIDRIO PARA BANDEJA (CLEMA) PARA HERRAJE DE 3/8", CAT. 9F–1208 MCA. B–LINE O SIMILAR.', qty: 4, unit: 'und' },
+            { id: 'can-s019', desc: 'PLACA DE CONEXIÓN PLANA DE ACERO INOXIDABLE NORMA AISI 316, 1/2", CAT. P1064ST, MCA. UNISTRUT O SIMILAR.', qty: 6, unit: 'und' },
+            { id: 'can-s020', desc: 'TACO DE EXPANSIÓN DE ACERO INOXIDABLE 1/2"Ø. (NOTA 4)', qty: 2, unit: 'und' }
+        ]
+    },
+    {
+        id: 'can-r002-ext', trigger: 'DETALLE 001/2B - LATERAL - AREA EXTERIOR', subitems: [
+            { id: 'can-s021', desc: 'SOPORTE MURO DOBLE LONG. VER TABLA 1, ACERO INOXIDABLE 316 FABRICADO CON PLACA BASE PARA FIJACIÓN 1/2"Ø, DE UNISTRUT O SIMILAR.', qty: 0.76, unit: 'und' },
+            { id: 'can-s022', desc: 'RIEL PREFORMADO DE ACERO GALVANIZADO CON CUBIERTA EXTERIOR DE PVC, CAT. PBSH1000-10, MCA. CROUSE HINDS O SIMILAR.', qty: 0.5, unit: 'und' },
+            { id: 'can-s023', desc: 'TACO DE EXPANSIÓN 1/2"Ø x 6" LONG. INC. TUERCA Y ARANDELA PLANA, ACERO INOXIDABLE 316 DE HILTI O SIMILAR.', qty: 2, unit: 'und' },
+            { id: 'can-s024', desc: 'ARANDELA PLANA 1/2"Ø, ACERO INOXIDABLE 316.', qty: 4, unit: 'und' },
+            { id: 'can-s025', desc: 'ARANDELA PRESIÓN 1/2" ACERO INOXIDABLE 316.', qty: 2, unit: 'und' },
+            { id: 'can-s026', desc: 'TUERCA CON RESORTE 1/2" PARA RIEL UNISTRUT, ACERO INOXIDABLE 316, REF. P1010, DE UNISTRUT.', qty: 4, unit: 'und' },
+            { id: 'can-s027', desc: 'PERNO CABEZA HEX. 1/2"Ø x 1-3/16 ACERO INOXIDABLE 316.', qty: 2, unit: 'und' },
+            { id: 'can-s028', desc: 'MORDAZA DE FIJACIÓN ESCALERILLA, REF. 9G-1208 DE B-LINE O SIMILAR, ACERO INOXIDABLE 316.', qty: 2, unit: 'und' },
+            { id: 'can-s029', desc: 'PERNO MAQUINADO 1/2"Ø x 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESIÓN), ACERO INOXIDABLE 316.', qty: 2, unit: 'und' }
+        ]
+    },
+    {
+        id: 'can-r002-cor', trigger: 'DETALLE 001/2B - LATERAL - AREA ALTA CORROSIVA', subitems: [
+            { id: 'can-s030', desc: 'SOPORTE MURO DOBLE LONG. VER TABLA 1, ACERO INOXIDABLE 316 FABRICADO CON PLACA BASE PARA FIJACIÓN 1/2Ø, DE UNISTRUT O SIMILAR.', qty: 0.76, unit: 'und' },
+            { id: 'can-s031', desc: 'RIEL PREFORMADO DE ACERO INOXIDABLE NORMA AISI 316, CAT. P1000T-10ST, MCA. UNISTRUT O SIMILAR.', qty: 0.5, unit: 'und' },
+            { id: 'can-s032', desc: 'TACO DE EXPANSIÓN 1/2"Ø x 6" LONG. INC. TUERCA Y ARANDELA PLANA, ACERO INOXIDABLE 316 DE HILTI O SIMILAR.', qty: 2, unit: 'und' },
+            { id: 'can-s033', desc: 'ARANDELA PLANA DE ACERO INOXIDABLE, DE 1/2"Ø.', qty: 2, unit: 'und' },
+            { id: 'can-s034', desc: 'ARANDELA PRESIÓN DE ACERO INOXIDABLE, DE 1/2"Ø.', qty: 4, unit: 'und' },
+            { id: 'can-s035', desc: 'TUERCA CON RESORTE 1/2" PARA RIEL UNISTRUT, ACERO INOXIDABLE 316, REF. P1010, DE UNISTRUT.', qty: 4, unit: 'und' },
+            { id: 'can-s036', desc: 'PERNO CABEZA HEX. 1/2"Ø x 1-3/16 ACERO INOXIDABLE.', qty: 2, unit: 'und' },
+            { id: 'can-s037', desc: 'MORDAZA DE FIJACIÓN ESCALERILLA, REF. 9G-1208 DE B-LINE O SIMILAR, ACERO INOXIDABLE 316.', qty: 2, unit: 'und' },
+            { id: 'can-s038', desc: 'PERNO MAQUINADO 1/2"Ø x 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESIÓN), ACERO INOXIDABLE 316.', qty: 2, unit: 'und' }
+        ]
+    }
 ];
 
 // Apply DETALLE variant: remove old middle items, insert new ones
@@ -192,14 +338,17 @@ function applyDetalleVariant(tagPlano, pkgId, detalleCode) {
     const refItem = siblings[0];
     const cableItem = siblings.find(sib => sib.desc.toUpperCase().includes('CABLE DESNUDO 2/0 AWG'));
     let tuberiaItem = siblings.find(sib => sib.desc.toUpperCase().includes('TUBERIA'));
+    const tuberiaOt = tuberiaItem ? tuberiaItem.metradoOt : '';
     const cableOt = cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0;
 
-    if (detalleCode === '153' || detalleCode === 'NA') {
+    const autoManageTuberia = shouldAutoManageTuberia(detalleCode);
+
+    if (autoManageTuberia && (detalleCode === '153' || detalleCode === 'NA')) {
         if (tuberiaItem) {
             const idx = S.items.indexOf(tuberiaItem);
             if (idx !== -1) S.items.splice(idx, 1);
         }
-    } else {
+    } else if (autoManageTuberia) {
         const tuberiaDesc = detalleCode.startsWith('020') ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"' : 'TUBERIA PVC SCH 80 Ø3/4"';
         if (!tuberiaItem) {
             const insertTubAt = cableItem ? S.items.indexOf(cableItem) + 1 : S.items.indexOf(refItem) + 1;
@@ -217,6 +366,10 @@ function applyDetalleVariant(tagPlano, pkgId, detalleCode) {
             tuberiaItem.desc = tuberiaDesc;
             // Update only detail, preserve exact metradoOt from CSV/UI
         }
+    } else if (tuberiaItem) {
+        const idx = S.items.indexOf(tuberiaItem);
+        if (idx !== -1) S.items.splice(idx, 1);
+        tuberiaItem = null;
     }
 
     // Find where to insert (after TUBERIA, or immediately after cable)
@@ -228,6 +381,8 @@ function applyDetalleVariant(tagPlano, pkgId, detalleCode) {
             finalOt = Math.ceil(cableOt / 3).toString();
         } else if (v.otDynamic === 'empty') {
             finalOt = '';
+        } else if (String(v.ot).toUpperCase() === 'VAR.' && v.desc.toUpperCase().includes('TUBERIA')) {
+            finalOt = tuberiaOt || '';
         }
         return {
             id: uid(), pkgId: refItem.pkgId,
@@ -254,6 +409,7 @@ const SEED_PACKAGES = [{ id: 'p1', name: 'GENERAL' }];
 
 // ── State
 const S = {
+    section: localStorage.getItem('epc-active-section') || 'pat',
     tab: 'takeoff',
     rules: [], packages: [], items: [],
     addMode: 'rule', selPkg: null,
@@ -263,6 +419,7 @@ const S = {
     customDesc: '', customQty: 1, customUnit: 'und',
     customPlano: '', customRev: '',
     collapsedPkgs: new Set(),
+    collapsedRuleAreas: new Set(['AREA SECA', 'AREA HUEMDA']),
     confirmDelete: null, // item id pending confirm
     editingRule: null, // {id,trigger,subitems:[]} in modal
     editingRuleIsNew: false,
@@ -271,12 +428,21 @@ const S = {
 
 const API_BASE_URL = 'https://epc-take-off.onrender.com'; // Change to 'http://127.0.0.1:8000' for local dev
 const APP = {};
+window.APP = APP;
+
+function storageKey(name, section = S.section) {
+    return section === 'pat' ? `epc-${name}` : `epc-canalizado-${name}`;
+}
+
+function seedRulesForSection(section = S.section) {
+    return section === 'canalizado' ? SEED_CANALIZADO_RULES : SEED_RULES;
+}
 
 // ── Storage
 async function loadData() {
     try {
         // Read local items progress from localStorage
-        const localItems = localStorage.getItem('epc-items');
+        const localItems = localStorage.getItem(storageKey('items'));
         S.items = localItems ? JSON.parse(localItems) : [];
     } catch (e) {
         console.error('Error loading local items:', e);
@@ -284,9 +450,9 @@ async function loadData() {
     }
 
     // Fallbacks for structural seed data configurations
-    const r = localStorage.getItem('epc-rules');
-    const p = localStorage.getItem('epc-packages');
-    S.rules = r ? JSON.parse(r) : JSON.parse(JSON.stringify(SEED_RULES));
+    const r = localStorage.getItem(storageKey('rules'));
+    const p = localStorage.getItem(storageKey('packages'));
+    S.rules = r ? JSON.parse(r) : JSON.parse(JSON.stringify(seedRulesForSection()));
     S.packages = p ? JSON.parse(p) : JSON.parse(JSON.stringify(SEED_PACKAGES));
     S.selPkg = S.packages[0]?.id || null;
 
@@ -295,14 +461,33 @@ async function loadData() {
 
 async function saveData() {
     // Keep local metadata configs on localStorage
-    localStorage.setItem('epc-rules', JSON.stringify(S.rules));
-    localStorage.setItem('epc-packages', JSON.stringify(S.packages));
+    localStorage.setItem(storageKey('rules'), JSON.stringify(S.rules));
+    localStorage.setItem(storageKey('packages'), JSON.stringify(S.packages));
     localStorage.setItem('epc-plano', S.customPlano || '');
     localStorage.setItem('epc-rev', S.customRev || '');
-    localStorage.setItem('epc-items', JSON.stringify(S.items));
+    localStorage.setItem(storageKey('items'), JSON.stringify(S.items));
 }
 
+APP.setSection = async function (section) {
+    if (!['pat', 'canalizado'].includes(section) || section === S.section) return;
+    await saveData();
+    S.section = section;
+    localStorage.setItem('epc-active-section', section);
+    S.tab = 'takeoff';
+    S.editingItem = null;
+    S.editingRule = null;
+    S.triggerQuery = '';
+    S.searchQuery = '';
+    S.undoSnapshot = null;
+    await loadData();
+    APP.toast(section === 'canalizado' ? 'Sección Canalizado activa' : 'Sección PAT activa');
+};
+
 APP.syncToDatabase = async function () {
+    if (S.section === 'canalizado') {
+        APP.toast('Define la tabla de Canalizado antes de guardar en BD. Puedes exportar CSV.', 'warn');
+        return;
+    }
     if (S.items.length === 0) {
         APP.toast('No hay datos en la pantalla para guardar', 'warn');
         return;
@@ -362,6 +547,11 @@ APP.undoLastTrigger = function () {
 };
 
 APP.render = function () {
+    document.querySelectorAll('[data-section]').forEach(el => {
+        el.classList.toggle('active', el.dataset.section === S.section);
+    });
+    const sectionName = document.getElementById('active-section-name');
+    if (sectionName) sectionName.textContent = S.section === 'canalizado' ? 'CANALIZADO' : 'PAT';
     // Nav tabs
     ['takeoff', 'rules', 'packages'].forEach(t => {
         const el = document.getElementById('nav-' + t);
@@ -567,7 +757,10 @@ APP.htmlRow = function (it, idx) {
 ${it.ruleId === 'r2'
                 ? `<select class="edit-input edit-input-mono" id="edit-det" onchange="APP.saveItem('${it.id}')" style="width:100%;height:100%;background:rgba(255,255,255,0.05);color:inherit;border:none">
          <option value=""></option>
-         ${Object.keys(DETALLE_VARIANTS).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })).map(k => `<option value="${k}"${it.detalle === k ? ' selected' : ''}>${k}</option>`).join('')}
+         ${detalleEntriesByArea().map(group => `
+           <optgroup label="${esc(group.area)}">
+             ${group.entries.map(([k]) => `<option value="${k}"${it.detalle === k ? ' selected' : ''}>${k}</option>`).join('')}
+           </optgroup>`).join('')}
        </select>`
                 : `<input class="edit-input edit-input-mono" id="edit-det" type="text" value="${esc(it.detalle || '')}" onkeydown="if(event.key==='Enter')APP.saveItem('${it.id}')">`
             }
@@ -632,20 +825,28 @@ APP.htmlRules = function () {
                 // Special handling for CABLE DESNUDO 2/0 AWG rule to show DETALLE variants
                 if (r.id === 'r2') {
                     // Generate table of DETALLE variants
-                    const sortedVariants = Object.entries(DETALLE_VARIANTS).sort((a, b) => {
-                        return a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' });
-                    });
-                    const detalleRows = sortedVariants.map(([detalleCode, items], rowIdx) => {
-                        const bg = (rowIdx % 2 === 0) ? 'background: rgba(255,255,255,0.02);' : 'background: transparent;';
-                        const tuberiaDesc = detalleCode.startsWith('020') ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"' : 'TUBERIA PVC SCH 80 Ø3/4"';
-                        const itemsWithTuberia = detalleCode === '153' ? [...items] : [...items, { desc: tuberiaDesc, ot: 'Var.' }];
+                    const detalleRows = detalleEntriesByArea().map(group => {
+                        let rowIdx = 0;
+                        const isCollapsed = S.collapsedRuleAreas.has(group.area);
+                        const areaHeader = `
+        <tr onclick="APP.toggleRuleArea('${esc(group.area)}')" style="background:rgba(255,166,0,0.08);cursor:pointer;user-select:none">
+          <td colspan="3" style="border-bottom:1px solid var(--b1);padding:8px 10px;color:var(--am);font-family:var(--mo);font-size:12px;font-weight:bold;letter-spacing:0">
+            <span style="display:inline-block;width:16px">${isCollapsed ? '▶' : '▼'}</span>${esc(group.area)}
+            <span style="color:var(--mu);font-size:10px;font-weight:500;margin-left:8px">${group.entries.length} detalle${group.entries.length !== 1 ? 's' : ''}</span>
+          </td>
+        </tr>`;
+                        if (isCollapsed) return areaHeader;
+                        const rows = group.entries.map(([detalleCode, items]) => {
+                            const bg = (rowIdx++ % 2 === 0) ? 'background: rgba(255,255,255,0.02);' : 'background: transparent;';
+                            const tuberiaDesc = detalleCode.startsWith('020') ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"' : 'TUBERIA PVC SCH 80 Ø3/4"';
+                            const itemsWithTuberia = shouldAutoManageTuberia(detalleCode) && detalleCode !== '153' && detalleCode !== 'NA' ? [...items, { desc: tuberiaDesc, ot: 'Var.' }] : [...items];
 
-                        return itemsWithTuberia.map((item, i) => {
-                            const isLast = i === itemsWithTuberia.length - 1;
-                            const bb = isLast ? `border-bottom:2px solid var(--b1);` : `border-bottom:1px solid var(--b2);`;
+                            return itemsWithTuberia.map((item, i) => {
+                                const isLast = i === itemsWithTuberia.length - 1;
+                                const bb = isLast ? `border-bottom:2px solid var(--b1);` : `border-bottom:1px solid var(--b2);`;
 
-                            if (i === 0) {
-                                return `
+                                if (i === 0) {
+                                    return `
         <tr style="${bb} ${bg}">
           <td rowspan="${itemsWithTuberia.length}" style="border-bottom:2px solid var(--b1);border-right:1px solid var(--b1);padding:8px 10px;vertical-align:middle;text-align:center">
              <span style="background:rgba(255,166,0,0.1);border:1px solid var(--am);border-radius:4px;padding:4px 8px;display:inline-block;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold">${detalleCode}</span>
@@ -653,14 +854,16 @@ APP.htmlRules = function () {
           <td style="border-right:1px solid var(--b1);padding:8px 10px;font-family:var(--mo);font-size:11.5px;color:var(--mu);vertical-align:middle;line-height:1.4">${esc(item.desc)}</td>
           <td style="padding:8px 10px;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold;vertical-align:middle;text-align:center">${item.ot}</td>
         </tr>`;
-                            } else {
-                                return `
+                                } else {
+                                    return `
         <tr style="${bb} ${bg}">
           <td style="border-right:1px solid var(--b1);padding:8px 10px;font-family:var(--mo);font-size:11.5px;color:var(--mu);vertical-align:middle;line-height:1.4">${esc(item.desc)}</td>
           <td style="padding:8px 10px;font-family:var(--mo);font-size:11px;color:var(--am);font-weight:bold;vertical-align:middle;text-align:center">${item.ot}</td>
         </tr>`;
-                            }
+                                }
+                            }).join('');
                         }).join('');
+                        return areaHeader + rows;
                     }).join('');
 
                     return `
@@ -954,7 +1157,7 @@ APP.applyTrigger = function (ruleId) {
     // Check if rule is CABLE DESNUDO 4/0 AWG or CABLE DESNUDO 2/0 AWG
     const isCableRule = upTrigger.includes('CABLE DESNUDO 4/0 AWG') || upTrigger.includes('CABLE DESNUDO 2/0 AWG');
 
-    if (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO') || isCableRule) {
+    if (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO') || isCableRule || S.section === 'canalizado') {
         const countInput = window.prompt(`¿Cuántas veces deseas agregar la regla:\n"${rule.trigger}"?`, '1');
         if (countInput === null) return; // Cancelled
         numInstances = parseInt(countInput, 10);
@@ -963,7 +1166,7 @@ APP.applyTrigger = function (ruleId) {
 
     // For SOLDADURA or POZO rules with multiple instances, ask for base TAG EN PLANO
     let baseTagPlano = '';
-    if (numInstances > 1 && (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO') || isCableRule)) {
+    if (numInstances > 1 && (upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO') || isCableRule || S.section === 'canalizado')) {
         baseTagPlano = window.prompt(`Ingresa el TAG EN PLANO BASE (ej: M04) para ${numInstances} instancias de:\n"${rule.trigger}"\n\nSe crearán secuencialmente: ${getSequentialTagsExample('M04', numInstances)}`, '');
         if (baseTagPlano === null) return; // Cancelled
     } else {
@@ -978,7 +1181,9 @@ APP.applyTrigger = function (ruleId) {
     const startsWithC = tagForDetalle.startsWith('C');
     const defaultDet = startsWithC ? '167/G1' : '';
 
-    if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+    if (S.section === 'canalizado') {
+        detalle = rule.trigger.replace(/^DETALLE\s+/i, '').trim();
+    } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
         detalle = '151'; // Standard DETALLE
     } else {
         detalle = window.prompt(`Ingresa el DETALLE para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`, defaultDet);
@@ -1159,6 +1364,12 @@ APP.togglePkg = function (pkgId) {
     else S.collapsedPkgs.add(pkgId);
     const container = document.getElementById('table-container');
     if (container) container.innerHTML = APP.htmlTableGroups();
+};
+
+APP.toggleRuleArea = function (area) {
+    if (S.collapsedRuleAreas.has(area)) S.collapsedRuleAreas.delete(area);
+    else S.collapsedRuleAreas.add(area);
+    APP.render();
 };
 
 APP.editItem = function (id) {
@@ -1573,6 +1784,7 @@ function isPrimaryMaterial(desc) {
 
 // Helper to determine if an item should show quantity (CANT. column)
 function isCountable(desc) {
+    if (S.section === 'canalizado') return true;
     const list = [
         'BARRA',
         'CABLE DESNUDO 2/0 AWG',

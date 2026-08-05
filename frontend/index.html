@@ -15,7 +15,11 @@
     <!-- Header -->
     <div class="header">
         <div style="display:flex;align-items:center;gap:28px">
-            <div class="logo">⚡ EPC TAKEOFF <span>METRADO ELÉCTRICO</span></div>
+            <div class="logo">⚡ EPC TAKEOFF <span id="active-section-name">PAT</span></div>
+            <div class="section-switch" aria-label="Especialidad activa">
+                <button data-section="pat" onclick="APP.setSection('pat')">PAT</button>
+                <button data-section="canalizado" onclick="APP.setSection('canalizado')">CANALIZADO</button>
+            </div>
             <nav class="nav">
                 <button class="nav-tab" id="nav-takeoff" onclick="APP.setTab('takeoff')">METRADO</button>
                 <button class="nav-tab" id="nav-rules" onclick="APP.setTab('rules')">REGLAS</button>

@@ -219,6 +219,33 @@
             letter-spacing: 1px
         }
 
+        .section-switch {
+            display: flex;
+            padding: 3px;
+            gap: 3px;
+            border: 1px solid var(--b2);
+            border-radius: 8px;
+            background: var(--s2);
+        }
+
+        .section-switch button {
+            border: 0;
+            border-radius: 5px;
+            padding: 7px 10px;
+            background: transparent;
+            color: var(--mu);
+            font-family: var(--mo);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .7px;
+            cursor: pointer;
+        }
+
+        .section-switch button.active {
+            background: var(--am);
+            color: #101114;
+        }
+
         .nav {
             display: flex
         }
