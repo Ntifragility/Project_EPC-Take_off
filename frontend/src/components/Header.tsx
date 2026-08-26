@@ -5,13 +5,15 @@ import { isSupabaseConfigured } from '../lib/supabase';
 
 interface HeaderProps {
   onOpenSummaryModal: () => void;
+  onOpenAreaModal: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaModal }) => {
   const {
     section,
     tab,
     theme,
+    activeArea,
     items,
     packages,
     isSyncing,
@@ -30,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal }) => {
 
   return (
     <header className="header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         <div className="logo">
           ⚡ EPC TAKEOFF <span id="active-section-name">{section.toUpperCase()}</span>
         </div>
@@ -51,6 +53,38 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal }) => {
             CANALIZADO
           </button>
         </div>
+
+        {/* Active Area Selector Badge */}
+        <button
+          onClick={onOpenAreaModal}
+          title="Haga clic para alternar entre Área Seca y Área Húmeda"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 12px',
+            fontSize: '12px',
+            fontWeight: 700,
+            borderRadius: '6px',
+            border: '1px solid var(--am)',
+            background: 'rgba(255,166,0,0.12)',
+            color: 'var(--am)',
+            cursor: 'pointer',
+            letterSpacing: '0.5px',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = 'var(--am)';
+            (e.currentTarget as HTMLElement).style.color = '#000';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = 'rgba(255,166,0,0.12)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--am)';
+          }}
+        >
+          <span>{activeArea === 'AREA HUMEDA' ? '💧 ÁREA HÚMEDA' : '🏜️ ÁREA SECA'}</span>
+          <span style={{ fontSize: '10px' }}>▼</span>
+        </button>
 
         <nav className="nav">
           <button

@@ -21,7 +21,8 @@ import {
   isPrimaryMaterial,
   generateTagUnico,
   getSequentialTag,
-  applyDetalleVariant
+  applyDetalleVariant,
+  applyBarraPotDetalleVariant
 } from '../utils/calculations';
 import { parseTakeoffCsv } from '../utils/csvParser';
 
@@ -34,6 +35,7 @@ interface TakeoffContextType {
   section: SectionType;
   tab: TabType;
   theme: 'dark' | 'light';
+  activeArea: 'AREA SECA' | 'AREA HUMEDA';
   items: TakeoffItem[];
   packages: PackageGroup[];
   rules: TakeoffRule[];
@@ -54,6 +56,7 @@ interface TakeoffContextType {
   setSection: (section: SectionType) => void;
   setTab: (tab: TabType) => void;
   toggleTheme: () => void;
+  setActiveArea: (area: 'AREA SECA' | 'AREA HUMEDA') => void;
   setSelPkg: (pkgId: string) => void;
   setAddMode: (mode: AddModeType) => void;
   setSearchQuery: (query: string) => void;
@@ -94,6 +97,14 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('epc-theme') as 'dark' | 'light') || 'dark';
   });
+  const [activeArea, setActiveAreaState] = useState<'AREA SECA' | 'AREA HUMEDA'>(() => {
+    return (localStorage.getItem('epc-active-area') as 'AREA SECA' | 'AREA HUMEDA') || 'AREA SECA';
+  });
+
+  const setActiveArea = (area: 'AREA SECA' | 'AREA HUMEDA') => {
+    setActiveAreaState(area);
+    localStorage.setItem('epc-active-area', area);
+  };
 
   const [items, setItems] = useState<TakeoffItem[]>(() => loadStoredItems(section));
   const [packages, setPackages] = useState<PackageGroup[]>(() => loadStoredPackages(section));
@@ -237,6 +248,12 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Check DETALLE modification on r2
       if (updates.detalle !== undefined && target.ruleId === 'r2') {
         updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, updates.detalle.toUpperCase());
+      } else if (
+        updates.detalle !== undefined &&
+        target.ruleId === 'r8' &&
+        (activeArea === 'AREA HUMEDA' || updates.detalle.toUpperCase().startsWith('010/17'))
+      ) {
+        updated = applyBarraPotDetalleVariant(updated, target.tagPlano, target.pkgId, updates.detalle.toUpperCase());
       } else if (updates.detalle !== undefined && target.ruleId) {
         // Sync DETALLE text to group siblings
         updated = updated.map(sib => {
@@ -402,6 +419,13 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
       uniqueTags.forEach(tag => {
         combined = applyDetalleVariant(combined, tag, pkgId, detalleCode);
+      });
+    }
+
+    if (rule.id === 'r8' && (activeArea === 'AREA HUMEDA' || detalleCode.startsWith('010/17'))) {
+      const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
+      uniqueTags.forEach(tag => {
+        combined = applyBarraPotDetalleVariant(combined, tag, pkgId, detalleCode);
       });
     }
 
@@ -594,6 +618,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         section,
         tab,
         theme,
+        activeArea,
         items,
         packages,
         rules,
@@ -613,6 +638,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         setSection,
         setTab,
         toggleTheme,
+        setActiveArea,
         setSelPkg,
         setAddMode,
         setSearchQuery,

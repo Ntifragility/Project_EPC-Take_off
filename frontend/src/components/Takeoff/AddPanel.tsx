@@ -11,6 +11,7 @@ export const AddPanel: React.FC = () => {
     customPlano,
     customRev,
     section,
+    activeArea,
     setSelPkg,
     setAddMode,
     setCustomPlano,
@@ -92,8 +93,30 @@ export const AddPanel: React.FC = () => {
 
     if (section === 'canalizado') {
       detalle = rule.trigger.replace(/^DETALLE\s+/i, '').trim();
+    } else if (upTrigger.includes('BARRA POT')) {
+      if (activeArea === 'AREA HUMEDA') {
+        const detInput = window.prompt(
+          `⚡ SELECCIONAR DETALLE PARA BARRA POT (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17A (Barra + 4 Pernos + 2 Soportes)\n- 010/17B (Barra + 2 Soportes)\n- 010/17C (Barra + 2 Soportes)\n- 010/17D (Barra CON AISLADORES + 4 Pernos + 2 Soportes)`,
+          '010/17A'
+        );
+        if (detInput === null) return;
+        detalle = detInput.trim().toUpperCase() || '010/17A';
+      } else {
+        const detInput = window.prompt(`Ingresa el DETALLE para BARRA POT (ÁREA SECA):`, '166');
+        if (detInput === null) return;
+        detalle = detInput.trim();
+      }
     } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
-      detalle = '151'; // Standard DETALLE
+      if (activeArea === 'AREA HUMEDA') {
+        const detInput = window.prompt(
+          `Ingresa el DETALLE para CABLE DESNUDO 2/0 AWG (ÁREA HÚMEDA):\n(Ej: 010/17B, 008/5, 009/8, 009/9, 010/13, 010/14, 010/15...)`,
+          '010/17B'
+        );
+        if (detInput === null) return;
+        detalle = detInput.trim().toUpperCase() || '010/17B';
+      } else {
+        detalle = '151'; // Standard DETALLE for Area Seca
+      }
     } else {
       const detInput = window.prompt(
         `Ingresa el DETALLE para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`,

@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useTakeoff } from '../../context/TakeoffContext';
 import { TakeoffRule } from '../../types/takeoff';
 import { RuleEditorModal } from './RuleEditorModal';
-import { detalleEntriesByArea, shouldAutoManageTuberia } from '../../data/detalleVariants';
+import {
+  detalleEntriesByArea,
+  shouldAutoManageTuberia,
+  BARRA_POT_VARIANTS_HUMEDA
+} from '../../data/detalleVariants';
 
 export const RulesView: React.FC = () => {
   const {
@@ -306,6 +310,198 @@ export const RulesView: React.FC = () => {
                     </div>
                   </div>
 
+                  <div className="rule-card-acts">
+                    <button className="btn-ghost btn-sm" onClick={() => handleOpenEdit(r)}>
+                      EDITAR
+                    </button>
+                    <button
+                      className="btn-ghost btn-sm btn-danger"
+                      onClick={() => deleteRule(r.id)}
+                    >
+                      ELIMINAR
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // Special card for BARRA POT (r8) with dynamic variants for ÁREA HÚMEDA
+          if (r.id === 'r8') {
+            return (
+              <div className="rule-card" key={r.id}>
+                <div style={{ marginBottom: '14px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '8px'
+                    }}
+                  >
+                    <div className="rule-trigger">⚡ {r.trigger}</div>
+                    <span
+                      style={{
+                        background: 'rgba(255,166,0,0.12)',
+                        border: '1px solid var(--am)',
+                        color: 'var(--am)',
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontWeight: 700
+                      }}
+                    >
+                      💧 MATRIZ ÁREA HÚMEDA (010/17A - 010/17D)
+                    </span>
+                  </div>
+
+                  {/* Detalle Variants Table for BARRA POT */}
+                  <div
+                    style={{
+                      border: '1px solid var(--b1)',
+                      borderRadius: '6px',
+                      overflowX: 'auto',
+                      background: 'var(--s2)'
+                    }}
+                  >
+                    <table
+                      style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        fontSize: '11.5px',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <thead>
+                        <tr
+                          style={{
+                            background: 'var(--s1)',
+                            borderBottom: '2px solid var(--b1)',
+                            color: 'var(--am)'
+                          }}
+                        >
+                          <th style={{ padding: '8px 10px', width: '90px' }}>DETALLE</th>
+                          <th style={{ padding: '8px 10px', width: '90px' }}>MAT / TIPO</th>
+                          <th style={{ padding: '8px 10px', width: '70px', textAlign: 'right' }}>CANT.</th>
+                          <th style={{ padding: '8px 10px', width: '90px' }}>UNID.</th>
+                          <th style={{ padding: '8px 10px' }}>DESCRIPCION CORTA</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(BARRA_POT_VARIANTS_HUMEDA).map(([detCode, vItems]) =>
+                          vItems.map((item, i) => {
+                            const isLast = i === vItems.length - 1;
+                            const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
+                            const isBarra = item.material === 'P';
+
+                            return (
+                              <tr
+                                key={`${detCode}-${i}`}
+                                style={{
+                                  borderBottom: bb,
+                                  background: isBarra ? 'rgba(255,166,0,0.03)' : 'transparent'
+                                }}
+                              >
+                                {i === 0 && (
+                                  <td
+                                    rowSpan={vItems.length}
+                                    style={{
+                                      borderBottom: '2px solid var(--b1)',
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        background: 'rgba(255,166,0,0.1)',
+                                        border: '1px solid var(--am)',
+                                        borderRadius: '4px',
+                                        padding: '4px 8px',
+                                        display: 'inline-block',
+                                        fontFamily: 'var(--mo)',
+                                        fontSize: '11px',
+                                        color: 'var(--am)',
+                                        fontWeight: 'bold'
+                                      }}
+                                    >
+                                      {detCode}
+                                    </span>
+                                  </td>
+                                )}
+                                <td
+                                  style={{
+                                    borderRight: '1px solid var(--b1)',
+                                    padding: '8px 10px',
+                                    verticalAlign: 'middle'
+                                  }}
+                                >
+                                  <span
+                                    className={`mat-tag ${item.material === 'P' ? 'mat-p' : 'mat-c'}`}
+                                  >
+                                    {item.material}
+                                  </span>
+                                  <span
+                                    style={{
+                                      marginLeft: '6px',
+                                      fontSize: '11px',
+                                      color: 'var(--mu)'
+                                    }}
+                                  >
+                                    {isBarra ? 'BARRA' : item.desc.includes('PERNO') ? 'PERNO' : 'SOPORTE'}
+                                  </span>
+                                </td>
+                                <td
+                                  style={{
+                                    borderRight: '1px solid var(--b1)',
+                                    padding: '8px 10px',
+                                    textAlign: 'right',
+                                    fontFamily: 'var(--mo)',
+                                    color: 'var(--text)',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  {item.qty}
+                                </td>
+                                <td
+                                  style={{
+                                    borderRight: '1px solid var(--b1)',
+                                    padding: '8px 10px',
+                                    color: 'var(--mu)',
+                                    fontFamily: 'var(--mo)',
+                                    fontSize: '11px'
+                                  }}
+                                >
+                                  {item.unit}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: '8px 10px',
+                                    fontFamily: 'var(--mo)',
+                                    fontSize: '11.5px',
+                                    color: isBarra ? 'var(--text)' : 'var(--mu)',
+                                    fontWeight: isBarra ? 600 : 400,
+                                    lineHeight: 1.4
+                                  }}
+                                >
+                                  {item.desc}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="rule-card-row">
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
+                      En <strong>ÁREA SECA</strong> se utiliza la configuración estándar (1 BARRA POT convencional). En <strong>ÁREA HÚMEDA</strong> se generan automáticamente los accesorios correspondientes según el Detalle (010/17A, B, C, D).
+                    </div>
+                  </div>
                   <div className="rule-card-acts">
                     <button className="btn-ghost btn-sm" onClick={() => handleOpenEdit(r)}>
                       EDITAR

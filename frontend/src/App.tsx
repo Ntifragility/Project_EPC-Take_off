@@ -6,10 +6,19 @@ import { TakeoffView } from './components/Takeoff/TakeoffView';
 import { RulesView } from './components/Rules/RulesView';
 import { PackagesView } from './components/Packages/PackagesView';
 import { MaterialSummaryModal } from './components/Modals/MaterialSummaryModal';
+import { AreaSelectModal } from './components/Modals/AreaSelectModal';
 
 const AppContent: React.FC = () => {
   const { tab, customPlano, setCustomPlano } = useTakeoff();
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+  const [areaModalOpen, setAreaModalOpen] = useState(false);
+
+  // When opening the site, if no active area is chosen yet, open the 2-card selector modal
+  useEffect(() => {
+    if (!localStorage.getItem('epc-active-area')) {
+      setAreaModalOpen(true);
+    }
+  }, []);
 
   // Initial Plano prompt for first-time session
   useEffect(() => {
@@ -43,7 +52,10 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      <Header onOpenSummaryModal={() => setSummaryModalOpen(true)} />
+      <Header
+        onOpenSummaryModal={() => setSummaryModalOpen(true)}
+        onOpenAreaModal={() => setAreaModalOpen(true)}
+      />
 
       <main className="main" id="main-content">
         {tab === 'takeoff' && <TakeoffView />}
@@ -54,6 +66,12 @@ const AppContent: React.FC = () => {
       <MaterialSummaryModal
         isOpen={summaryModalOpen}
         onClose={() => setSummaryModalOpen(false)}
+      />
+
+      <AreaSelectModal
+        isOpen={areaModalOpen}
+        onClose={() => setAreaModalOpen(false)}
+        canClose={true}
       />
 
       <Toast />
@@ -70,4 +88,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-

@@ -1,5 +1,10 @@
 import { TakeoffItem, MaterialType } from '../types/takeoff';
-import { DETALLE_VARIANTS, R2_SWAPPABLE, shouldAutoManageTuberia } from '../data/detalleVariants';
+import {
+  DETALLE_VARIANTS,
+  R2_SWAPPABLE,
+  shouldAutoManageTuberia,
+  BARRA_POT_VARIANTS_HUMEDA
+} from '../data/detalleVariants';
 
 export function uid(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -204,3 +209,48 @@ export function applyDetalleVariant(
   return currentItems;
 }
 
+// Applies DETALLE variant substitutions for BARRA POT (r8) in AREA HUMEDA
+export function applyBarraPotDetalleVariant(
+  items: TakeoffItem[],
+  tagPlano: string,
+  pkgId: string,
+  detalleCode: string
+): TakeoffItem[] {
+  const variant = BARRA_POT_VARIANTS_HUMEDA[detalleCode];
+  if (!variant) return items;
+
+  const currentItems = [...items];
+  const siblings = currentItems.filter(
+    it => it.ruleId === 'r8' && it.tagPlano === tagPlano && it.pkgId === pkgId
+  );
+  if (siblings.length === 0) return currentItems;
+
+  const firstIdx = currentItems.indexOf(siblings[0]);
+  const refItem = siblings[0];
+
+  // Remove existing siblings for this group
+  siblings.forEach(it => {
+    const idx = currentItems.indexOf(it);
+    if (idx !== -1) currentItems.splice(idx, 1);
+  });
+
+  const newItems: TakeoffItem[] = variant.map(v => ({
+    id: uid(),
+    pkgId: refItem.pkgId,
+    desc: v.desc,
+    qty: v.qty,
+    unit: v.unit,
+    notes: '',
+    ruleId: 'r8',
+    material: v.material,
+    plano: refItem.plano,
+    rev: refItem.rev,
+    tagUnico: generateTagUnico(refItem.plano, tagPlano, v.material),
+    tagPlano: tagPlano,
+    detalle: detalleCode,
+    metradoOt: v.metradoOt
+  }));
+
+  currentItems.splice(firstIdx, 0, ...newItems);
+  return currentItems;
+}

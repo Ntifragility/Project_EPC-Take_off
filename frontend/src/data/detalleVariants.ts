@@ -146,6 +146,96 @@ export function shouldAutoManageTuberia(detalleCode: string): boolean {
   return AUTO_TUBERIA_AREAS.includes(getDetalleArea(detalleCode));
 }
 
+// ── BARRA POT (ÁREA HÚMEDA) Variants
+export interface BarraPotVariantItem {
+  desc: string;
+  qty: number;
+  unit: string;
+  material: 'P' | 'C';
+  metradoOt: string;
+}
+
+export const BARRA_POT_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = {
+  '010/17A': [
+    {
+      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, SIN AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
+      qty: 1,
+      unit: 'u / cjto',
+      material: 'P',
+      metradoOt: '1'
+    },
+    {
+      desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
+      qty: 4,
+      unit: 'u / cjto',
+      material: 'C',
+      metradoOt: '4'
+    },
+    {
+      desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
+      qty: 2,
+      unit: 'u / soporte',
+      material: 'C',
+      metradoOt: '2'
+    }
+  ],
+  '010/17B': [
+    {
+      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, SIN AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
+      qty: 1,
+      unit: 'u / cjto',
+      material: 'P',
+      metradoOt: '1'
+    },
+    {
+      desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
+      qty: 2,
+      unit: 'u / soporte',
+      material: 'C',
+      metradoOt: '2'
+    }
+  ],
+  '010/17C': [
+    {
+      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, SIN AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
+      qty: 1,
+      unit: 'u / cjto',
+      material: 'P',
+      metradoOt: '1'
+    },
+    {
+      desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
+      qty: 2,
+      unit: 'u / soporte',
+      material: 'C',
+      metradoOt: '2'
+    }
+  ],
+  '010/17D': [
+    {
+      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, CON AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
+      qty: 1,
+      unit: 'u / cjto',
+      material: 'P',
+      metradoOt: '1'
+    },
+    {
+      desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
+      qty: 4,
+      unit: 'u / cjto',
+      material: 'C',
+      metradoOt: '4'
+    },
+    {
+      desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
+      qty: 2,
+      unit: 'u / soporte',
+      material: 'C',
+      metradoOt: '2'
+    }
+  ]
+};
+
 export const R2_SWAPPABLE: string[] = [
   'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV',
   'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
@@ -172,4 +262,3 @@ export const R2_SWAPPABLE: string[] = [
   'PERNO 1/2"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
   'PERNO 3/8"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN'
 ];
-
