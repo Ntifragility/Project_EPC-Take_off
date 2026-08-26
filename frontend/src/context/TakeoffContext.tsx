@@ -248,12 +248,6 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Check DETALLE modification on r2
       if (updates.detalle !== undefined && target.ruleId === 'r2') {
         updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, updates.detalle.toUpperCase());
-      } else if (
-        updates.detalle !== undefined &&
-        target.ruleId === 'r8' &&
-        (activeArea === 'AREA HUMEDA' || updates.detalle.toUpperCase().startsWith('010/17'))
-      ) {
-        updated = applyBarraPotDetalleVariant(updated, target.tagPlano, target.pkgId, updates.detalle.toUpperCase());
       } else if (updates.detalle !== undefined && target.ruleId) {
         // Sync DETALLE text to group siblings
         updated = updated.map(sib => {

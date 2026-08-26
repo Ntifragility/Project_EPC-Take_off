@@ -158,37 +158,6 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
                 </optgroup>
               ))}
             </select>
-          ) : item.ruleId === 'r8' ? (
-            <select
-              className="edit-input edit-input-mono"
-              id="edit-det"
-              value={detalle}
-              onChange={e => {
-                setDetalle(e.target.value);
-                updateItem(item.id, { detalle: e.target.value });
-              }}
-              style={{
-                width: '100%',
-                height: '100%',
-                background: 'rgba(255,255,255,0.05)',
-                color: 'inherit',
-                border: 'none'
-              }}
-            >
-              <option value=""></option>
-              <optgroup label="ÁREA HÚMEDA">
-                <option value="010/17A">010/17A (Barra + 4 Pernos + 2 Soportes)</option>
-                <option value="010/17B">010/17B (Barra + 2 Soportes)</option>
-                <option value="010/17C">010/17C (Barra + 2 Soportes)</option>
-                <option value="010/17D">010/17D (Barra con Aisladores + 4 Pernos + 2 Soportes)</option>
-              </optgroup>
-              <optgroup label="ÁREA SECA">
-                <option value="166">166</option>
-                <option value="166A">166A</option>
-                <option value="166B">166B</option>
-                <option value="166C">166C</option>
-              </optgroup>
-            </select>
           ) : (
             <input
               className="edit-input edit-input-mono"
