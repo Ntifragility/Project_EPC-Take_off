@@ -59,7 +59,7 @@ export const PackagesView: React.FC = () => {
         ) : (
           packages.map(p => (
             <div className="pkg-item" key={p.id}>
-              <span className="pkg-item-icon">📁</span>
+              <span className="pkg-item-icon" style={{ fontSize: '11px', color: 'var(--mu)', fontWeight: 600 }}>P</span>
               {editingPkgId === p.id ? (
                 <div className="pkg-edit-row">
                   <input

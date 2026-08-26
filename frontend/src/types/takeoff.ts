@@ -42,10 +42,11 @@ export interface PackageGroup {
 
 export interface DetalleVariantItem {
   desc: string;
-  qty: number;
+  qty: number | string;
   unit: string;
   ot?: number | string;
   otDynamic?: '1c/3m' | 'empty' | string;
+  material?: MaterialType;
 }
 
 export interface SupabaseTakeoffRecord {

@@ -1,5 +1,27 @@
+import * as XLSX from 'xlsx';
 import { TakeoffItem, TakeoffRule } from '../types/takeoff';
-import { uid, isPrimaryMaterial, generateTagUnico, applyDetalleVariant } from './calculations';
+import {
+  uid,
+  isPrimaryMaterial,
+  generateTagUnico,
+  applyDetalleVariant,
+  applyBarraPotDetalleVariant,
+  assignTagUnicoSuffixes
+} from './calculations';
+
+export async function convertSpreadsheetToCsvText(file: File): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  if (['xlsx', 'xlsb', 'xls', 'xlsm'].includes(ext)) {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) return '';
+    const worksheet = workbook.Sheets[sheetName];
+    return XLSX.utils.sheet_to_csv(worksheet, { FS: ';' });
+  } else {
+    return await file.text();
+  }
+}
 
 export function parseTakeoffCsv(
   csvText: string,
@@ -7,7 +29,8 @@ export function parseTakeoffCsv(
   pkgId: string,
   customPlano: string,
   customRev: string,
-  existingItems: TakeoffItem[]
+  existingItems: TakeoffItem[],
+  activeArea = 'AREA HUMEDA'
 ): { newItems: TakeoffItem[]; addedCount: number } {
   const rows = csvText.split(/\r?\n/).filter(r => r.trim());
   if (rows.length < 2) {
@@ -19,15 +42,26 @@ export function parseTakeoffCsv(
   const planoVal = (customPlano || '').toUpperCase();
   const revVal = (customRev || '').toUpperCase();
 
-  // Skip header
-  for (let i = 1; i < rows.length; i++) {
-    const parts = rows[i].split(/[,;]/);
+  // Detect delimiter from first row: semicolon, tab, or comma
+  const firstRow = rows[0];
+  let delimiter = ',';
+  if (firstRow.includes(';') && (firstRow.split(';').length >= firstRow.split(',').length)) {
+    delimiter = ';';
+  } else if (firstRow.includes('\t')) {
+    delimiter = '\t';
+  }
+
+  // Skip header (or detect if first row is header by checking if column 2 is not a number)
+  const startIdx = isNaN(parseFloat(rows[0].split(delimiter)[1]?.trim().replace(',', '.'))) ? 1 : 0;
+
+  for (let i = startIdx; i < rows.length; i++) {
+    const parts = rows[i].split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ''));
     if (parts.length < 2) continue;
 
     const tagRaw = parts[0].trim();
-    const lengthRaw = parseFloat(parts[1].trim());
-    const tuberiaRaw = parts.length > 2 ? parts[2].trim() : '';
-    const detalleRaw = parts.length > 3 ? parts[3].trim() : '';
+    const lengthRaw = parseFloat(parts[1].trim().replace(',', '.'));
+    const tuberiaRaw = parts.length > 2 ? parts[2].trim().replace(',', '.') : '';
+    const detalleRaw = parts.length > 3 ? parts[3].trim().toUpperCase() : '';
     if (!tagRaw || isNaN(lengthRaw)) continue;
 
     let ruleName: string | null = null;
@@ -74,7 +108,12 @@ export function parseTakeoffCsv(
         metradoOt = String(lengthRaw);
       }
 
-      const rowDetalle = detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : (tagRaw.startsWith('BP') ? '166' : (tagRaw.startsWith('BI') ? '166C' : '')));
+      const rowDetalle = detalleRaw || (
+        tagRaw.startsWith('C') ? '167/G1' :
+        (tagRaw.startsWith('M') ? (activeArea === 'AREA HUMEDA' ? 'ND' : '151') :
+        (tagRaw.startsWith('BP') ? '166' :
+        (tagRaw.startsWith('BI') ? '166C' : '')))
+      );
 
       return {
         id: uid(),
@@ -94,34 +133,26 @@ export function parseTakeoffCsv(
       };
     });
 
-    // Add .01, .02 suffixes when 2+ P items share the same tagPlano
-    const pItems = batch.filter(it => it.material === 'P' && it.tagUnico);
-    const tagGroups: Record<string, TakeoffItem[]> = {};
-    pItems.forEach(it => {
-      if (!tagGroups[it.tagPlano]) tagGroups[it.tagPlano] = [];
-      tagGroups[it.tagPlano].push(it);
-    });
-
-    Object.values(tagGroups).forEach(group => {
-      if (group.length > 1) {
-        group.forEach((it, i) => {
-          it.tagUnico += '.' + String(i + 1).padStart(2, '0');
-        });
-      }
-    });
-
     itemsResult.push(...batch);
 
-    if (rule.id === 'r2') {
-      const rowDetalle = detalleRaw || (tagRaw.startsWith('C') ? '167/G1' : '');
+    if (rule.id === 'r1' || rule.id === 'r2') {
+      const rowDetalle = detalleRaw || (
+        tagRaw.startsWith('C') ? '167/G1' :
+        (tagRaw.startsWith('M') ? (activeArea === 'AREA HUMEDA' ? 'ND' : '151') : '')
+      );
       if (rowDetalle) {
         itemsResult = applyDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase());
+      }
+    } else if (rule.id === 'r8' || rule.id === 'r9') {
+      const rowDetalle = detalleRaw || (rule.id === 'r8' ? '010/17A' : '010/17C');
+      if (rowDetalle && (activeArea === 'AREA HUMEDA' || rowDetalle.startsWith('010/17'))) {
+        itemsResult = applyBarraPotDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase(), 1);
       }
     }
 
     addedCount += batch.length;
   }
 
-  return { newItems: itemsResult, addedCount };
+  return { newItems: assignTagUnicoSuffixes(itemsResult), addedCount };
 }
 

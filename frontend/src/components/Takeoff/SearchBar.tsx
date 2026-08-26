@@ -14,13 +14,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({ filteredCount }) => {
         className="search-input"
         id="search-input"
         type="text"
-        placeholder="🔍  Buscar por TAG EN PLANO en el metrado..."
+        placeholder="Buscar por TAG EN PLANO en el metrado..."
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
       />
       {searchQuery && (
         <button className="btn-ghost btn-sm" onClick={() => setSearchQuery('')}>
-          ✕ LIMPIAR
+          LIMPIAR
         </button>
       )}
       <div style={{ flex: 1 }} />
@@ -30,7 +30,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ filteredCount }) => {
           title="Deshacer la última regla aplicada"
           onClick={undoLastAction}
         >
-          ↩ DESHACER ADICIÓN
+          DESHACER ADICIÓN
         </button>
       )}
       <span className="item-count">

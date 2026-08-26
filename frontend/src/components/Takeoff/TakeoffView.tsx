@@ -49,13 +49,13 @@ export const TakeoffView: React.FC = () => {
       <div id="table-container">
         {items.length === 0 ? (
           <div className="empty">
-            <div className="empty-icon">⚡</div>
+            <div className="empty-icon">—</div>
             <div className="empty-title">Sin ítems aún</div>
             <div className="empty-sub">Usa una regla o agrega ítems manualmente</div>
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="empty">
-            <div className="empty-icon">🔍</div>
+            <div className="empty-icon">—</div>
             <div className="empty-title">Sin resultados</div>
             <div className="empty-sub">Prueba con otra búsqueda o limpia los filtros</div>
           </div>

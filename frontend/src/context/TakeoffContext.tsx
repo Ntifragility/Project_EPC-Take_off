@@ -5,7 +5,8 @@ import {
   PackageGroup,
   SectionType,
   TabType,
-  AddModeType
+  AddModeType,
+  MaterialType
 } from '../types/takeoff';
 import {
   loadStoredItems,
@@ -22,8 +23,10 @@ import {
   generateTagUnico,
   getSequentialTag,
   applyDetalleVariant,
-  applyBarraPotDetalleVariant
+  applyBarraPotDetalleVariant,
+  assignTagUnicoSuffixes
 } from '../utils/calculations';
+import { getCalculatedVariantItems } from '../data/detalleVariants';
 import { parseTakeoffCsv } from '../utils/csvParser';
 
 interface ToastState {
@@ -70,7 +73,14 @@ interface TakeoffContextType {
   addCustomItem: (desc: string, qty: number, unit: string) => void;
   updateItem: (id: string, updates: Partial<TakeoffItem>) => void;
   deleteItem: (id: string) => void;
-  applyTriggerRule: (ruleId: string, count: number, baseTag: string, detalle: string) => void;
+  applyTriggerRule: (
+    ruleId: string,
+    count: number,
+    baseTag: string,
+    detalle: string,
+    numSoportes?: number,
+    numJumpers?: number
+  ) => void;
   handleCsvUpload: (csvText: string) => void;
   syncGlobalContext: () => void;
   syncToDatabase: () => Promise<void>;
@@ -269,14 +279,17 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
           const appliedPlano = newPlano;
           const appliedRev = newRev;
           const appliedDetalle = newDetalle;
+          const appliedMaterial = (updates.material || it.material) as MaterialType;
+          // Universal: TAG UNICO is automatically updated whenever tagPlano, plano or material changes!
           const appliedTagUnico =
-            updates.tagUnico !== undefined
-              ? updates.tagUnico
-              : generateTagUnico(appliedPlano, appliedTagPlano, updates.material || it.material);
+            appliedMaterial === 'P'
+              ? generateTagUnico(appliedPlano, appliedTagPlano, 'P')
+              : '';
 
           return {
             ...it,
             ...updates,
+            material: appliedMaterial,
             tagPlano: appliedTagPlano,
             plano: appliedPlano,
             rev: appliedRev,
@@ -296,11 +309,10 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
           const companionPlano = planoChanged ? newPlano : it.plano;
           const companionRev = newRev;
           const companionDetalle = detalleChanged ? newDetalle : it.detalle;
-          const companionTagUnico = generateTagUnico(
-            companionPlano,
-            companionTagPlano,
-            it.material
-          );
+          const companionTagUnico =
+            it.material === 'P'
+              ? generateTagUnico(companionPlano, companionTagPlano, 'P')
+              : '';
 
           return {
             ...it,
@@ -320,7 +332,9 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       // Check DETALLE modification on r2
       if (updates.detalle !== undefined && target.ruleId === 'r2') {
-        updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, target.detalle);
+        const nSop = (updates as any).numSoportes || 1;
+        const nJmp = (updates as any).numJumpers || 1;
+        updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, target.detalle, nSop, nJmp);
       }
 
       // Check CABLE DESNUDO 4/0 AWG changes (update CINTA AMARILLA and TIERRA DE CULTIVO)
@@ -334,7 +348,6 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
         updated = updated.map(sib => {
           if (
-            sib.ruleId === target.ruleId &&
             sib.tagPlano === target.tagPlano &&
             sib.pkgId === target.pkgId
           ) {
@@ -372,9 +385,8 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         });
       }
 
-      return updated;
+      return assignTagUnicoSuffixes(updated);
     });
-
     setEditingItemId(null);
     showToast('Ítem actualizado', 'info');
   };
@@ -388,7 +400,9 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     ruleId: string,
     count: number,
     baseTag: string,
-    detalleCode: string
+    detalleCode: string,
+    numSoportes = 1,
+    numJumpers = 1
   ) => {
     const rule = rules.find(r => r.id === ruleId);
     if (!rule) return;
@@ -406,83 +420,101 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     for (let i = 0; i < count; i++) {
       const currentTagPlano = count > 1 && baseTag ? getSequentialTag(baseTag, i) : baseTag;
 
-      rule.subitems.forEach(s => {
-        const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
-        let metradoOt = '';
-        const descUp = s.desc.toUpperCase();
+      if (rule.id === 'r2' && activeArea === 'AREA HUMEDA') {
+        const variantItems = getCalculatedVariantItems(
+          detalleCode,
+          'AREA HUMEDA',
+          numSoportes,
+          numJumpers
+        );
+        variantItems.forEach(v => {
+          const isVar = v.qty === 'Var.' || String(v.ot).toUpperCase() === 'VAR.';
+          const mat = v.material || (isPrimaryMaterial(v.desc) ? 'P' : 'C');
+          const finalQty = typeof v.qty === 'number' ? v.qty : 1;
+          const finalOt = isVar ? '' : (v.ot !== undefined ? String(v.ot) : '');
 
-        if (isPozoTrigger && descUp.includes('TIERRA DE CULTIVO')) {
-          metradoOt = '4.71';
-        } else if (isPozoTrigger && descUp.includes('CEMENTO GEM')) {
-          metradoOt = '22.6';
-        } else if (isSoldaduraPozo) {
-          metradoOt = '1';
-        } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
-          if (
-            descUp.includes('TERMINAL') ||
-            descUp.includes('PERNO') ||
-            descUp.includes('SOLDADURA') ||
-            descUp.includes('CARGA') ||
-            descUp.includes('TUBERIA')
-          ) {
-            metradoOt = '1';
-          }
-        }
-
-        if (descUp.includes('MOLDE')) {
-          metradoOt = '0.0167';
-        }
-
-        newItems.push({
-          id: uid(),
-          pkgId,
-          desc: s.desc,
-          qty: s.qty,
-          unit: s.unit,
-          notes: '',
-          ruleId: rule.id,
-          material: mat,
-          plano: planoVal,
-          rev: revVal,
-          tagUnico: generateTagUnico(planoVal, currentTagPlano, mat),
-          tagPlano: currentTagPlano,
-          detalle: detalleCode,
-          metradoOt
+          newItems.push({
+            id: uid(),
+            pkgId,
+            desc: v.desc,
+            qty: finalQty,
+            unit: v.unit,
+            notes: '',
+            ruleId: rule.id,
+            material: mat,
+            plano: planoVal,
+            rev: revVal,
+            tagUnico: generateTagUnico(planoVal, currentTagPlano, mat),
+            tagPlano: currentTagPlano,
+            detalle: detalleCode,
+            metradoOt: finalOt
+          });
         });
-      });
-    }
+      } else {
+        rule.subitems.forEach(s => {
+          const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
+          let metradoOt = '';
+          const descUp = s.desc.toUpperCase();
 
-    // Add .01, .02 suffixes if 2+ P items share same tagPlano
-    const pItems = newItems.filter(it => it.material === 'P' && it.tagUnico);
-    const tagGroups: Record<string, TakeoffItem[]> = {};
-    pItems.forEach(it => {
-      if (!tagGroups[it.tagPlano]) tagGroups[it.tagPlano] = [];
-      tagGroups[it.tagPlano].push(it);
-    });
+          if (isPozoTrigger && descUp.includes('TIERRA DE CULTIVO')) {
+            metradoOt = '4.71';
+          } else if (isPozoTrigger && descUp.includes('CEMENTO GEM')) {
+            metradoOt = '22.6';
+          } else if (isSoldaduraPozo) {
+            metradoOt = '1';
+          } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+            if (
+              descUp.includes('TERMINAL') ||
+              descUp.includes('PERNO') ||
+              descUp.includes('SOLDADURA') ||
+              descUp.includes('CARGA') ||
+              descUp.includes('TUBERIA')
+            ) {
+              metradoOt = '1';
+            }
+          }
 
-    Object.values(tagGroups).forEach(group => {
-      if (group.length > 1) {
-        group.forEach((it, idx) => {
-          it.tagUnico += '.' + String(idx + 1).padStart(2, '0');
+          if (descUp.includes('MOLDE')) {
+            metradoOt = '0.0167';
+          }
+
+          newItems.push({
+            id: uid(),
+            pkgId,
+            desc: s.desc,
+            qty: s.qty,
+            unit: s.unit,
+            notes: '',
+            ruleId: rule.id,
+            material: mat,
+            plano: planoVal,
+            rev: revVal,
+            tagUnico: generateTagUnico(planoVal, currentTagPlano, mat),
+            tagPlano: currentTagPlano,
+            detalle: detalleCode,
+            metradoOt
+          });
         });
       }
-    });
+    }
 
     let combined = [...items, ...newItems];
 
-    if (rule.id === 'r2') {
+    if (rule.id === 'r2' && activeArea !== 'AREA HUMEDA') {
       const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
       uniqueTags.forEach(tag => {
         combined = applyDetalleVariant(combined, tag, pkgId, detalleCode);
       });
     }
 
-    if (rule.id === 'r8' && (activeArea === 'AREA HUMEDA' || detalleCode.startsWith('010/17'))) {
+    if ((rule.id === 'r8' || rule.id === 'r9') && (activeArea === 'AREA HUMEDA' || detalleCode.startsWith('010/17'))) {
       const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
       uniqueTags.forEach(tag => {
-        combined = applyBarraPotDetalleVariant(combined, tag, pkgId, detalleCode);
+        combined = applyBarraPotDetalleVariant(combined, tag, pkgId, detalleCode, numSoportes);
       });
     }
+
+    combined = assignTagUnicoSuffixes(combined);
 
     setUndoSnapshot(preSnapshot);
     setItems(combined);
@@ -498,9 +530,9 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       pkgId,
       customPlano,
       customRev,
-      items
+      items,
+      activeArea
     );
-
     if (addedCount > 0) {
       setUndoSnapshot(preSnapshot);
       setItems(newItems);
@@ -528,36 +560,18 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
 
-    const groups: Record<string, TakeoffItem[]> = {};
     const updated = items.map(it => {
       const mat = it.material || (isPrimaryMaterial(it.desc) ? 'P' : 'C');
-      const baseTagUnico = generateTagUnico(customPlano, it.tagPlano, mat);
-
-      const modified: TakeoffItem = {
+      return {
         ...it,
         plano: customPlano,
         rev: (customRev || '').toUpperCase(),
-        material: mat,
-        tagUnico: baseTagUnico
+        material: mat
       };
-
-      if (mat === 'P' && modified.tagPlano) {
-        if (!groups[modified.tagPlano]) groups[modified.tagPlano] = [];
-        groups[modified.tagPlano].push(modified);
-      }
-      return modified;
     });
 
-    // Re-apply suffixes
-    Object.values(groups).forEach(group => {
-      if (group.length > 1) {
-        group.forEach((it, i) => {
-          it.tagUnico += '.' + String(i + 1).padStart(2, '0');
-        });
-      }
-    });
-
-    setItems(updated);
+    const finalized = assignTagUnicoSuffixes(updated);
+    setItems(finalized);
     showToast('Metrado actualizado con el nuevo PLANO', 'success');
   };
 
@@ -570,13 +584,11 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       showToast('No hay ítems en la pantalla para guardar', 'warn');
       return;
     }
-
     if (!window.confirm(`¿Deseas enviar (añadir) los ${items.length} ítems a la base de datos Supabase?`)) {
       return;
     }
 
     setIsSyncing(true);
-    showToast('Sincronizando con base de datos Supabase...', 'info');
 
     const result = await syncItemsToSupabase(items, packages);
     setIsSyncing(false);

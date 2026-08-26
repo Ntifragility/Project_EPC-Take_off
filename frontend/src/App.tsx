@@ -27,7 +27,7 @@ const AppContent: React.FC = () => {
       while (true) {
         plano = (
           window.prompt(
-            '⚡ BIENVENIDO A EPC TAKEOFF\n\n' +
+            'BIENVENIDO A EPC TAKEOFF\n\n' +
               'Ingresa el PLANO del proyecto.\n' +
               'Formato requerido (6 partes separadas por guión):\n\n' +
               '  P22-DA-2151-07-GL-001\n\n' +
@@ -41,7 +41,7 @@ const AppContent: React.FC = () => {
           break;
         }
         window.alert(
-          '❌ PLANO inválido.\n\n' +
+          'PLANO inválido.\n\n' +
             'Debe tener al menos 6 partes separadas por guión.\n' +
             'Ejemplo: P22-DA-2151-07-GL-001'
         );

@@ -81,8 +81,8 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
           <span className="modal-hd-title" id="modal-title">
             {isNew ? 'NUEVA REGLA' : 'EDITAR REGLA'}
           </span>
-          <button className="modal-close" onClick={onClose}>
-            ✕
+          <button className="btn-ghost btn-sm" onClick={onClose}>
+            ESC
           </button>
         </div>
 

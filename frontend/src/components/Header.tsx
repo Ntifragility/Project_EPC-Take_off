@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
     <header className="header">
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         <div className="logo">
-          ⚡ EPC TAKEOFF <span id="active-section-name">{section.toUpperCase()}</span>
+          EPC TAKEOFF <span id="active-section-name">{section.toUpperCase()}</span>
         </div>
 
         <div className="section-switch" aria-label="Especialidad activa">
@@ -61,29 +61,31 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '8px',
             padding: '5px 12px',
-            fontSize: '12px',
-            fontWeight: 700,
+            fontSize: '11px',
+            fontFamily: 'var(--mo)',
+            fontWeight: 600,
             borderRadius: '6px',
-            border: '1px solid var(--am)',
-            background: 'rgba(255,166,0,0.12)',
-            color: 'var(--am)',
+            border: '1px solid var(--b1)',
+            background: 'var(--s2)',
+            color: 'var(--tx)',
             cursor: 'pointer',
             letterSpacing: '0.5px',
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
           onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.background = 'var(--am)';
-            (e.currentTarget as HTMLElement).style.color = '#000';
+            (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx)';
+            (e.currentTarget as HTMLElement).style.background = 'var(--s3)';
           }}
           onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.background = 'rgba(255,166,0,0.12)';
-            (e.currentTarget as HTMLElement).style.color = 'var(--am)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'var(--b1)';
+            (e.currentTarget as HTMLElement).style.background = 'var(--s2)';
           }}
         >
-          <span>{activeArea === 'AREA HUMEDA' ? '💧 ÁREA HÚMEDA' : '🏜️ ÁREA SECA'}</span>
-          <span style={{ fontSize: '10px' }}>▼</span>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--tx)', display: 'inline-block' }} />
+          <span>{activeArea === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'}</span>
+          <span style={{ fontSize: '9px', opacity: 0.6 }}>▼</span>
         </button>
 
         <nav className="nav">
@@ -107,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
           </button>
           <button
             className="nav-tab"
-            style={{ color: 'var(--am)' }}
+            style={{ color: 'var(--mu)', fontStyle: 'normal' }}
             onClick={onOpenSummaryModal}
           >
             RESUMEN MAT P
@@ -118,31 +120,28 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
       <div className="header-right">
         <button
           className="btn-icon"
-          style={{ fontSize: '16px', padding: '3px 8px', borderColor: 'transparent' }}
+          style={{ fontSize: '11px', fontWeight: 600, padding: '5px 10px', fontFamily: 'var(--mo)' }}
           onClick={toggleTheme}
           id="theme-btn"
           title="Toggle Dark/Light Theme"
         >
-          {theme === 'light' ? '🌙' : '☀️'}
+          {theme === 'light' ? 'DARK' : 'LIGHT'}
         </button>
 
         <button
           className="btn-ghost"
-          style={{ padding: '4px 10px', fontSize: '11px' }}
+          style={{ padding: '5px 12px', fontSize: '11px' }}
           onClick={clearCache}
           title="Restablecer Datos Locales"
         >
-          🗑️ RESTABLECER
+          RESTABLECER
         </button>
 
         <button
           className="btn-primary"
           style={{
-            padding: '4px 10px',
+            padding: '5px 12px',
             fontSize: '11px',
-            background: hasSupabase ? '#388bfd' : '#238636',
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.2)',
             opacity: isSyncing ? 0.7 : 1,
             cursor: isSyncing ? 'wait' : 'pointer'
           }}
@@ -154,15 +153,27 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
               : 'Configura VITE_SUPABASE_URL en .env para guardar directamente en BD'
           }
         >
-          {isSyncing ? '⏳ SINCRONIZANDO...' : '☁️ GUARDAR EN BD'}
+          {isSyncing ? 'SINCRONIZANDO...' : 'GUARDAR EN BD'}
         </button>
 
-        <span className="item-count" id="item-count">
+        <span
+          style={{
+            fontSize: '11px',
+            fontFamily: 'var(--mo)',
+            color: 'var(--mu)',
+            background: 'var(--s2)',
+            border: '1px solid var(--b1)',
+            padding: '3px 8px',
+            borderRadius: '4px',
+            whiteSpace: 'nowrap'
+          }}
+          id="item-count"
+        >
           {items.length} {items.length === 1 ? 'ítem' : 'ítems'}
         </span>
 
         <button className="btn-export" onClick={handleExport}>
-          ↓ EXPORTAR CSV
+          EXPORTAR CSV
         </button>
       </div>
     </header>

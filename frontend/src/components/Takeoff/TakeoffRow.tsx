@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TakeoffItem, MaterialType } from '../../types/takeoff';
 import { useTakeoff } from '../../context/TakeoffContext';
-import { isCountable } from '../../utils/calculations';
-import { detalleEntriesByArea } from '../../data/detalleVariants';
+import { isCountable, generateTagUnico } from '../../utils/calculations';
+import { detalleEntriesByArea, hasSoporteItems, hasJumperItems } from '../../data/detalleVariants';
 
 interface TakeoffRowProps {
   item: TakeoffItem;
@@ -48,12 +48,19 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
   }, [item, isEditing]);
 
   const handleSave = () => {
+    const finalPlano = plano.toUpperCase();
+    const finalTagPlano = tagPlano.trim();
+    const finalTagUnico =
+      material === 'P'
+        ? generateTagUnico(finalPlano, finalTagPlano, 'P') || tagUnico
+        : '';
+
     updateItem(item.id, {
       material,
-      plano: plano.toUpperCase(),
+      plano: finalPlano,
       rev: rev.toUpperCase(),
-      tagUnico,
-      tagPlano,
+      tagUnico: finalTagUnico,
+      tagPlano: finalTagPlano,
       detalle,
       qty: isCountable(item.desc, section) ? (typeof qty === 'number' ? qty : parseFloat(String(qty)) || 0) : qty,
       metradoOt,
@@ -83,7 +90,15 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
             type="text"
             value={material}
             style={{ textTransform: 'uppercase' }}
-            onChange={e => setMaterial(e.target.value.toUpperCase() as MaterialType)}
+            onChange={e => {
+              const newMat = e.target.value.toUpperCase() as MaterialType;
+              setMaterial(newMat);
+              if (newMat === 'P') {
+                setTagUnico(generateTagUnico(plano, tagPlano, 'P'));
+              } else {
+                setTagUnico('');
+              }
+            }}
             onKeyDown={handleKeyDown}
           />
         </td>
@@ -94,7 +109,13 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
             type="text"
             value={plano}
             style={{ textTransform: 'uppercase' }}
-            onChange={e => setPlano(e.target.value.toUpperCase())}
+            onChange={e => {
+              const newPlano = e.target.value.toUpperCase();
+              setPlano(newPlano);
+              if (material === 'P') {
+                setTagUnico(generateTagUnico(newPlano, tagPlano, 'P'));
+              }
+            }}
             onKeyDown={handleKeyDown}
           />
         </td>
@@ -125,7 +146,13 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
             id="edit-t-plano"
             type="text"
             value={tagPlano}
-            onChange={e => setTagPlano(e.target.value)}
+            onChange={e => {
+              const newTag = e.target.value;
+              setTagPlano(newTag);
+              if (material === 'P') {
+                setTagUnico(generateTagUnico(plano, newTag, 'P'));
+              }
+            }}
             onKeyDown={handleKeyDown}
           />
         </td>
@@ -136,8 +163,28 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
               id="edit-det"
               value={detalle}
               onChange={e => {
-                setDetalle(e.target.value);
-                updateItem(item.id, { detalle: e.target.value });
+                const newDet = e.target.value;
+                setDetalle(newDet);
+                let numSoportes = 1;
+                let numJumpers = 1;
+                if (hasSoporteItems(newDet)) {
+                  const sAns = window.prompt(
+                    `¿Cuántos soportes se requieren por mecha para el detalle ${newDet}?\n(Multiplica los materiales "u / soporte" y "m/ soporte")`,
+                    '1'
+                  );
+                  if (sAns !== null) numSoportes = parseInt(sAns, 10) || 1;
+                }
+                if (hasJumperItems(newDet)) {
+                  const jAns = window.prompt(
+                    `¿Cuántos jumpers se requieren por mecha para el detalle ${newDet}?\n(Multiplica los materiales con Jumper)`,
+                    '1'
+                  );
+                  if (jAns !== null) numJumpers = parseInt(jAns, 10) || 1;
+                }
+                updateItem(item.id, {
+                  detalle: newDet,
+                  ...({ numSoportes, numJumpers } as any)
+                });
               }}
               style={{
                 width: '100%',
@@ -221,11 +268,11 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
         </td>
         <td className="td-a">
           <div className="act-row">
-            <button className="btn-green" onClick={handleSave}>
-              ✓ OK
+            <button className="btn-green" onClick={handleSave} style={{ fontSize: '11px', padding: '2px 6px' }}>
+              OK
             </button>
-            <button className="btn-icon" onClick={onCancelEdit}>
-              ✕
+            <button className="btn-icon" onClick={onCancelEdit} title="Cancelar" style={{ fontSize: '11px', padding: '2px 6px' }}>
+              ESC
             </button>
           </div>
         </td>
@@ -236,7 +283,7 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
   return (
     <tr className="tr-row">
       <td className="td-n">{index}</td>
-      <td className="td-u" style={{ color: 'var(--am)', fontWeight: 'bold' }}>
+      <td className="td-u" style={{ color: 'var(--tx)', fontWeight: 'bold' }}>
         {item.material || ''}
       </td>
       <td className="td-u">{item.plano || ''}</td>
@@ -251,11 +298,11 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
       <td className={`td-no ${item.notes ? 'has-notes' : ''}`}>{item.notes ? item.notes : '—'}</td>
       <td className="td-a">
         <div className="act-row">
-          <button className="btn-icon" onClick={onStartEdit} title="Editar fila">
-            ✎
+          <button className="btn-icon" onClick={onStartEdit} title="Editar fila" style={{ fontSize: '10.5px', padding: '2px 5px', fontFamily: 'var(--mo)' }}>
+            EDIT
           </button>
-          <button className="btn-icon btn-danger" onClick={() => deleteItem(item.id)} title="Eliminar">
-            ✕
+          <button className="btn-icon btn-danger" onClick={() => deleteItem(item.id)} title="Eliminar fila" style={{ fontSize: '10.5px', padding: '2px 5px', fontFamily: 'var(--mo)' }}>
+            DEL
           </button>
         </div>
       </td>

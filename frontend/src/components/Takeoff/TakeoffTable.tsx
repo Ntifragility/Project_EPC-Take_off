@@ -78,7 +78,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
               onChange={e => setFilterDetalle(e.target.value)}
             >
               <option value="" style={{ color: '#000' }}>
-                DETALLE ▼
+                DETALLE (FILTRO)
               </option>
               {availableDetalles.map(d => (
                 <option key={d} value={d} style={{ color: '#000' }}>

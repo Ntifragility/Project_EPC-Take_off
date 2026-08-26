@@ -3,7 +3,9 @@ import {
   DETALLE_VARIANTS,
   R2_SWAPPABLE,
   shouldAutoManageTuberia,
-  BARRA_POT_VARIANTS_HUMEDA
+  BARRA_POT_VARIANTS_HUMEDA,
+  BARRA_INST_VARIANTS_HUMEDA,
+  ALL_BARRA_VARIANTS_HUMEDA
 } from '../data/detalleVariants';
 
 export function uid(): string {
@@ -26,18 +28,63 @@ export function isPrimaryMaterial(desc: string): boolean {
     'SOLDADURA VS',
     'SOLDADURA X 4/0',
     'TERMINAL DE COBRE 5/8"X48" MODELO',
-    'TUBERIA PVC SCH 80 Ø1"',
-    'TUBERIA PVC SCH 80 Ø3/4"',
+    'TUBERIA',
     'VARILLA COPPERWELD 3/4"X2.4M'
   ];
   const up = desc.toUpperCase();
+  if (up.includes('TUBERIA') || up.includes('CABLE')) return true;
   return primaryList.some(p => up.includes(p.toUpperCase()));
+}
+
+// Helper for sorting P items to guarantee user requirement:
+// 1: CABLE DESNUDO 2/0 AWG -> .....01
+// 2: TUBERIA ...           -> .....02
+// Everything else comes after (.03, .04, ...)
+export function getPItemPriority(desc: string): number {
+  const up = desc.toUpperCase();
+  if (up.includes('CABLE DESNUDO 2/0 AWG')) return 1;
+  if (up.includes('TUBERIA')) return 2;
+  if (up.includes('CABLE')) return 3;
+  if (up.includes('BARRA')) return 4;
+  return 10;
+}
+
+export function assignTagUnicoSuffixes(items: TakeoffItem[]): TakeoffItem[] {
+  const groups: Record<string, TakeoffItem[]> = {};
+
+  // Find all P items
+  items.forEach(it => {
+    const isP = it.material === 'P' || isPrimaryMaterial(it.desc);
+    if (isP && it.tagPlano) {
+      if (!groups[it.tagPlano]) groups[it.tagPlano] = [];
+      groups[it.tagPlano].push(it);
+    }
+  });
+
+  Object.values(groups).forEach(group => {
+    if (group.length > 1) {
+      // Sort group in-place: CABLE DESNUDO 2/0 AWG (.01), TUBERIA (.02), others after
+      group.sort((a, b) => getPItemPriority(a.desc) - getPItemPriority(b.desc));
+      group.forEach((it, idx) => {
+        const base = generateTagUnico(it.plano, it.tagPlano, 'P');
+        if (base) {
+          it.tagUnico = `${base}.${String(idx + 1).padStart(2, '0')}`;
+        }
+      });
+    } else if (group.length === 1) {
+      const it = group[0];
+      it.tagUnico = generateTagUnico(it.plano, it.tagPlano, 'P');
+    }
+  });
+
+  return items;
 }
 
 export function isCountable(desc: string, section = 'pat'): boolean {
   if (section === 'canalizado') return true;
   const list = [
     'BARRA',
+    'CABLE AISLADO',
     'CABLE DESNUDO 2/0 AWG',
     'CABLE DESNUDO 4/0 AWG',
     'CEMENTO GEM',
@@ -97,9 +144,17 @@ export function applyDetalleVariant(
   items: TakeoffItem[],
   tagPlano: string,
   pkgId: string,
-  detalleCode: string
+  detalleCode: string,
+  numSoportes = 1,
+  numJumpers = 1
 ): TakeoffItem[] {
   let variant = DETALLE_VARIANTS[detalleCode];
+  if (!variant && (detalleCode === '008/5' || detalleCode === '008/05')) {
+    variant = DETALLE_VARIANTS['008/05'] || DETALLE_VARIANTS['008/5'];
+  }
+  if (!variant && (detalleCode === 'ND' || detalleCode === 'N/D' || !detalleCode)) {
+    variant = DETALLE_VARIANTS['ND'];
+  }
   if (!variant && detalleCode.startsWith('020')) {
     variant = DETALLE_VARIANTS['020'];
   }
@@ -148,10 +203,10 @@ export function applyDetalleVariant(
         unit: 'm',
         notes: '',
         ruleId: 'r2',
-        material: 'C',
+        material: 'P',
         plano: refItem.plano,
         rev: refItem.rev,
-        tagUnico: '',
+        tagUnico: generateTagUnico(refItem.plano, tagPlano, 'P'),
         tagPlano: tagPlano,
         detalle: detalleCode,
         metradoOt: ''
@@ -159,6 +214,8 @@ export function applyDetalleVariant(
       currentItems.splice(insertTubAt, 0, tuberiaItem);
     } else {
       tuberiaItem.desc = tuberiaDesc;
+      tuberiaItem.material = 'P';
+      tuberiaItem.tagUnico = generateTagUnico(tuberiaItem.plano, tagPlano, 'P');
     }
   } else if (tuberiaItem) {
     const idx = currentItems.indexOf(tuberiaItem);
@@ -172,6 +229,22 @@ export function applyDetalleVariant(
 
   const newMiddle: TakeoffItem[] = variant.map(v => {
     let finalOt = v.ot !== undefined ? String(v.ot) : '';
+    let finalQty = v.qty;
+
+    if (v.unit.toLowerCase().includes('soporte')) {
+      const nQty = typeof v.qty === 'number' ? v.qty : 1;
+      finalQty = parseFloat((nQty * numSoportes).toFixed(4));
+      if (v.ot !== undefined && typeof v.ot === 'number') {
+        finalOt = String(parseFloat((v.ot * numSoportes).toFixed(4)));
+      }
+    } else if (v.unit.toLowerCase().includes('jumper')) {
+      const nQty = typeof v.qty === 'number' ? v.qty : 1;
+      finalQty = parseFloat((nQty * numJumpers).toFixed(4));
+      if (v.ot !== undefined && typeof v.ot === 'number') {
+        finalOt = String(parseFloat((v.ot * numJumpers).toFixed(4)));
+      }
+    }
+
     if (v.otDynamic === '1c/3m') {
       finalOt = Math.ceil(cableOt / 3).toString();
     } else if (v.otDynamic === 'empty') {
@@ -179,18 +252,19 @@ export function applyDetalleVariant(
     } else if (String(v.ot).toUpperCase() === 'VAR.' && v.desc.toUpperCase().includes('TUBERIA')) {
       finalOt = tuberiaOt || '';
     }
+    const isP = isPrimaryMaterial(v.desc);
     return {
       id: uid(),
       pkgId: refItem.pkgId,
       desc: v.desc,
-      qty: v.qty,
+      qty: finalQty,
       unit: v.unit,
       notes: '',
       ruleId: 'r2',
-      material: isPrimaryMaterial(v.desc) ? 'P' : 'C',
+      material: isP ? 'P' : 'C',
       plano: refItem.plano,
       rev: refItem.rev,
-      tagUnico: '',
+      tagUnico: isP ? generateTagUnico(refItem.plano, tagPlano, 'P') : '',
       tagPlano: tagPlano,
       detalle: detalleCode,
       metradoOt: finalOt
@@ -206,27 +280,33 @@ export function applyDetalleVariant(
       it.detalle = detalleCode;
     });
 
-  return currentItems;
+  return assignTagUnicoSuffixes(currentItems);
 }
 
-// Applies DETALLE variant substitutions for BARRA POT (r8) in AREA HUMEDA
+// Applies DETALLE variant substitutions for BARRA POT (r8) and BARRA INST (r9) in AREA HUMEDA
 export function applyBarraPotDetalleVariant(
   items: TakeoffItem[],
   tagPlano: string,
   pkgId: string,
-  detalleCode: string
+  detalleCode: string,
+  numSoportes = 1
 ): TakeoffItem[] {
-  const variant = BARRA_POT_VARIANTS_HUMEDA[detalleCode];
+  const variant =
+    ALL_BARRA_VARIANTS_HUMEDA[detalleCode] ||
+    BARRA_POT_VARIANTS_HUMEDA[detalleCode] ||
+    BARRA_INST_VARIANTS_HUMEDA[detalleCode];
   if (!variant) return items;
 
   const currentItems = [...items];
   const siblings = currentItems.filter(
-    it => it.ruleId === 'r8' && it.tagPlano === tagPlano && it.pkgId === pkgId
+    it => (it.ruleId === 'r8' || it.ruleId === 'r9') && it.tagPlano === tagPlano && it.pkgId === pkgId
   );
   if (siblings.length === 0) return currentItems;
 
   const firstIdx = currentItems.indexOf(siblings[0]);
   const refItem = siblings[0];
+  const targetRuleId =
+    refItem.ruleId || (detalleCode.startsWith('010/17C') || detalleCode.startsWith('010/17D') ? 'r9' : 'r8');
 
   // Remove existing siblings for this group
   siblings.forEach(it => {
@@ -234,23 +314,31 @@ export function applyBarraPotDetalleVariant(
     if (idx !== -1) currentItems.splice(idx, 1);
   });
 
-  const newItems: TakeoffItem[] = variant.map(v => ({
-    id: uid(),
-    pkgId: refItem.pkgId,
-    desc: v.desc,
-    qty: v.qty,
-    unit: v.unit,
-    notes: '',
-    ruleId: 'r8',
-    material: v.material,
-    plano: refItem.plano,
-    rev: refItem.rev,
-    tagUnico: generateTagUnico(refItem.plano, tagPlano, v.material),
-    tagPlano: tagPlano,
-    detalle: detalleCode,
-    metradoOt: v.metradoOt
-  }));
+  const newItems: TakeoffItem[] = variant.map(v => {
+    const isSoporte = v.unit.toLowerCase().includes('soporte');
+    const finalQty = isSoporte ? v.qty * numSoportes : v.qty;
+    const finalOt = isSoporte ? String(parseFloat(v.metradoOt || '1') * numSoportes) : v.metradoOt;
+
+    return {
+      id: uid(),
+      pkgId: refItem.pkgId,
+      desc: v.desc,
+      qty: finalQty,
+      unit: v.unit,
+      notes: '',
+      ruleId: targetRuleId,
+      material: v.material,
+      plano: refItem.plano,
+      rev: refItem.rev,
+      tagUnico: generateTagUnico(refItem.plano, tagPlano, v.material),
+      tagPlano: tagPlano,
+      detalle: detalleCode,
+      metradoOt: finalOt
+    };
+  });
 
   currentItems.splice(firstIdx, 0, ...newItems);
-  return currentItems;
+  return assignTagUnicoSuffixes(currentItems);
 }
+
+export const applyBarraDetalleVariant = applyBarraPotDetalleVariant;

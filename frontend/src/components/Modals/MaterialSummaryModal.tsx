@@ -56,8 +56,8 @@ export const MaterialSummaryModal: React.FC<MaterialSummaryModalProps> = ({
           <span className="modal-hd-title" id="modal-title">
             RESUMEN DE MATERIALES (P)
           </span>
-          <button className="modal-close" onClick={onClose}>
-            ✕
+          <button className="btn-ghost btn-sm" onClick={onClose}>
+            ESC
           </button>
         </div>
 
@@ -200,8 +200,7 @@ export const MaterialSummaryModal: React.FC<MaterialSummaryModalProps> = ({
                           fontFamily: 'var(--mo)',
                           fontSize: '22px',
                           fontWeight: 700,
-                          color: 'var(--am)',
-                          textShadow: '0 0 16px rgba(255,166,0,0.25)'
+                          color: 'var(--tx)'
                         }}
                       >
                         {formattedQty}

@@ -67,60 +67,153 @@ export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVari
       { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
       { desc: 'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
     ],
-    'NA': []
+    'NA': [],
+    'ND': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'und', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
+    ]
   },
   'AREA HUEMDA': {
-    '010/17A': [
-      { desc: 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 3/8"X1" DE ACERO INOXIDABLE 316 CON ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'BARRA DE COBRE CON AGUJEROS 11mm, SIN AISLADORES TIPO CB14412 THERMOWELD O SIMILAR', qty: 1, unit: 'und', ot: 1 }
+    'ND': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'und', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
     ],
-    '010/17B': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 3/8"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+    '008/05': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'CABLE AISLADO 2/0 AWG THHN (JUMPER)', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'und', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' }
     ],
-    '008/5': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+    '009/07': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
     ],
-    '009/8': [
-      { desc: 'RIEL UNISTRUT ACERO GALVANIZADO 41X41X2.7mm. L= 1metro', qty: 1, unit: 'm', ot: 'Var.' },
-      { desc: 'ABRAZADERA UNISTRUT PARA TUBERIA PVC 3/4" ACERO GALVANIZADO', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+    '009/08A': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'PRENSA PARALELA', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
     ],
-    '009/9': [
-      { desc: 'ABRAZADERA (T&B OCAL O SIMILAR) INOX DE 1"', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO MAQUINADO 1/4" X 1/4" ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA DE CERRADURA', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø1"', qty: 1, unit: 'm', ot: 'Var.' },
-      { desc: 'TACO DE EXPANSION METALICO, TIPO ACERO 1/4"', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'CONECTOR TIPO BURNDY', qty: 1, unit: 'und', ot: 1 }
+    '009/09': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 1" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' },
+      { desc: 'CONECTOR DE PUESTA A TIERRA DE ACERO ESTRUCTURAL TIPO \'BURNDY\'', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
     ],
     '009/10': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
     ],
-    '010/13': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+    '009/11': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 3/8" TIPO YA26 DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
     ],
-    '010/14': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
-    ],
-    '010/15': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+    '009/12A': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'SOLDADURA VBC-2G', qty: 1, unit: 'c/u', ot: 1, material: 'C' }
     ],
     '009/12B': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm', ot: 'Var.' }
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE 316, CON TUERCA, UNA ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
+    ],
+    '010/13': [
+      { desc: 'CABLE AISLADO 2/0 AWG THHN', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' }
+    ],
+    '010/14': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 1" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' },
+      { desc: 'CONECTOR DE PUESTA A TIERRA DE ACERO ESTRUCTURAL TIPO \'BURNDY\'', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
+    ],
+    '010/15': [
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'CABLE DESNUDO 4/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 3/8" TIPO YA26 DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' }
+    ],
+    '010/16': [
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'PLATINA DE ACERO 100x50x4mm, CON DOS PERFORACIONES DE Ø14mm.', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
+    ],
+    '010/17A': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'und', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
+    ],
+    '010/17B': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'und', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
+    ],
+    '010/17C': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'und', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
+    ],
+    '010/17D': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'und', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
+    ],
+    '010/18': [
+      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'CABLE AISLADO 2/0 AWG THHN (JUMPER)', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' },
+      { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
+      { desc: 'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
+      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' },
+      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' },
+      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' }
     ]
   }
 };
@@ -128,6 +221,12 @@ export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVari
 export const DETALLE_VARIANTS: Record<string, DetalleVariantItem[]> = Object.fromEntries(
   Object.values(DETALLE_VARIANTS_BY_AREA).flatMap(area => Object.entries(area))
 );
+if (DETALLE_VARIANTS['008/05']) {
+  DETALLE_VARIANTS['008/5'] = DETALLE_VARIANTS['008/05'];
+}
+if (DETALLE_VARIANTS['ND']) {
+  DETALLE_VARIANTS['N/D'] = DETALLE_VARIANTS['ND'];
+}
 
 export const AUTO_TUBERIA_AREAS = ['AREA SECA'];
 
@@ -155,6 +254,59 @@ export function shouldAutoManageTuberia(detalleCode: string): boolean {
   return AUTO_TUBERIA_AREAS.includes(getDetalleArea(detalleCode));
 }
 
+export function hasSoporteItems(detalleCode: string, area = 'AREA HUMEDA'): boolean {
+  const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
+  const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
+  const variants = DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
+  return variants.some(v => v.unit.toLowerCase().includes('soporte'));
+}
+
+export function hasJumperItems(detalleCode: string, area = 'AREA HUMEDA'): boolean {
+  if (!detalleCode) return false;
+  if (detalleCode.toUpperCase().includes('JUMPER')) return true;
+  const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
+  const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
+  const variants = DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || DETALLE_VARIANTS[detalleCode] || [];
+  return variants.some(
+    v => v.unit.toLowerCase().includes('jumper') || v.desc.toLowerCase().includes('jumper')
+  );
+}
+
+export function getCalculatedVariantItems(
+  detalleCode: string,
+  area = 'AREA HUMEDA',
+  numSoportes = 1,
+  numJumpers = 1
+): DetalleVariantItem[] {
+  const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
+  const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
+  const variants = DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
+
+  return variants.map(v => {
+    const unitLower = v.unit.toLowerCase();
+    let calculatedQty = v.qty;
+    let calculatedOt = v.ot;
+
+    if (unitLower.includes('soporte') && typeof v.qty === 'number') {
+      calculatedQty = parseFloat((v.qty * numSoportes).toFixed(4));
+      if (typeof v.ot === 'number') {
+        calculatedOt = parseFloat((v.ot * numSoportes).toFixed(4));
+      }
+    } else if (unitLower.includes('jumper') && typeof v.qty === 'number') {
+      calculatedQty = parseFloat((v.qty * numJumpers).toFixed(4));
+      if (typeof v.ot === 'number') {
+        calculatedOt = parseFloat((v.ot * numJumpers).toFixed(4));
+      }
+    }
+
+    return {
+      ...v,
+      qty: calculatedQty,
+      ot: calculatedOt
+    };
+  });
+}
+
 // ── BARRA POT (ÁREA HÚMEDA) Variants
 export interface BarraPotVariantItem {
   desc: string;
@@ -164,6 +316,7 @@ export interface BarraPotVariantItem {
   metradoOt: string;
 }
 
+// ── BARRA POT (ÁREA HÚMEDA) Variants: 010/17A, 010/17B
 export const BARRA_POT_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = {
   '010/17A': [
     {
@@ -203,10 +356,14 @@ export const BARRA_POT_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = 
       material: 'C',
       metradoOt: '2'
     }
-  ],
+  ]
+};
+
+// ── BARRA INST (ÁREA HÚMEDA) Variants: 010/17C, 010/17D
+export const BARRA_INST_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = {
   '010/17C': [
     {
-      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, SIN AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
+      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, CON AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
       qty: 1,
       unit: 'u / cjto',
       material: 'P',
@@ -245,6 +402,11 @@ export const BARRA_POT_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = 
   ]
 };
 
+export const ALL_BARRA_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = {
+  ...BARRA_POT_VARIANTS_HUMEDA,
+  ...BARRA_INST_VARIANTS_HUMEDA
+};
+
 export const R2_SWAPPABLE: string[] = [
   'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV',
   'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
@@ -269,5 +431,12 @@ export const R2_SWAPPABLE: string[] = [
   'CONECTOR TIPO BURNDY',
   'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV',
   'PERNO 1/2"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
-  'PERNO 3/8"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN'
+  'PERNO 3/8"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
+  'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR',
+  'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
+  'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm',
+  'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
+  'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT',
+  'CABLE AISLADO 2/0 AWG THHN (JUMPER)',
+  'CABLE AISLADO 2/0 AWG THHN'
 ];

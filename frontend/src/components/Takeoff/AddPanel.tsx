@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTakeoff } from '../../context/TakeoffContext';
 import { getSequentialTagsExample } from '../../utils/calculations';
+import { TakeoffRule } from '../../types/takeoff';
+import { hasSoporteItems, hasJumperItems, getDetallesForArea } from '../../data/detalleVariants';
+import { convertSpreadsheetToCsvText } from '../../utils/csvParser';
+import { ExcelGuideModal } from '../Modals/ExcelGuideModal';
 
 export const AddPanel: React.FC = () => {
   const {
@@ -20,8 +24,12 @@ export const AddPanel: React.FC = () => {
     applyTriggerRule,
     handleCsvUpload,
     syncGlobalContext,
-    setTab
+    setTab,
+    showToast
   } = useTakeoff();
+
+  // Excel Guide modal state
+  const [showExcelGuide, setShowExcelGuide] = useState(false);
 
   // Autocomplete rule search state
   const [triggerQuery, setTriggerQuery] = useState('');
@@ -38,6 +46,31 @@ export const AddPanel: React.FC = () => {
   const filteredRules = triggerQuery.trim()
     ? rules.filter(r => r.trigger.toLowerCase().includes(triggerQuery.toLowerCase()))
     : rules;
+
+  const getRuleSubtitle = (r: TakeoffRule): string => {
+    const up = r.trigger.toUpperCase();
+    if (activeArea === 'AREA HUMEDA') {
+      if (up.includes('BARRA POT')) {
+        return '2 a 3 ítems según detalle (010/17A o 010/17B)';
+      }
+      if (up.includes('BARRA INST')) {
+        return '2 a 3 ítems según detalle (010/17C o 010/17D)';
+      }
+      if (up.includes('CABLE DESNUDO 2/0 AWG')) {
+        return 'Accesorios según detalle (008/05 - 010/18)';
+      }
+    } else {
+      if (up.includes('BARRA POT')) {
+        return '1 ítem (Detalle 166 convencional)';
+      }
+      if (up.includes('BARRA INST')) {
+        return '2 ítems (Detalle 166C con aislador)';
+      }
+    }
+
+    const count = r.subitems.length;
+    return count === 1 ? '1 ítem se agregará' : `${count} ítems se agregarán`;
+  };
 
   const handleApplyTrigger = (ruleId: string) => {
     const rule = rules.find(r => r.id === ruleId);
@@ -91,29 +124,83 @@ export const AddPanel: React.FC = () => {
     const startsWithC = tagForDetalle.startsWith('C');
     const defaultDet = startsWithC ? '167/G1' : '';
 
+    let numSoportes = 1;
+    let numJumpers = 1;
+    let jumperPrompted = false;
+
     if (section === 'canalizado') {
       detalle = rule.trigger.replace(/^DETALLE\s+/i, '').trim();
     } else if (upTrigger.includes('BARRA POT')) {
       if (activeArea === 'AREA HUMEDA') {
         const detInput = window.prompt(
-          `⚡ SELECCIONAR DETALLE PARA BARRA POT (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17A (Barra + 4 Pernos + 2 Soportes)\n- 010/17B (Barra + 2 Soportes)\n- 010/17C (Barra + 2 Soportes)\n- 010/17D (Barra CON AISLADORES + 4 Pernos + 2 Soportes)`,
+          `SELECCIONAR DETALLE PARA BARRA POT (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17A (Barra + 4 Pernos + 2 Soportes)\n- 010/17B (Barra + 2 Soportes)`,
           '010/17A'
         );
         if (detInput === null) return;
         detalle = detInput.trim().toUpperCase() || '010/17A';
+
+        const sopInput = window.prompt(
+          `¿Cuántos soportes se requieren para BARRA POT (${detalle})?\n(Por defecto: 1 - Multiplica materiales "u / soporte")`,
+          '1'
+        );
+        if (sopInput === null) return;
+        numSoportes = parseInt(sopInput, 10);
+        if (isNaN(numSoportes) || numSoportes < 1) numSoportes = 1;
       } else {
         const detInput = window.prompt(`Ingresa el DETALLE para BARRA POT (ÁREA SECA):`, '166');
         if (detInput === null) return;
         detalle = detInput.trim();
       }
-    } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+    } else if (upTrigger.includes('BARRA INST')) {
       if (activeArea === 'AREA HUMEDA') {
         const detInput = window.prompt(
-          `Ingresa el DETALLE para CABLE DESNUDO 2/0 AWG (ÁREA HÚMEDA):\n(Ej: 010/17B, 008/5, 009/8, 009/9, 010/13, 010/14, 010/15...)`,
-          '010/17B'
+          `SELECCIONAR DETALLE PARA BARRA INST (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17C (Barra CON AISLADORES + 2 Soportes)\n- 010/17D (Barra CON AISLADORES + 4 Pernos + 2 Soportes)`,
         );
         if (detInput === null) return;
-        detalle = detInput.trim().toUpperCase() || '010/17B';
+        detalle = detInput.trim().toUpperCase() || '010/17C';
+
+        const sopInput = window.prompt(
+          `¿Cuántos soportes se requieren para BARRA INST (${detalle})?\n(Por defecto: 1 - Multiplica materiales "u / soporte")`,
+          '1'
+        );
+        if (sopInput === null) return;
+        numSoportes = parseInt(sopInput, 10);
+        if (isNaN(numSoportes) || numSoportes < 1) numSoportes = 1;
+      } else {
+        const detInput = window.prompt(`Ingresa el DETALLE para BARRA INST (ÁREA SECA):`, '166C');
+        if (detInput === null) return;
+        detalle = detInput.trim();
+      }
+    } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+      if (activeArea === 'AREA HUMEDA') {
+        const validDetalles = getDetallesForArea('AREA HUMEDA').map(([k]) => k);
+        const detInput = window.prompt(
+          `SELECCIONAR DETALLE PARA CABLE DESNUDO 2/0 AWG (ÁREA HÚMEDA):\n\nOpciones disponibles:\n${validDetalles.join(', ')}\n\nIngresa el código de DETALLE:`,
+          'ND'
+        );
+        if (detInput === null) return;
+        detalle = detInput.trim().toUpperCase() || 'ND';
+
+        if (hasSoporteItems(detalle, 'AREA HUMEDA')) {
+          const sopInput = window.prompt(
+            `¿Cuántos soportes se requieren por mecha para el detalle ${detalle}?\n(Multiplica los materiales "u / soporte" y "m/ soporte")`,
+            '1'
+          );
+          if (sopInput === null) return;
+          numSoportes = parseInt(sopInput, 10);
+          if (isNaN(numSoportes) || numSoportes < 1) numSoportes = 1;
+        }
+
+        if (hasJumperItems(detalle, 'AREA HUMEDA')) {
+          const jmpInput = window.prompt(
+            `¿Cuántos jumpers se requieren por mecha para el detalle ${detalle}?\n(Multiplica los materiales con Jumper)`,
+            '1'
+          );
+          if (jmpInput === null) return;
+          numJumpers = parseInt(jmpInput, 10);
+          if (isNaN(numJumpers) || numJumpers < 1) numJumpers = 1;
+          jumperPrompted = true;
+        }
       } else {
         detalle = '151'; // Standard DETALLE for Area Seca
       }
@@ -126,23 +213,45 @@ export const AddPanel: React.FC = () => {
       detalle = detInput.trim();
     }
 
-    applyTriggerRule(ruleId, numInstances, baseTagPlano, detalle);
+    // Every time the word JUMPER appears anywhere, prompt for number of jumpers if not prompted yet
+    const containsJumper =
+      detalle.toUpperCase().includes('JUMPER') ||
+      hasJumperItems(detalle, activeArea) ||
+      upTrigger.includes('JUMPER') ||
+      rule.subitems.some(s => s.desc.toUpperCase().includes('JUMPER') || s.unit.toUpperCase().includes('JUMPER'));
+
+    if (containsJumper && !jumperPrompted) {
+      const promptLabel = detalle ? `para el detalle ${detalle}` : `para ${rule.trigger}`;
+      const jmpInput = window.prompt(
+        `¿Cuántos jumpers se requieren por mecha ${promptLabel}?\n(Multiplica los materiales con Jumper)`,
+        '1'
+      );
+      if (jmpInput === null) return;
+      numJumpers = parseInt(jmpInput, 10);
+      if (isNaN(numJumpers) || numJumpers < 1) numJumpers = 1;
+    }
+
+    applyTriggerRule(ruleId, numInstances, baseTagPlano, detalle, numSoportes, numJumpers);
     setTriggerQuery('');
     setDropdownOpen(false);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = evt => {
-      const text = evt.target?.result as string;
-      if (text) {
+    try {
+      const text = await convertSpreadsheetToCsvText(file);
+      if (text && text.trim()) {
         handleCsvUpload(text);
+      } else {
+        showToast('El archivo está vacío o no contiene datos válidos', 'warn');
       }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+    } catch (err: any) {
+      console.error('Error al procesar archivo:', err);
+      showToast('Error al leer el archivo Excel/CSV: ' + (err?.message || ''), 'warn');
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleAddManual = () => {
@@ -226,10 +335,10 @@ export const AddPanel: React.FC = () => {
             <button
               className="btn-ghost"
               title="Sincronizar plano y rev en todo el metrado"
-              style={{ padding: '0 8px', height: '32px', borderColor: 'var(--am)', color: 'var(--am)' }}
+              style={{ padding: '0 8px', height: '32px', borderColor: 'var(--b1)', color: 'var(--tx)', fontSize: '11px', fontWeight: 600 }}
               onClick={syncGlobalContext}
             >
-              🔄
+              SYNC
             </button>
           </div>
         </div>
@@ -253,32 +362,70 @@ export const AddPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Batch CSV */}
+        {/* Batch CSV / Excel */}
         <div className="field">
-          <div className="field-label">LOTE CSV</div>
-          <label
-            className="btn-ghost"
-            style={{
-              cursor: 'pointer',
-              padding: '8px 12px',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              height: '100%',
-              borderColor: 'var(--am)',
-              color: 'var(--am)',
-              fontWeight: 700
-            }}
-          >
-            + SUBIR CSV
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".csv"
-              style={{ display: 'none' }}
-              onChange={handleFileUpload}
-            />
-          </label>
+          <div className="field-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span>LOTE CSV / EXCEL</span>
+            <button
+              type="button"
+              onClick={() => setShowExcelGuide(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--mu)',
+                cursor: 'pointer',
+                fontSize: '10px',
+                fontFamily: 'var(--mo)',
+                textDecoration: 'underline',
+                padding: 0
+              }}
+              title="Ver formato y columnas requeridas de Excel"
+            >
+              GUÍA DE COLUMNAS
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <label
+              className="btn-ghost"
+              style={{
+                cursor: 'pointer',
+                padding: '7px 12px',
+                fontSize: '11px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                borderColor: 'var(--b1)',
+                color: 'var(--tx)',
+                fontWeight: 600
+              }}
+              title="Importar archivo Excel (.xlsx, .xlsb, .xls) o CSV"
+            >
+              <span>+ SUBIR EXCEL / CSV</span>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".xlsx,.xlsb,.xls,.xlsm,.csv,.txt"
+                style={{ display: 'none' }}
+                onChange={handleFileUpload}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setShowExcelGuide(true)}
+              style={{
+                padding: '7px 10px',
+                fontSize: '11px',
+                fontFamily: 'var(--mo)',
+                borderColor: 'var(--b1)',
+                color: 'var(--mu)',
+                fontWeight: 600
+              }}
+              title="Ver columnas y descargar plantilla Excel"
+            >
+              ?
+            </button>
+          </div>
         </div>
 
         {/* Dynamic Inputs according to Mode */}
@@ -317,7 +464,7 @@ export const AddPanel: React.FC = () => {
                       >
                         <div className="ac-opt-name">{r.trigger}</div>
                         <div className="ac-opt-sub">
-                          {r.subitems.length} {r.subitems.length !== 1 ? 'ítems' : 'ítem'} se agregarán
+                          {getRuleSubtitle(r)}
                         </div>
                       </div>
                     ))
@@ -374,6 +521,11 @@ export const AddPanel: React.FC = () => {
           </>
         )}
       </div>
+
+      <ExcelGuideModal
+        isOpen={showExcelGuide}
+        onClose={() => setShowExcelGuide(false)}
+      />
     </div>
   );
 };
