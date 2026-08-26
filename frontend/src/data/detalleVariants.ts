@@ -138,6 +138,15 @@ export function detalleEntriesByArea(): { area: string; entries: [string, Detall
   }));
 }
 
+export function getDetallesForArea(area: string): [string, DetalleVariantItem[]][] {
+  const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
+  const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
+  const variants = DETALLE_VARIANTS_BY_AREA[key] || {};
+  return Object.entries(variants).sort((a, b) =>
+    a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' })
+  );
+}
+
 export function getDetalleArea(detalleCode: string): string {
   return Object.entries(DETALLE_VARIANTS_BY_AREA).find(([, variants]) => variants[detalleCode])?.[0] || '';
 }

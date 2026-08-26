@@ -3,7 +3,7 @@ import { useTakeoff } from '../../context/TakeoffContext';
 import { TakeoffRule } from '../../types/takeoff';
 import { RuleEditorModal } from './RuleEditorModal';
 import {
-  detalleEntriesByArea,
+  getDetallesForArea,
   shouldAutoManageTuberia,
   BARRA_POT_VARIANTS_HUMEDA
 } from '../../data/detalleVariants';
@@ -11,8 +11,8 @@ import {
 export const RulesView: React.FC = () => {
   const {
     rules,
-    collapsedRuleAreas,
-    toggleRuleAreaCollapse,
+    activeArea,
+    setActiveArea,
     saveRule,
     deleteRule
   } = useTakeoff();
@@ -39,12 +39,130 @@ export const RulesView: React.FC = () => {
         <div>
           <div className="view-title">REGLAS DE AUTO-LLENADO</div>
           <div className="view-sub">
-            Cuando se selecciona un disparador, sus ítems se agregan automáticamente al metrado.
+            Reglas y matrices configuradas para el entorno seleccionado.
           </div>
         </div>
         <button className="btn-primary" onClick={handleOpenNew}>
           + NUEVA REGLA
         </button>
+      </div>
+
+      {/* 2 Interactive Session Cards for AREA SECA vs AREA HUMEDA */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '14px',
+          marginBottom: '22px'
+        }}
+      >
+        {/* Card 1: SESIÓN ÁREA SECA */}
+        <div
+          onClick={() => setActiveArea('AREA SECA')}
+          style={{
+            background: 'var(--s1)',
+            border: activeArea === 'AREA SECA' ? '2px solid var(--am)' : '1px solid var(--b1)',
+            borderRadius: '8px',
+            padding: '16px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: activeArea === 'AREA SECA' ? '0 0 14px rgba(255,166,0,0.15)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '20px' }}>🏜️</span>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
+                SESIÓN: ÁREA SECA
+              </span>
+            </div>
+            <div style={{ fontSize: '11.5px', color: 'var(--mu)', marginTop: '4px' }}>
+              17 Detalles estándar (151, 153, 020...) y Barra conv.
+            </div>
+          </div>
+          {activeArea === 'AREA SECA' ? (
+            <span
+              style={{
+                background: 'var(--am)',
+                color: '#000',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '4px 8px',
+                borderRadius: '4px'
+              }}
+            >
+              ACTIVA ✓
+            </span>
+          ) : (
+            <button
+              className="btn-ghost btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+              onClick={e => {
+                e.stopPropagation();
+                setActiveArea('AREA SECA');
+              }}
+            >
+              VER REGLAS
+            </button>
+          )}
+        </div>
+
+        {/* Card 2: SESIÓN ÁREA HÚMEDA */}
+        <div
+          onClick={() => setActiveArea('AREA HUMEDA')}
+          style={{
+            background: 'var(--s1)',
+            border: activeArea === 'AREA HUMEDA' ? '2px solid var(--am)' : '1px solid var(--b1)',
+            borderRadius: '8px',
+            padding: '16px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: activeArea === 'AREA HUMEDA' ? '0 0 14px rgba(255,166,0,0.15)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '20px' }}>💧</span>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
+                SESIÓN: ÁREA HÚMEDA
+              </span>
+            </div>
+            <div style={{ fontSize: '11.5px', color: 'var(--mu)', marginTop: '4px' }}>
+              Barra POT (010/17A-D) y 10 Detalles especiales
+            </div>
+          </div>
+          {activeArea === 'AREA HUMEDA' ? (
+            <span
+              style={{
+                background: 'var(--am)',
+                color: '#000',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '4px 8px',
+                borderRadius: '4px'
+              }}
+            >
+              ACTIVA ✓
+            </span>
+          ) : (
+            <button
+              className="btn-ghost btn-sm"
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+              onClick={e => {
+                e.stopPropagation();
+                setActiveArea('AREA HUMEDA');
+              }}
+            >
+              VER REGLAS
+            </button>
+          )}
+        </div>
       </div>
 
       {rules.length === 0 ? (
@@ -55,15 +173,38 @@ export const RulesView: React.FC = () => {
         </div>
       ) : (
         rules.map(r => {
-          // Special view for r2 (CABLE DESNUDO 2/0 AWG)
+          // Special view for r2 (CABLE DESNUDO 2/0 AWG) - Displays ONLY current session's detalles
           if (r.id === 'r2') {
-            const areaGroups = detalleEntriesByArea();
+            const areaDetalles = getDetallesForArea(activeArea);
 
             return (
               <div className="rule-card" key={r.id}>
                 <div className="rule-card-row">
                   <div style={{ flex: 1 }}>
-                    <div className="rule-trigger">⚡ {r.trigger}</div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '6px'
+                      }}
+                    >
+                      <div className="rule-trigger">⚡ {r.trigger}</div>
+                      <span
+                        style={{
+                          background: 'rgba(255,166,0,0.12)',
+                          border: '1px solid var(--am)',
+                          color: 'var(--am)',
+                          fontSize: '11px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontWeight: 700
+                        }}
+                      >
+                        {activeArea === 'AREA HUMEDA' ? '💧 ÁREA HÚMEDA' : '🏜️ ÁREA SECA'} ({areaDetalles.length} detalles)
+                      </span>
+                    </div>
+
                     <div
                       style={{
                         color: 'var(--am)',
@@ -73,7 +214,7 @@ export const RulesView: React.FC = () => {
                         paddingLeft: '14px'
                       }}
                     >
-                      ⚠️ Los ítems 3 y 4 cambian según el DETALLE seleccionado:
+                      ⚠️ Los ítems 3 y 4 cambian según el DETALLE de {activeArea}:
                     </div>
 
                     <div
@@ -95,9 +236,9 @@ export const RulesView: React.FC = () => {
                         }}
                       >
                         <colgroup>
-                          <col style={{ width: '80px' }} />
+                          <col style={{ width: '90px' }} />
                           <col style={{ width: 'auto' }} />
-                          <col style={{ width: '80px' }} />
+                          <col style={{ width: '90px' }} />
                         </colgroup>
                         <thead>
                           <tr style={{ background: 'var(--s2)' }}>
@@ -123,7 +264,7 @@ export const RulesView: React.FC = () => {
                                 fontWeight: 'bold'
                               }}
                             >
-                              ÍTEMS DEL DETALLE (Incluye Tuberia según aplique)
+                              ÍTEMS DEL DETALLE ({activeArea === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'})
                             </th>
                             <th
                               style={{
@@ -139,140 +280,98 @@ export const RulesView: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {areaGroups.map(group => {
-                            const isCollapsed = collapsedRuleAreas.has(group.area);
-                            let rowIdx = 0;
+                          {areaDetalles.map(([detalleCode, itemsList], detIdx) => {
+                            const tuberiaDesc = detalleCode.startsWith('020')
+                              ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"'
+                              : 'TUBERIA PVC SCH 80 Ø3/4"';
 
-                            return (
-                              <React.Fragment key={group.area}>
+                            const itemsWithTuberia =
+                              shouldAutoManageTuberia(detalleCode) &&
+                              detalleCode !== '153' &&
+                              detalleCode !== 'NA'
+                                ? [...itemsList, { desc: tuberiaDesc, qty: 1, unit: 'm', ot: 'Var.' }]
+                                : [...itemsList];
+
+                            return itemsWithTuberia.map((item, i) => {
+                              const isLast = i === itemsWithTuberia.length - 1;
+                              const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
+                              const bg = detIdx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+
+                              return (
                                 <tr
-                                  onClick={() => toggleRuleAreaCollapse(group.area)}
-                                  style={{
-                                    background: 'rgba(255,166,0,0.08)',
-                                    cursor: 'pointer',
-                                    userSelect: 'none'
-                                  }}
+                                  key={`${detalleCode}-${i}`}
+                                  style={{ borderBottom: bb, background: bg }}
                                 >
-                                  <td
-                                    colSpan={3}
-                                    style={{
-                                      borderBottom: '1px solid var(--b1)',
-                                      padding: '8px 10px',
-                                      color: 'var(--am)',
-                                      fontFamily: 'var(--mo)',
-                                      fontSize: '12px',
-                                      fontWeight: 'bold',
-                                      letterSpacing: 0
-                                    }}
-                                  >
-                                    <span style={{ display: 'inline-block', width: '16px' }}>
-                                      {isCollapsed ? '▶' : '▼'}
-                                    </span>
-                                    {group.area}
-                                    <span
+                                  {i === 0 && (
+                                    <td
+                                      rowSpan={itemsWithTuberia.length}
                                       style={{
-                                        color: 'var(--mu)',
-                                        fontSize: '10px',
-                                        fontWeight: 500,
-                                        marginLeft: '8px'
+                                        borderBottom: '2px solid var(--b1)',
+                                        borderRight: '1px solid var(--b1)',
+                                        padding: '8px 10px',
+                                        verticalAlign: 'middle',
+                                        textAlign: 'center'
                                       }}
                                     >
-                                      {group.entries.length} detalle
-                                      {group.entries.length !== 1 ? 's' : ''}
-                                    </span>
+                                      <span
+                                        style={{
+                                          background: 'rgba(255,166,0,0.1)',
+                                          border: '1px solid var(--am)',
+                                          borderRadius: '4px',
+                                          padding: '4px 8px',
+                                          display: 'inline-block',
+                                          fontFamily: 'var(--mo)',
+                                          fontSize: '11px',
+                                          color: 'var(--am)',
+                                          fontWeight: 'bold'
+                                        }}
+                                      >
+                                        {detalleCode}
+                                      </span>
+                                    </td>
+                                  )}
+                                  <td
+                                    style={{
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11.5px',
+                                      color: 'var(--mu)',
+                                      verticalAlign: 'middle',
+                                      lineHeight: 1.4
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ color: 'var(--text)', fontWeight: 500 }}>
+                                        {item.desc}
+                                      </span>
+                                      <span style={{ color: 'var(--mu)', fontSize: '10.5px' }}>
+                                        ({item.qty} {item.unit})
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: 'var(--am)',
+                                      fontWeight: 'bold',
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    {item.otDynamic === '1c/3m' ? (
+                                      <span title="Fórmula: Cable / 3">1c / 3m ⚡</span>
+                                    ) : item.otDynamic === 'empty' ? (
+                                      <span style={{ color: 'var(--mu)', fontStyle: 'italic' }}>—</span>
+                                    ) : (
+                                      item.ot
+                                    )}
                                   </td>
                                 </tr>
-
-                                {!isCollapsed &&
-                                  group.entries.map(([detalleCode, itemsList]) => {
-                                    const tuberiaDesc = detalleCode.startsWith('020')
-                                      ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"'
-                                      : 'TUBERIA PVC SCH 80 Ø3/4"';
-
-                                    const itemsWithTuberia =
-                                      shouldAutoManageTuberia(detalleCode) &&
-                                      detalleCode !== '153' &&
-                                      detalleCode !== 'NA'
-                                        ? [...itemsList, { desc: tuberiaDesc, qty: 1, unit: 'm', ot: 'Var.' }]
-                                        : [...itemsList];
-
-                                    return itemsWithTuberia.map((item, i) => {
-                                      const isLast = i === itemsWithTuberia.length - 1;
-                                      const bb = isLast
-                                        ? '2px solid var(--b1)'
-                                        : '1px solid var(--b2)';
-                                      const bg =
-                                        rowIdx % 2 === 0
-                                          ? 'rgba(255,255,255,0.02)'
-                                          : 'transparent';
-
-                                      if (i === 0) rowIdx++;
-
-                                      return (
-                                        <tr
-                                          key={`${detalleCode}-${i}`}
-                                          style={{ borderBottom: bb, background: bg }}
-                                        >
-                                          {i === 0 && (
-                                            <td
-                                              rowSpan={itemsWithTuberia.length}
-                                              style={{
-                                                borderBottom: '2px solid var(--b1)',
-                                                borderRight: '1px solid var(--b1)',
-                                                padding: '8px 10px',
-                                                verticalAlign: 'middle',
-                                                textAlign: 'center'
-                                              }}
-                                            >
-                                              <span
-                                                style={{
-                                                  background: 'rgba(255,166,0,0.1)',
-                                                  border: '1px solid var(--am)',
-                                                  borderRadius: '4px',
-                                                  padding: '4px 8px',
-                                                  display: 'inline-block',
-                                                  fontFamily: 'var(--mo)',
-                                                  fontSize: '11px',
-                                                  color: 'var(--am)',
-                                                  fontWeight: 'bold'
-                                                }}
-                                              >
-                                                {detalleCode}
-                                              </span>
-                                            </td>
-                                          )}
-                                          <td
-                                            style={{
-                                              borderRight: '1px solid var(--b1)',
-                                              padding: '8px 10px',
-                                              fontFamily: 'var(--mo)',
-                                              fontSize: '11.5px',
-                                              color: 'var(--mu)',
-                                              verticalAlign: 'middle',
-                                              lineHeight: 1.4
-                                            }}
-                                          >
-                                            {item.desc}
-                                          </td>
-                                          <td
-                                            style={{
-                                              padding: '8px 10px',
-                                              fontFamily: 'var(--mo)',
-                                              fontSize: '11px',
-                                              color: 'var(--am)',
-                                              fontWeight: 'bold',
-                                              verticalAlign: 'middle',
-                                              textAlign: 'center'
-                                            }}
-                                          >
-                                            {item.ot}
-                                          </td>
-                                        </tr>
-                                      );
-                                    });
-                                  })}
-                              </React.Fragment>
-                            );
+                              );
+                            });
                           })}
                         </tbody>
                       </table>
@@ -327,7 +426,7 @@ export const RulesView: React.FC = () => {
           }
 
           // Special card for BARRA POT (r8) with dynamic variants for ÁREA HÚMEDA
-          if (r.id === 'r8') {
+          if (r.id === 'r8' && activeArea === 'AREA HUMEDA') {
             return (
               <div className="rule-card" key={r.id}>
                 <div style={{ marginBottom: '14px' }}>
