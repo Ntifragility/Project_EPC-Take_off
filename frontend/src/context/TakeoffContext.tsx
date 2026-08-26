@@ -241,25 +241,86 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateItem = (id: string, updates: Partial<TakeoffItem>) => {
     setItems(prev => {
-      let updated = prev.map(it => (it.id === id ? { ...it, ...updates } : it));
+      const oldItem = prev.find(i => i.id === id);
+      if (!oldItem) return prev;
+
+      const oldTagPlano = (oldItem.tagPlano || '').trim();
+      const newTagPlano = updates.tagPlano !== undefined ? updates.tagPlano.trim() : oldTagPlano;
+      const tagChanged = updates.tagPlano !== undefined && newTagPlano !== oldTagPlano;
+
+      const oldPlano = oldItem.plano || '';
+      const newPlano = updates.plano !== undefined ? updates.plano.toUpperCase() : oldPlano;
+      const planoChanged = updates.plano !== undefined && newPlano !== oldPlano;
+
+      const oldRev = oldItem.rev || '';
+      const newRev = updates.rev !== undefined ? updates.rev.toUpperCase() : oldRev;
+
+      const oldDetalle = oldItem.detalle || '';
+      const newDetalle = updates.detalle !== undefined ? updates.detalle.toUpperCase() : oldDetalle;
+      const detalleChanged = updates.detalle !== undefined && newDetalle !== oldDetalle;
+
+      // Identify whether this item belongs to a multi-item rule group
+      const isGroupedRule = Boolean(oldItem.ruleId && oldTagPlano);
+
+      let updated = prev.map(it => {
+        // Direct target item being edited
+        if (it.id === id) {
+          const appliedTagPlano = newTagPlano;
+          const appliedPlano = newPlano;
+          const appliedRev = newRev;
+          const appliedDetalle = newDetalle;
+          const appliedTagUnico =
+            updates.tagUnico !== undefined
+              ? updates.tagUnico
+              : generateTagUnico(appliedPlano, appliedTagPlano, updates.material || it.material);
+
+          return {
+            ...it,
+            ...updates,
+            tagPlano: appliedTagPlano,
+            plano: appliedPlano,
+            rev: appliedRev,
+            detalle: appliedDetalle,
+            tagUnico: appliedTagUnico
+          };
+        }
+
+        // Synchronize companion items in the same rule group in-place!
+        if (
+          isGroupedRule &&
+          it.ruleId === oldItem.ruleId &&
+          it.pkgId === oldItem.pkgId &&
+          (it.tagPlano || '').trim() === oldTagPlano
+        ) {
+          const companionTagPlano = tagChanged ? newTagPlano : it.tagPlano;
+          const companionPlano = planoChanged ? newPlano : it.plano;
+          const companionRev = newRev;
+          const companionDetalle = detalleChanged ? newDetalle : it.detalle;
+          const companionTagUnico = generateTagUnico(
+            companionPlano,
+            companionTagPlano,
+            it.material
+          );
+
+          return {
+            ...it,
+            tagPlano: companionTagPlano,
+            plano: companionPlano,
+            rev: companionRev,
+            detalle: companionDetalle,
+            tagUnico: companionTagUnico
+          };
+        }
+
+        return it;
+      });
+
       const target = updated.find(i => i.id === id);
       if (!target) return updated;
 
       // Check DETALLE modification on r2
       if (updates.detalle !== undefined && target.ruleId === 'r2') {
-        updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, updates.detalle.toUpperCase());
-      } else if (updates.detalle !== undefined && target.ruleId) {
-        // Sync DETALLE text to group siblings
-        updated = updated.map(sib => {
-          if (
-            sib.ruleId === target.ruleId &&
-            sib.tagPlano === target.tagPlano &&
-            sib.pkgId === target.pkgId
-          ) {
-            return { ...sib, detalle: updates.detalle! };
-          }
-          return sib;
-        });
+        updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, target.detalle);
       }
 
       // Check CABLE DESNUDO 4/0 AWG changes (update CINTA AMARILLA and TIERRA DE CULTIVO)
