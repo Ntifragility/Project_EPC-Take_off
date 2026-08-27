@@ -79,6 +79,18 @@ async function runDiagnostics() {
     console.error('❌ Unexpected error querying planos_pat_spat:', err);
   }
 
+  console.log('\n--- 2.5. Checking for any existing Rules or Detalles tables ---');
+  for (const t of ['rules', 'takeoff_rules', 'reglas', 'detalles', 'detalle_variants', 'area_detalles', 'rules_config']) {
+    try {
+      const { data, error } = await supabase.from(t).select('*').limit(1);
+      if (!error) {
+        console.log(`✅ Table "${t}" exists with ${data?.length} records! Columns:`, data?.[0] ? Object.keys(data[0]).join(', ') : 'empty');
+      } else {
+        // Table doesn't exist
+      }
+    } catch (e) {}
+  }
+
   console.log('\n--- 3. Testing Schema Insert Permissions (Dry-run / Test Record) ---');
   try {
     const testItem = {

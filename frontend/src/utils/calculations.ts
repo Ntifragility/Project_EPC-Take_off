@@ -1,15 +1,23 @@
 import { TakeoffItem, MaterialType } from '../types/takeoff';
 import {
-  DETALLE_VARIANTS,
+  DYNAMIC_DETALLE_VARIANTS,
   R2_SWAPPABLE,
   shouldAutoManageTuberia,
-  BARRA_POT_VARIANTS_HUMEDA,
-  BARRA_INST_VARIANTS_HUMEDA,
-  ALL_BARRA_VARIANTS_HUMEDA
+  DYNAMIC_BARRA_POT_VARIANTS,
+  DYNAMIC_BARRA_INST_VARIANTS
 } from '../data/detalleVariants';
 
 export function uid(): string {
   return Math.random().toString(36).slice(2, 10);
+}
+
+export function getAbsoluteUnit(rawUnit: string): string {
+  const normalized = (rawUnit || '').toLowerCase().trim();
+  if (normalized.includes('m3')) return 'm3';
+  if (normalized.includes('kg')) return 'kg';
+  if (normalized.includes('m')) return 'm';
+  if (normalized.includes('u') || normalized.includes('und') || normalized.includes('cjto') || normalized.includes('c/')) return 'und';
+  return 'und'; // default fallback
 }
 
 export function isPrimaryMaterial(desc: string): boolean {
@@ -148,15 +156,15 @@ export function applyDetalleVariant(
   numSoportes = 1,
   numJumpers = 1
 ): TakeoffItem[] {
-  let variant = DETALLE_VARIANTS[detalleCode];
+  let variant = DYNAMIC_DETALLE_VARIANTS[detalleCode];
   if (!variant && (detalleCode === '008/5' || detalleCode === '008/05')) {
-    variant = DETALLE_VARIANTS['008/05'] || DETALLE_VARIANTS['008/5'];
+    variant = DYNAMIC_DETALLE_VARIANTS['008/05'] || DYNAMIC_DETALLE_VARIANTS['008/5'];
   }
   if (!variant && (detalleCode === 'ND' || detalleCode === 'N/D' || !detalleCode)) {
-    variant = DETALLE_VARIANTS['ND'];
+    variant = DYNAMIC_DETALLE_VARIANTS['ND'];
   }
   if (!variant && detalleCode.startsWith('020')) {
-    variant = DETALLE_VARIANTS['020'];
+    variant = DYNAMIC_DETALLE_VARIANTS['020'];
   }
   if (!variant) return items;
 
@@ -258,7 +266,7 @@ export function applyDetalleVariant(
       pkgId: refItem.pkgId,
       desc: v.desc,
       qty: finalQty,
-      unit: v.unit,
+      unit: getAbsoluteUnit(v.unit),
       notes: '',
       ruleId: 'r2',
       material: isP ? 'P' : 'C',
@@ -292,9 +300,8 @@ export function applyBarraPotDetalleVariant(
   numSoportes = 1
 ): TakeoffItem[] {
   const variant =
-    ALL_BARRA_VARIANTS_HUMEDA[detalleCode] ||
-    BARRA_POT_VARIANTS_HUMEDA[detalleCode] ||
-    BARRA_INST_VARIANTS_HUMEDA[detalleCode];
+    DYNAMIC_BARRA_POT_VARIANTS[detalleCode] ||
+    DYNAMIC_BARRA_INST_VARIANTS[detalleCode];
   if (!variant) return items;
 
   const currentItems = [...items];
@@ -324,7 +331,7 @@ export function applyBarraPotDetalleVariant(
       pkgId: refItem.pkgId,
       desc: v.desc,
       qty: finalQty,
-      unit: v.unit,
+      unit: getAbsoluteUnit(v.unit),
       notes: '',
       ruleId: targetRuleId,
       material: v.material,

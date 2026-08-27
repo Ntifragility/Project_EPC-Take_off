@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TakeoffItem, MaterialType } from '../../types/takeoff';
 import { useTakeoff } from '../../context/TakeoffContext';
 import { isCountable, generateTagUnico } from '../../utils/calculations';
-import { detalleEntriesByArea, hasSoporteItems, hasJumperItems } from '../../data/detalleVariants';
+import { getDetallesForArea, hasSoporteItems, hasJumperItems } from '../../data/detalleVariants';
 
 interface TakeoffRowProps {
   item: TakeoffItem;
@@ -19,7 +19,7 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
   onStartEdit,
   onCancelEdit
 }) => {
-  const { updateItem, deleteItem, section } = useTakeoff();
+  const { updateItem, deleteItem, section, activeArea } = useTakeoff();
 
   // Edit form state
   const [material, setMaterial] = useState<MaterialType>(item.material || 'P');
@@ -167,14 +167,14 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
                 setDetalle(newDet);
                 let numSoportes = 1;
                 let numJumpers = 1;
-                if (hasSoporteItems(newDet)) {
+                if (hasSoporteItems(newDet, activeArea)) {
                   const sAns = window.prompt(
                     `¿Cuántos soportes se requieren por mecha para el detalle ${newDet}?\n(Multiplica los materiales "u / soporte" y "m/ soporte")`,
                     '1'
                   );
                   if (sAns !== null) numSoportes = parseInt(sAns, 10) || 1;
                 }
-                if (hasJumperItems(newDet)) {
+                if (hasJumperItems(newDet, activeArea)) {
                   const jAns = window.prompt(
                     `¿Cuántos jumpers se requieren por mecha para el detalle ${newDet}?\n(Multiplica los materiales con Jumper)`,
                     '1'
@@ -195,14 +195,10 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
               }}
             >
               <option value=""></option>
-              {detalleEntriesByArea().map(group => (
-                <optgroup key={group.area} label={group.area}>
-                  {group.entries.map(([k]) => (
-                    <option key={k} value={k}>
-                      {k}
-                    </option>
-                  ))}
-                </optgroup>
+              {getDetallesForArea(activeArea).map(([k]) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
               ))}
             </select>
           ) : (
@@ -244,7 +240,7 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
             onKeyDown={handleKeyDown}
           />
         </td>
-        <td>
+        <td style={{ position: 'relative' }}>
           <input
             className="edit-input edit-input-mono"
             id="edit-unit"
@@ -254,20 +250,7 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
             onChange={e => setUnit(e.target.value.toUpperCase())}
             onKeyDown={handleKeyDown}
           />
-        </td>
-        <td>
-          <input
-            className="edit-input"
-            id="edit-notes"
-            type="text"
-            value={notes}
-            placeholder="Notas..."
-            onChange={e => setNotes(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-        </td>
-        <td className="td-a">
-          <div className="act-row">
+          <div className="act-row-floating is-editing">
             <button className="btn-green" onClick={handleSave} style={{ fontSize: '11px', padding: '2px 6px' }}>
               OK
             </button>
@@ -294,14 +277,13 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
       <td className="td-d">{item.desc}</td>
       <td className="td-q">{countable ? item.qty : ''}</td>
       <td className="td-u">{item.metradoOt || ''}</td>
-      <td className="td-u">{item.unit}</td>
-      <td className={`td-no ${item.notes ? 'has-notes' : ''}`}>{item.notes ? item.notes : '—'}</td>
-      <td className="td-a">
-        <div className="act-row">
-          <button className="btn-icon" onClick={onStartEdit} title="Editar fila" style={{ fontSize: '10.5px', padding: '2px 5px', fontFamily: 'var(--mo)' }}>
+      <td className="td-u" style={{ position: 'relative' }}>
+        {item.unit}
+        <div className="act-row-floating">
+          <button className="btn-icon" onClick={onStartEdit} title="Editar fila" style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}>
             EDIT
           </button>
-          <button className="btn-icon btn-danger" onClick={() => deleteItem(item.id)} title="Eliminar fila" style={{ fontSize: '10.5px', padding: '2px 5px', fontFamily: 'var(--mo)' }}>
+          <button className="btn-icon btn-danger" onClick={() => deleteItem(item.id)} title="Eliminar fila" style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}>
             DEL
           </button>
         </div>

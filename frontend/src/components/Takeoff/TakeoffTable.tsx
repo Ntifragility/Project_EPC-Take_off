@@ -35,8 +35,6 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         <col className="c-q" />
         <col className="c-mo" />
         <col className="c-u" />
-        <col className="c-no" />
-        <col className="c-a" />
       </colgroup>
       <thead>
         <tr style={{ color: 'var(--di)', opacity: 0.8 }}>
@@ -50,9 +48,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
           <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>AUTO</th>
           <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>70px</th>
           <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>75px</th>
-          <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>70px</th>
-          <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>120px</th>
-          <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>82px</th>
+          <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>90px</th>
         </tr>
         <tr>
           <th>#</th>
@@ -91,8 +87,6 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
           <th>CANT.</th>
           <th>METRADO OT</th>
           <th>UNID</th>
-          <th>NOTAS</th>
-          <th />
         </tr>
       </thead>
       <tbody>

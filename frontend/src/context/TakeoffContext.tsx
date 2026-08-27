@@ -16,7 +16,14 @@ import {
   loadStoredPackages,
   saveStoredPackages
 } from '../lib/storage';
-import { syncItemsToSupabase } from '../lib/supabase';
+import {
+  syncItemsToSupabase,
+  fetchTakeoffRulesFromSupabase,
+  saveTakeoffRuleToSupabase,
+  deleteTakeoffRuleFromSupabase,
+  fetchDetalleVariantsFromSupabase,
+  saveDetalleVariantToSupabase
+} from '../lib/supabase';
 import {
   uid,
   isPrimaryMaterial,
@@ -26,8 +33,9 @@ import {
   applyBarraPotDetalleVariant,
   assignTagUnicoSuffixes
 } from '../utils/calculations';
-import { getCalculatedVariantItems } from '../data/detalleVariants';
+import { getCalculatedVariantItems, updateDynamicVariants } from '../data/detalleVariants';
 import { parseTakeoffCsv } from '../utils/csvParser';
+import * as XLSX from 'xlsx';
 
 interface ToastState {
   message: string;
@@ -170,6 +178,31 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     localStorage.setItem('epc-plano', customPlano);
     localStorage.setItem('epc-rev', customRev);
   }, [customPlano, customRev]);
+
+  // Load rules and details from Supabase dynamically
+  useEffect(() => {
+    async function loadCloudConfig() {
+      // 1. Fetch Takeoff Rules
+      const { data: cloudRules, error: rulesErr } = await fetchTakeoffRulesFromSupabase(section);
+      if (!rulesErr && cloudRules) {
+        setRules(cloudRules);
+        saveStoredRules(section, cloudRules); // Sync to local storage as fallback
+        console.log(`[Supabase] Cargadas ${cloudRules.length} reglas para ${section}`);
+      } else if (rulesErr) {
+        console.warn('[Supabase] Error al cargar reglas, usando fallback local:', rulesErr);
+      }
+
+      // 2. Fetch Detalle Variants
+      const { data: cloudVariants, error: variantsErr } = await fetchDetalleVariantsFromSupabase();
+      if (!variantsErr && cloudVariants) {
+        updateDynamicVariants(cloudVariants);
+        console.log(`[Supabase] Cargadas ${cloudVariants.length} variantes de detalles`);
+      } else if (variantsErr) {
+        console.warn('[Supabase] Error al cargar variantes de detalles, usando fallback local:', variantsErr);
+      }
+    }
+    loadCloudConfig();
+  }, [section]);
 
   const showToast = (message: string, type: 'info' | 'warn' | 'success' = 'info') => {
     setToast({ message, type });
@@ -524,7 +557,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
   const handleCsvUpload = (csvText: string) => {
     const pkgId = selPkg || packages[0]?.id || 'p1';
     const preSnapshot = JSON.stringify(items);
-    const { newItems, addedCount } = parseTakeoffCsv(
+    const { newItems, addedCount, rejectedRows } = parseTakeoffCsv(
       csvText,
       rules,
       pkgId,
@@ -533,12 +566,47 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       items,
       activeArea
     );
+
+    // If there are rejected rows, generate and download an Excel file with the report
+    if (rejectedRows && rejectedRows.length > 0) {
+      const wsData = [
+        ['FILA EXCEL', 'TAG', 'LONGITUD_CABLE', 'LONGITUD_TUBERIA', 'DETALLE', 'JUMPERS', 'MOTIVO DE RECHAZO'],
+        ...rejectedRows.map(r => [
+          r.fila,
+          r.tag,
+          r.longitudCable,
+          r.longitudTuberia,
+          r.detalle,
+          r.jumpers,
+          r.motivo
+        ])
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Filas Rechazadas');
+      XLSX.writeFile(wb, 'filas_rechazadas_metrado.xlsx');
+    }
+
     if (addedCount > 0) {
       setUndoSnapshot(preSnapshot);
       setItems(newItems);
-      showToast(`${addedCount} ítems agregados desde CSV`, 'success');
+      if (rejectedRows && rejectedRows.length > 0) {
+        showToast(
+          `${addedCount} ítems agregados. ${rejectedRows.length} fila(s) rechazadas (descargando reporte en Excel)`,
+          'warn'
+        );
+      } else {
+        showToast(`${addedCount} ítems agregados desde Excel`, 'success');
+      }
     } else {
-      showToast('No se encontraron reglas aplicables en el CSV', 'warn');
+      if (rejectedRows && rejectedRows.length > 0) {
+        showToast(
+          `No se procesó ningún ítem. ${rejectedRows.length} fila(s) rechazadas por prefijos no válidos (descargando reporte en Excel)`,
+          'warn'
+        );
+      } else {
+        showToast('No se encontraron filas con datos válidos en el archivo Excel', 'warn');
+      }
     }
   };
 
@@ -577,7 +645,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const syncToDatabase = async () => {
     if (section === 'canalizado') {
-      showToast('Define la tabla de Canalizado antes de guardar en BD. Puedes exportar CSV.', 'warn');
+      showToast('Define la tabla de Canalizado antes de guardar en BD. Puedes exportar a Excel.', 'warn');
       return;
     }
     if (items.length === 0) {
@@ -656,7 +724,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     showToast('Partida eliminada', 'warn');
   };
 
-  const saveRule = (rule: TakeoffRule, isNew: boolean) => {
+  const saveRule = async (rule: TakeoffRule, isNew: boolean) => {
     if (!rule.trigger.trim()) {
       showToast('El disparador no puede estar vacío', 'warn');
       return;
@@ -666,6 +734,11 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
 
+    const { error } = await saveTakeoffRuleToSupabase(rule, section, rules.length);
+    if (error) {
+      console.warn('[Supabase] Error al guardar la regla en la nube, guardando localmente:', error);
+    }
+
     setRules(prev => {
       if (isNew) return [...prev, rule];
       return prev.map(r => (r.id === rule.id ? rule : r));
@@ -673,8 +746,14 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     showToast(isNew ? 'Regla creada' : 'Regla actualizada', 'success');
   };
 
-  const deleteRule = (id: string) => {
+  const deleteRule = async (id: string) => {
     if (!window.confirm('¿Eliminar esta regla?')) return;
+    
+    const { error } = await deleteTakeoffRuleFromSupabase(id);
+    if (error) {
+      console.warn('[Supabase] Error al eliminar la regla de la nube, eliminando localmente:', error);
+    }
+
     setRules(prev => prev.filter(r => r.id !== id));
     showToast('Regla eliminada', 'warn');
   };

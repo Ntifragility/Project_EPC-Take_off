@@ -240,15 +240,20 @@ export const AddPanel: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      if (!['xlsx', 'xlsb', 'xls', 'xlsm'].includes(ext)) {
+        showToast('Formato no permitido. Solo se aceptan archivos Excel (.xlsx, .xlsb, .xls)', 'warn');
+        return;
+      }
       const text = await convertSpreadsheetToCsvText(file);
       if (text && text.trim()) {
         handleCsvUpload(text);
       } else {
-        showToast('El archivo está vacío o no contiene datos válidos', 'warn');
+        showToast('El archivo Excel está vacío o no contiene datos válidos', 'warn');
       }
     } catch (err: any) {
       console.error('Error al procesar archivo:', err);
-      showToast('Error al leer el archivo Excel/CSV: ' + (err?.message || ''), 'warn');
+      showToast('Error al leer el archivo Excel: ' + (err?.message || ''), 'warn');
     } finally {
       e.target.value = '';
     }
@@ -398,13 +403,13 @@ export const AddPanel: React.FC = () => {
                 color: 'var(--tx)',
                 fontWeight: 600
               }}
-              title="Importar archivo Excel (.xlsx, .xlsb, .xls) o CSV"
+              title="Importar archivo Excel (.xlsx, .xlsb, .xls)"
             >
-              <span>+ SUBIR EXCEL / CSV</span>
+              <span>+ SUBIR EXCEL</span>
               <input
                 type="file"
                 ref={fileInputRef}
-                accept=".xlsx,.xlsb,.xls,.xlsm,.csv,.txt"
+                accept=".xlsx,.xlsb,.xls"
                 style={{ display: 'none' }}
                 onChange={handleFileUpload}
               />

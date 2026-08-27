@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { TakeoffItem, PackageGroup, SupabaseTakeoffRecord } from '../types/takeoff';
+import { TakeoffItem, PackageGroup, SupabaseTakeoffRecord, SectionType, TakeoffRule } from '../types/takeoff';
 import { isCountable } from '../utils/calculations';
 
 // Read Vite environment variables
@@ -106,4 +106,139 @@ export async function fetchItemsFromSupabase(
     return { data: null, error: message };
   }
 }
+
+export interface SupabaseRuleRecord {
+  id: string;
+  section: string;
+  trigger: string;
+  subitems: any;
+  order_index?: number;
+}
+
+export interface SupabaseDetalleVariantRecord {
+  id: string;
+  area: string;
+  category: string;
+  detalle_code: string;
+  items: any;
+}
+
+/**
+ * Fetch all takeoff rules for a section from Supabase
+ */
+export async function fetchTakeoffRulesFromSupabase(
+  section: SectionType
+): Promise<{ data: TakeoffRule[] | null; error?: string }> {
+  if (!supabase) {
+    return { data: null, error: 'Supabase no está configurado' };
+  }
+  try {
+    const { data, error } = await supabase
+      .from('takeoff_rules')
+      .select('*')
+      .eq('section', section)
+      .order('order_index', { ascending: true });
+
+    if (error) throw error;
+    const rules: TakeoffRule[] = (data || []).map(r => ({
+      id: r.id,
+      trigger: r.trigger,
+      subitems: r.subitems
+    }));
+    return { data: rules };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al obtener reglas de Supabase';
+    return { data: null, error: message };
+  }
+}
+
+/**
+ * Save/upsert a takeoff rule to Supabase
+ */
+export async function saveTakeoffRuleToSupabase(
+  rule: TakeoffRule,
+  section: SectionType,
+  orderIndex = 0
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado' };
+  }
+  try {
+    const payload: SupabaseRuleRecord = {
+      id: rule.id,
+      section,
+      trigger: rule.trigger,
+      subitems: rule.subitems,
+      order_index: orderIndex
+    };
+    const { error } = await supabase.from('takeoff_rules').upsert(payload);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al guardar regla en Supabase';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Delete a takeoff rule from Supabase by ID
+ */
+export async function deleteTakeoffRuleFromSupabase(
+  ruleId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado' };
+  }
+  try {
+    const { error } = await supabase.from('takeoff_rules').delete().eq('id', ruleId);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar regla en Supabase';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Fetch all detalle variants from Supabase
+ */
+export async function fetchDetalleVariantsFromSupabase(): Promise<{
+  data: SupabaseDetalleVariantRecord[] | null;
+  error?: string;
+}> {
+  if (!supabase) {
+    return { data: null, error: 'Supabase no está configurado' };
+  }
+  try {
+    const { data, error } = await supabase
+      .from('detalle_variants')
+      .select('*');
+
+    if (error) throw error;
+    return { data: (data as SupabaseDetalleVariantRecord[]) || [] };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al obtener variantes de detalles de Supabase';
+    return { data: null, error: message };
+  }
+}
+
+/**
+ * Save/upsert a detalle variant to Supabase
+ */
+export async function saveDetalleVariantToSupabase(
+  variant: SupabaseDetalleVariantRecord
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado' };
+  }
+  try {
+    const { error } = await supabase.from('detalle_variants').upsert(variant);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al guardar variante de detalle en Supabase';
+    return { success: false, error: message };
+  }
+}
+
 

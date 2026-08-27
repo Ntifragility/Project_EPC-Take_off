@@ -38,128 +38,18 @@ export const RulesView: React.FC = () => {
     <div>
       <div className="view-hd">
         <div>
-          <div className="view-title">REGLAS DE AUTO-LLENADO</div>
+          <div className="view-title">
+            REGLAS DE AUTO-LLENADO &bull; {activeArea === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'}
+          </div>
           <div className="view-sub">
-            Reglas y matrices configuradas para el entorno seleccionado.
+            {activeArea === 'AREA HUMEDA'
+              ? 'Reglas y matrices constructivas para Área Húmeda.'
+              : 'Reglas y matrices estándar para Área Seca.'}
           </div>
         </div>
         <button className="btn-primary" onClick={handleOpenNew}>
           + NUEVA REGLA
         </button>
-      </div>
-
-      {/* 2 Interactive Session Cards for AREA SECA vs AREA HUMEDA */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '14px',
-          marginBottom: '22px'
-        }}
-      >
-        {/* Card 1: SESIÓN ÁREA SECA */}
-        <div
-          onClick={() => setActiveArea('AREA SECA')}
-          style={{
-            background: 'var(--s1)',
-            border: activeArea === 'AREA SECA' ? '2px solid var(--tx)' : '1px solid var(--b1)',
-            borderRadius: '8px',
-            padding: '16px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.5px' }}>
-                SESIÓN: ÁREA SECA
-              </span>
-            </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--mu)', marginTop: '4px' }}>
-              17 Detalles estándar (151, 153, 020...) y Barra conv.
-            </div>
-          </div>
-          {activeArea === 'AREA SECA' ? (
-            <span
-              style={{
-                background: 'var(--tx)',
-                color: 'var(--bg)',
-                fontSize: '11px',
-                fontWeight: 700,
-                padding: '4px 8px',
-                borderRadius: '4px'
-              }}
-            >
-              ACTIVA
-            </span>
-          ) : (
-            <button
-              className="btn-ghost btn-sm"
-              style={{ fontSize: '11px', padding: '4px 10px' }}
-              onClick={e => {
-                e.stopPropagation();
-                setActiveArea('AREA SECA');
-              }}
-            >
-              VER REGLAS
-            </button>
-          )}
-        </div>
-
-        {/* Card 2: SESIÓN ÁREA HÚMEDA */}
-        <div
-          onClick={() => setActiveArea('AREA HUMEDA')}
-          style={{
-            background: 'var(--s1)',
-            border: activeArea === 'AREA HUMEDA' ? '2px solid var(--tx)' : '1px solid var(--b1)',
-            borderRadius: '8px',
-            padding: '16px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.5px' }}>
-                SESIÓN: ÁREA HÚMEDA
-              </span>
-            </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--mu)', marginTop: '4px' }}>
-              Barra POT (010/17A-B), Barra INST (010/17C-D) y 10 Detalles especiales
-            </div>
-          </div>
-          {activeArea === 'AREA HUMEDA' ? (
-            <span
-              style={{
-                background: 'var(--tx)',
-                color: 'var(--bg)',
-                fontSize: '11px',
-                fontWeight: 700,
-                padding: '4px 8px',
-                borderRadius: '4px'
-              }}
-            >
-              ACTIVA
-            </span>
-          ) : (
-            <button
-              className="btn-ghost btn-sm"
-              style={{ fontSize: '11px', padding: '4px 10px' }}
-              onClick={e => {
-                e.stopPropagation();
-                setActiveArea('AREA HUMEDA');
-              }}
-            >
-              VER REGLAS
-            </button>
-          )}
-        </div>
       </div>
 
       {rules.length === 0 ? (
@@ -212,8 +102,8 @@ export const RulesView: React.FC = () => {
                       }}
                     >
                       {activeArea === 'AREA HUMEDA'
-                        ? 'Desglose oficial de materiales y accesorios por DETALLE (ÁREA HÚMEDA):'
-                        : 'Nota: Los ítems 3 y 4 cambian según el DETALLE de AREA SECA:'}
+                        ? 'Desglose oficial de materiales y accesorios por DETALLE:'
+                        : 'Desglose de materiales y accesorios por DETALLE:'}
                     </div>
 
                     <div
@@ -239,7 +129,7 @@ export const RulesView: React.FC = () => {
                           <col style={{ width: '85px' }} />
                           <col style={{ width: 'auto' }} />
                           <col style={{ width: '120px' }} />
-                          <col style={{ width: '95px' }} />
+                          <col style={{ width: '110px' }} />
                         </colgroup>
                         <thead>
                           <tr style={{ background: 'var(--s1)' }}>
@@ -277,7 +167,7 @@ export const RulesView: React.FC = () => {
                                 fontWeight: 'bold'
                               }}
                             >
-                              CANT. / UNIDAD
+                              METRADO OT
                             </th>
                             <th
                               style={{
@@ -288,7 +178,7 @@ export const RulesView: React.FC = () => {
                                 fontWeight: 'bold'
                               }}
                             >
-                              METRADO OT
+                              UNIDAD
                             </th>
                           </tr>
                         </thead>
@@ -306,8 +196,24 @@ export const RulesView: React.FC = () => {
                                 ? [...itemsList, { desc: tuberiaDesc, qty: 1, unit: 'm', ot: 'Var.' }]
                                 : [...itemsList];
 
-                            return itemsWithTuberia.map((item, i) => {
-                              const isLast = i === itemsWithTuberia.length - 1;
+                            const sortedItems = [...itemsWithTuberia].sort((a, b) => {
+                              const descA = (a.desc || '').toUpperCase();
+                              const descB = (b.desc || '').toUpperCase();
+                              const getScore = (desc: string) => {
+                                if (desc.startsWith('CABLE DESNUDO 2/0 AWG')) return 0;
+                                if (desc.startsWith('TUBERIA') || desc.startsWith('TUBERÍA')) return 1;
+                                return 2;
+                              };
+                              const scoreA = getScore(descA);
+                              const scoreB = getScore(descB);
+                              if (scoreA !== scoreB) {
+                                return scoreA - scoreB;
+                              }
+                              return descA.localeCompare(descB);
+                            });
+
+                            return sortedItems.map((item, i) => {
+                              const isLast = i === sortedItems.length - 1;
                               const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
                               const bg = detIdx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent';
 
@@ -318,7 +224,7 @@ export const RulesView: React.FC = () => {
                                 >
                                   {i === 0 && (
                                     <td
-                                      rowSpan={itemsWithTuberia.length}
+                                      rowSpan={sortedItems.length}
                                       style={{
                                         borderBottom: '2px solid var(--b1)',
                                         borderRight: '1px solid var(--b1)',
@@ -363,20 +269,6 @@ export const RulesView: React.FC = () => {
                                       padding: '8px 10px',
                                       fontFamily: 'var(--mo)',
                                       fontSize: '11px',
-                                      color: 'var(--tx)',
-                                      fontWeight: 600,
-                                      verticalAlign: 'middle',
-                                      textAlign: 'center',
-                                      whiteSpace: 'nowrap'
-                                    }}
-                                  >
-                                    {item.qty} {item.unit}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: '8px 10px',
-                                      fontFamily: 'var(--mo)',
-                                      fontSize: '11px',
                                       color: 'var(--mu)',
                                       fontWeight: 'bold',
                                       verticalAlign: 'middle',
@@ -385,11 +277,27 @@ export const RulesView: React.FC = () => {
                                   >
                                     {item.otDynamic === '1c/3m' ? (
                                       <span style={{ color: 'var(--tx)' }} title="Fórmula: Cable / 3">1c / 3m</span>
+                                    ) : item.qty === 'Var.' || item.ot === 'Var.' ? (
+                                      <span style={{ color: 'var(--tx)' }}>Var.</span>
                                     ) : item.otDynamic === 'empty' ? (
                                       <span style={{ color: 'var(--mu)', fontStyle: 'italic' }}>—</span>
                                     ) : (
                                       item.ot
                                     )}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: 'var(--tx)',
+                                      fontWeight: 600,
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {item.unit}
                                   </td>
                                 </tr>
                               );
@@ -624,7 +532,7 @@ export const RulesView: React.FC = () => {
                 <div className="rule-card-row">
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
-                      En <strong>ÁREA SECA</strong> se utiliza la configuración estándar (1 BARRA POT convencional). En <strong>ÁREA HÚMEDA</strong> se generan automáticamente los accesorios correspondientes según el Detalle (010/17A, 010/17B).
+                      Accesorios autogenerados según el Detalle constructivo seleccionado (010/17A, 010/17B).
                     </div>
                   </div>
                   <div className="rule-card-acts">
@@ -816,7 +724,7 @@ export const RulesView: React.FC = () => {
                 <div className="rule-card-row">
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
-                      En <strong>ÁREA SECA</strong> se utiliza la configuración estándar (1 BARRA INST convencional). En <strong>ÁREA HÚMEDA</strong> se generan automáticamente los accesorios correspondientes según el Detalle (010/17C, 010/17D).
+                      Accesorios autogenerados según el Detalle constructivo seleccionado (010/17C, 010/17D con aisladores).
                     </div>
                   </div>
                   <div className="rule-card-acts">

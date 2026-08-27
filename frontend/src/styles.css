@@ -529,7 +529,7 @@
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            min-width: 1400px;
+            min-width: 1180px;
         }
 
         table,
@@ -654,15 +654,7 @@
         }
 
         col.c-u {
-            width: 70px
-        }
-
-        col.c-no {
-            width: 120px
-        }
-
-        col.c-a {
-            width: 82px
+            width: 90px;
         }
 
         thead tr {
@@ -747,14 +739,39 @@
             font-style: normal;
         }
 
-        .td-a {
-            text-align: center;
+        .act-row-floating {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%) scale(0.92);
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            opacity: 0;
+            transition: opacity .15s ease, transform .15s ease;
+            pointer-events: none;
+            background: var(--s2);
+            border: 1px solid var(--b1);
+            border-radius: 5px;
+            padding: 2px 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 15;
         }
 
-        .act-row {
-            display: flex;
-            gap: 4px;
-            justify-content: center;
+        .tr-row:hover .act-row-floating,
+        .tr-row:focus-within .act-row-floating {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+            pointer-events: auto;
+        }
+
+        .act-row-floating.is-editing {
+            opacity: 1 !important;
+            transform: translateY(-50%) scale(1) !important;
+            pointer-events: auto !important;
+            background: var(--s2) !important;
+            border: 1px solid var(--b1) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
         }
 
         .edit-input {
@@ -836,17 +853,24 @@
 
         /* Rule cards */
         .rule-card {
+            position: relative;
             background: var(--s1);
             border: 1px solid var(--b1);
             border-radius: 8px;
             padding: 16px;
-            margin-bottom: 12px
+            margin-bottom: 12px;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .rule-card:hover {
+            border-color: var(--b2);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .rule-card-row {
             display: flex;
             align-items: flex-start;
-            gap: 12px
+            gap: 12px;
         }
 
         .rule-trigger {
@@ -854,14 +878,14 @@
             font-size: 12px;
             color: var(--tx);
             font-weight: 600;
-            margin-bottom: 10px
+            margin-bottom: 10px;
         }
 
         .rule-subitems {
             display: flex;
             flex-direction: column;
             gap: 4px;
-            flex: 1
+            flex: 1;
         }
 
         .rule-sub {
@@ -871,27 +895,47 @@
             font-family: var(--mo);
             color: var(--mu);
             padding-left: 14px;
-            border-left: 2px solid var(--b1)
+            border-left: 2px solid var(--b1);
         }
 
         .rule-sub-n {
             color: var(--di);
-            min-width: 18px
+            min-width: 18px;
         }
 
         .rule-sub-d {
-            flex: 1
+            flex: 1;
         }
 
         .rule-sub-q {
             color: var(--tx);
-            font-weight: 500
+            font-weight: 500;
         }
 
         .rule-card-acts {
-            display: flex;
-            gap: 8px;
-            flex-shrink: 0
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            background: var(--s2);
+            border: 1px solid var(--b1);
+            border-radius: 6px;
+            padding: 3px 6px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transform: translateY(-3px);
+            pointer-events: none;
+            transition: opacity .18s ease, transform .18s ease;
+            z-index: 10;
+        }
+
+        .rule-card:hover .rule-card-acts,
+        .rule-card:focus-within .rule-card-acts {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
         }
 
         /* Rule editor */

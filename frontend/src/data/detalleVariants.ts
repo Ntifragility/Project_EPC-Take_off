@@ -231,7 +231,7 @@ if (DETALLE_VARIANTS['ND']) {
 export const AUTO_TUBERIA_AREAS = ['AREA SECA'];
 
 export function detalleEntriesByArea(): { area: string; entries: [string, DetalleVariantItem[]][] }[] {
-  return Object.entries(DETALLE_VARIANTS_BY_AREA).map(([area, variants]) => ({
+  return Object.entries(DYNAMIC_DETALLE_VARIANTS_BY_AREA).map(([area, variants]) => ({
     area,
     entries: Object.entries(variants).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' }))
   }));
@@ -240,14 +240,14 @@ export function detalleEntriesByArea(): { area: string; entries: [string, Detall
 export function getDetallesForArea(area: string): [string, DetalleVariantItem[]][] {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
   const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
-  const variants = DETALLE_VARIANTS_BY_AREA[key] || {};
+  const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key] || {};
   return Object.entries(variants).sort((a, b) =>
     a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' })
   );
 }
 
 export function getDetalleArea(detalleCode: string): string {
-  return Object.entries(DETALLE_VARIANTS_BY_AREA).find(([, variants]) => variants[detalleCode])?.[0] || '';
+  return Object.entries(DYNAMIC_DETALLE_VARIANTS_BY_AREA).find(([, variants]) => variants[detalleCode])?.[0] || '';
 }
 
 export function shouldAutoManageTuberia(detalleCode: string): boolean {
@@ -257,7 +257,7 @@ export function shouldAutoManageTuberia(detalleCode: string): boolean {
 export function hasSoporteItems(detalleCode: string, area = 'AREA HUMEDA'): boolean {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
   const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
-  const variants = DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
+  const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
   return variants.some(v => v.unit.toLowerCase().includes('soporte'));
 }
 
@@ -266,7 +266,7 @@ export function hasJumperItems(detalleCode: string, area = 'AREA HUMEDA'): boole
   if (detalleCode.toUpperCase().includes('JUMPER')) return true;
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
   const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
-  const variants = DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || DETALLE_VARIANTS[detalleCode] || [];
+  const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS[detalleCode] || [];
   return variants.some(
     v => v.unit.toLowerCase().includes('jumper') || v.desc.toLowerCase().includes('jumper')
   );
@@ -280,7 +280,7 @@ export function getCalculatedVariantItems(
 ): DetalleVariantItem[] {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
   const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
-  const variants = DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
+  const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
 
   return variants.map(v => {
     const unitLower = v.unit.toLowerCase();
@@ -440,3 +440,73 @@ export const R2_SWAPPABLE: string[] = [
   'CABLE AISLADO 2/0 AWG THHN (JUMPER)',
   'CABLE AISLADO 2/0 AWG THHN'
 ];
+
+// Dynamic references initialized with the static ones as seed defaults
+export const DYNAMIC_DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVariantItem[]>> = JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_AREA));
+export const DYNAMIC_DETALLE_VARIANTS: Record<string, DetalleVariantItem[]> = JSON.parse(JSON.stringify(DETALLE_VARIANTS));
+export const DYNAMIC_BARRA_POT_VARIANTS: Record<string, any[]> = JSON.parse(JSON.stringify(BARRA_POT_VARIANTS_HUMEDA));
+export const DYNAMIC_BARRA_INST_VARIANTS: Record<string, any[]> = JSON.parse(JSON.stringify(BARRA_INST_VARIANTS_HUMEDA));
+
+export function updateDynamicVariants(dbRecords: any[]) {
+  const newByArea: Record<string, Record<string, DetalleVariantItem[]>> = {
+    'AREA SECA': {},
+    'AREA HUEMDA': {}
+  };
+  const newPot: Record<string, any[]> = {};
+  const newInst: Record<string, any[]> = {};
+
+  dbRecords.forEach(rec => {
+    const areaKey = rec.area === 'AREA HUMEDA' ? 'AREA HUEMDA' : rec.area;
+    const itemsMapped = (rec.items || []).map((it: any) => ({
+      desc: it.desc,
+      qty: it.qty,
+      unit: it.unit,
+      ot: it.ot ?? it.qty,
+      otDynamic: it.otDynamic || (it.qty === 'Var.' ? 'empty' : undefined),
+      material: it.material || it.mat
+    }));
+
+    if (rec.category === 'CABLE_2_0') {
+      if (!newByArea[areaKey]) newByArea[areaKey] = {};
+      newByArea[areaKey][rec.detalle_code] = itemsMapped;
+    } else if (rec.category === 'BARRA_POT') {
+      newPot[rec.detalle_code] = itemsMapped.map((it: any) => ({
+        desc: it.desc,
+        qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
+        unit: it.unit,
+        material: it.material || 'C',
+        metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+      }));
+    } else if (rec.category === 'BARRA_INST') {
+      newInst[rec.detalle_code] = itemsMapped.map((it: any) => ({
+        desc: it.desc,
+        qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
+        unit: it.unit,
+        material: it.material || 'C',
+        metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+      }));
+    }
+  });
+
+  // Re-assign values
+  Object.keys(DYNAMIC_DETALLE_VARIANTS_BY_AREA).forEach(key => delete DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]);
+  Object.assign(DYNAMIC_DETALLE_VARIANTS_BY_AREA, newByArea);
+
+  const flat: Record<string, DetalleVariantItem[]> = {};
+  Object.values(DYNAMIC_DETALLE_VARIANTS_BY_AREA).forEach(area => {
+    Object.entries(area).forEach(([code, items]) => {
+      flat[code] = items;
+    });
+  });
+  if (flat['008/05']) flat['008/5'] = flat['008/05'];
+  if (flat['ND']) flat['N/D'] = flat['ND'];
+
+  Object.keys(DYNAMIC_DETALLE_VARIANTS).forEach(key => delete DYNAMIC_DETALLE_VARIANTS[key]);
+  Object.assign(DYNAMIC_DETALLE_VARIANTS, flat);
+
+  Object.keys(DYNAMIC_BARRA_POT_VARIANTS).forEach(key => delete DYNAMIC_BARRA_POT_VARIANTS[key]);
+  Object.assign(DYNAMIC_BARRA_POT_VARIANTS, newPot);
+
+  Object.keys(DYNAMIC_BARRA_INST_VARIANTS).forEach(key => delete DYNAMIC_BARRA_INST_VARIANTS[key]);
+  Object.assign(DYNAMIC_BARRA_INST_VARIANTS, newInst);
+}

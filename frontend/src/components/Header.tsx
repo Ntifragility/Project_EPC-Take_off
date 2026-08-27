@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTakeoff } from '../context/TakeoffContext';
-import { exportTakeoffCsv } from '../utils/csvExporter';
+import { exportTakeoffExcel } from '../utils/excelExporter';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 interface HeaderProps {
@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
   } = useTakeoff();
 
   const handleExport = () => {
-    exportTakeoffCsv(items, packages, section);
+    exportTakeoffExcel(items, packages, section);
   };
 
   const hasSupabase = isSupabaseConfigured();
@@ -173,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
         </span>
 
         <button className="btn-export" onClick={handleExport}>
-          EXPORTAR CSV
+          EXPORTAR EXCEL
         </button>
       </div>
     </header>
