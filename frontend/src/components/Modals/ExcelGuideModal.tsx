@@ -4,9 +4,10 @@ import * as XLSX from 'xlsx';
 interface ExcelGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClose }) => {
+export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClose, onFileUpload }) => {
   if (!isOpen) return null;
 
   const handleDownloadXlsx = () => {
@@ -27,11 +28,6 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
     XLSX.writeFile(wb, 'plantilla_metrado_epc.xlsx');
   };
 
-  const handleCopyHeaders = () => {
-    navigator.clipboard.writeText('TAG\tLONGITUD_CABLE\tLONGITUD_TUBERIA\tDETALLE\tJUMPERS\tSOPORTES');
-    alert('Encabezados copiados al portapapeles: TAG | LONGITUD_CABLE | LONGITUD_TUBERIA | DETALLE | JUMPERS | SOPORTES');
-  };
-
   return (
     <div
       className="modal-overlay"
@@ -43,50 +39,36 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
       <div
         className="modal"
         style={{
-          maxWidth: '680px',
+          maxWidth: '560px',
           width: '92vw',
-          maxHeight: '90vh',
+          maxHeight: '85vh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          padding: '16px'
         }}
       >
-        {/* Modal Header */}
-        <div className="modal-hd" style={{ flexShrink: 0 }}>
-          <div>
-            <div className="modal-hd-title" style={{ fontSize: '13px', letterSpacing: '1px' }}>
-              GUÍA DE IMPORTACIÓN EXCEL
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--mu)', marginTop: '2px' }}>
-              Estructura estándar de 6 columnas para importación (.xlsx, .xlsb, .xls)
-            </div>
-          </div>
-          <button className="btn-ghost btn-sm" onClick={onClose}>
-            ESC
-          </button>
-        </div>
-
         {/* Modal Body */}
         <div
           className="modal-body"
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '14px',
-            fontSize: '11.5px',
+            gap: '12px',
+            fontSize: '11px',
             overflowY: 'auto',
-            paddingRight: '6px'
+            paddingRight: '4px'
           }}
         >
           {/* Table of Columns */}
           <div>
             <div
               style={{
-                fontSize: '10.5px',
+                fontSize: '10px',
                 fontWeight: 700,
                 color: 'var(--mu)',
                 letterSpacing: '0.8px',
-                marginBottom: '6px',
+                marginBottom: '5px',
                 textTransform: 'uppercase'
               }}
             >
@@ -95,64 +77,52 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
             <div
               className="tbl-wrap"
               style={{
+                width: '100%',
+                boxSizing: 'border-box',
                 border: '1px solid var(--b1)',
                 borderRadius: '6px',
-                overflowX: 'auto',
-                WebkitOverflowScrolling: 'touch'
+                overflow: 'hidden'
               }}
             >
               <table
                 style={{
                   width: '100%',
+                  boxSizing: 'border-box',
                   borderCollapse: 'collapse',
-                  fontSize: '11px',
-                  tableLayout: 'auto'
+                  fontSize: '10.5px',
+                  tableLayout: 'fixed'
                 }}
               >
+                <colgroup>
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: 'calc(100% - 140px)' }} />
+                </colgroup>
                 <thead>
                   <tr style={{ background: 'var(--s2)', borderBottom: '1px solid var(--b1)' }}>
-                    <th style={{ padding: '6px 8px', textAlign: 'center', width: '38px' }}>COL</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left', minWidth: '110px' }}>NOMBRE</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left' }}>DESCRIPCIÓN</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left', width: '110px' }}>EJEMPLO</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'left' }}>TAG</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'left' }}>DETALLE</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', color: 'var(--mu)' }}>A</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>TAG</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'left' }}>Código del plano. Su prefijo asigna la regla de metrado.</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)' }}>M-01, C-01</td>
+                  <tr style={{ borderBottom: '1px solid var(--b1)' }}>
+                    <td style={{ padding: '6px 10px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)', whiteSpace: 'nowrap' }}>LONGITUD_CABLE</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'left', wordBreak: 'break-word' }}>Metros de cable. Para barras o soldaduras ingresar 1.</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--b1)' }}>
+                    <td style={{ padding: '6px 10px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)', whiteSpace: 'nowrap' }}>LONGITUD_TUBERIA</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'left', wordBreak: 'break-word' }}>Metros de tubería PVC. Dejar vacío si no aplica.</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--b1)' }}>
+                    <td style={{ padding: '6px 10px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)', whiteSpace: 'nowrap' }}>DETALLE</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'left', wordBreak: 'break-word' }}>Código constructivo (por defecto <strong>ND</strong>).</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--b1)' }}>
+                    <td style={{ padding: '6px 10px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)', whiteSpace: 'nowrap' }}>JUMPERS</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'left', wordBreak: 'break-word' }}>Cantidad de jumpers por mecha (opcional, def: 1).</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', color: 'var(--mu)' }}>B</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>LONGITUD_CABLE</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'left' }}>Metros de cable. Para barras o soldaduras ingresar 1.</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)' }}>12.50 / 1</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', color: 'var(--mu)' }}>C</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>LONGITUD_TUBERIA</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'left' }}>Metros de tubería PVC. Dejar vacío si no aplica.</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)' }}>2.00</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', color: 'var(--mu)' }}>D</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>DETALLE</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'left' }}>Código constructivo (por defecto <strong>ND</strong>).</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)' }}>ND, 008/05</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', color: 'var(--mu)' }}>E</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>JUMPERS</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'left' }}>Cantidad de jumpers por mecha (opcional, def: 1).</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)' }}>1, 2</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', color: 'var(--mu)' }}>F</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>SOPORTES</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'left' }}>Cantidad de soportes por mecha (opcional, def: 1).</td>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--mo)' }}>1, 3</td>
+                    <td style={{ padding: '6px 10px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)', whiteSpace: 'nowrap' }}>SOPORTES</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'left', wordBreak: 'break-word' }}>Cantidad de soportes por mecha (opcional, def: 1).</td>
                   </tr>
                 </tbody>
               </table>
@@ -160,15 +130,16 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Compact Prefixes Row */}
-          <div>
+          <div style={{ textAlign: 'center' }}>
             <div
               style={{
-                fontSize: '10.5px',
+                fontSize: '10px',
                 fontWeight: 700,
                 color: 'var(--mu)',
                 letterSpacing: '0.8px',
-                marginBottom: '6px',
-                textTransform: 'uppercase'
+                marginBottom: '5px',
+                textTransform: 'uppercase',
+                textAlign: 'center'
               }}
             >
               Prefijos Reconocidos (Filas no reconocidas se rechazan a Excel)
@@ -176,50 +147,36 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                gap: '6px'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))',
+                gap: '5px',
+                justifyContent: 'center'
               }}
             >
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '6px 10px' }}>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
                 <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>M-</span>
-                <span style={{ color: 'var(--mu)', marginLeft: '6px' }}>Mecha 2/0</span>
+                <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Mecha 2/0</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '6px 10px' }}>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
                 <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>C-</span>
-                <span style={{ color: 'var(--mu)', marginLeft: '6px' }}>Malla 4/0</span>
+                <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Malla 4/0</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '6px 10px' }}>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
                 <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>BP-</span>
-                <span style={{ color: 'var(--mu)', marginLeft: '6px' }}>Barra Pot</span>
+                <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Barra Pot</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '6px 10px' }}>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
                 <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>BI-</span>
-                <span style={{ color: 'var(--mu)', marginLeft: '6px' }}>Barra Inst</span>
+                <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Barra Inst</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '6px 10px' }}>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
                 <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>T- / TT-</span>
-                <span style={{ color: 'var(--mu)', marginLeft: '6px' }}>Soldaduras</span>
+                <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Soldaduras</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '6px 10px' }}>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
                 <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>PC- / PS-</span>
-                <span style={{ color: 'var(--mu)', marginLeft: '6px' }}>Pozos PAT</span>
+                <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Pozos PAT</span>
               </div>
             </div>
-          </div>
-
-          {/* Minimal Format Note */}
-          <div
-            style={{
-              background: 'var(--s2)',
-              border: '1px solid var(--b1)',
-              borderRadius: '5px',
-              padding: '8px 12px',
-              fontSize: '11px',
-              color: 'var(--mu)',
-              lineHeight: 1.4
-            }}
-          >
-            Formatos soportados: <strong>.XLSX</strong>, <strong>.XLSB</strong> y <strong>.XLS</strong>. No se admiten archivos .CSV. Las filas con prefijos no reconocidos o valores no numéricos se descargan automáticamente en un reporte Excel para su revisión.
           </div>
         </div>
 
@@ -229,23 +186,43 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
           style={{
             flexShrink: 0,
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '8px'
+            gap: '8px',
+            marginTop: '10px',
+            paddingTop: '10px',
+            borderTop: '1px solid var(--b1)'
           }}
         >
-          <button className="btn-ghost btn-sm" onClick={handleCopyHeaders} title="Copiar encabezados al portapapeles">
-            COPIAR ENCABEZADOS
+          <button className="btn-ghost btn-sm" style={{ borderColor: 'var(--b1)', fontSize: '10.5px', padding: '4px 10px' }} onClick={handleDownloadXlsx}>
+            PLANTILLA (.XLSX)
           </button>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button className="btn-primary" style={{ fontSize: '11px', padding: '6px 14px' }} onClick={handleDownloadXlsx}>
-              PLANTILLA (.XLSX)
-            </button>
-            <button className="btn-ghost btn-sm" onClick={onClose}>
-              CERRAR
-            </button>
-          </div>
+          <label
+            className="btn-primary"
+            style={{
+              cursor: 'pointer',
+              padding: '5px 12px',
+              fontSize: '10.5px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              borderRadius: '6px',
+              border: 'none',
+              height: '30px'
+            }}
+            title="Importar archivo Excel (.xlsx, .xlsb, .xls) ahora"
+          >
+            <span>+ SELECCIONAR EXCEL</span>
+            <input
+              type="file"
+              accept=".xlsx,.xlsb,.xls"
+              style={{ display: 'none' }}
+              onChange={e => {
+                onFileUpload(e);
+                onClose();
+              }}
+            />
+          </label>
         </div>
       </div>
     </div>

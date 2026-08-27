@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
     <header className="header">
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         <div className="logo">
-          EPC TAKEOFF <span id="active-section-name">{section.toUpperCase()}</span>
+          EPC TAKEOFF
         </div>
 
         <div className="section-switch" aria-label="Especialidad activa">
@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
             style={{ color: 'var(--mu)', fontStyle: 'normal' }}
             onClick={onOpenSummaryModal}
           >
-            RESUMEN MAT P
+            RESUMEN MAT
           </button>
         </nav>
       </div>
@@ -123,7 +123,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
       <div className="header-right">
         <button
           className="btn-icon"
-          style={{ fontSize: '11px', fontWeight: 600, padding: '5px 10px', fontFamily: 'var(--mo)' }}
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '5px 10px',
+            fontFamily: 'var(--mo)',
+            width: '56px',
+            minWidth: '56px',
+            maxWidth: '56px',
+            textAlign: 'center',
+            flexShrink: 0
+          }}
           onClick={toggleTheme}
           id="theme-btn"
           title="Toggle Dark/Light Theme"
@@ -133,7 +143,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
 
         <button
           className="btn-ghost"
-          style={{ padding: '5px 12px', fontSize: '11px' }}
+          style={{
+            padding: '5px 12px',
+            fontSize: '11px',
+            width: '100px',
+            minWidth: '100px',
+            maxWidth: '100px',
+            textAlign: 'center',
+            flexShrink: 0
+          }}
           onClick={clearCache}
           title="Restablecer Datos Locales"
         >
@@ -146,7 +164,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
             padding: '5px 12px',
             fontSize: '11px',
             opacity: isSyncing ? 0.7 : 1,
-            cursor: isSyncing ? 'wait' : 'pointer'
+            cursor: isSyncing ? 'wait' : 'pointer',
+            width: '135px',
+            minWidth: '135px',
+            maxWidth: '135px',
+            textAlign: 'center',
+            flexShrink: 0
           }}
           onClick={syncToDatabase}
           disabled={isSyncing}
@@ -168,18 +191,33 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
             border: '1px solid var(--b1)',
             padding: '3px 8px',
             borderRadius: '4px',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            display: 'inline-block',
+            width: '110px',
+            minWidth: '110px',
+            maxWidth: '110px',
+            textAlign: 'center',
+            flexShrink: 0
           }}
           id="item-count"
         >
-          {items.length} {items.length === 1 ? 'ítem' : 'ítems'}
+          {String(items.length).padStart(5, '0')} ítems
         </span>
 
-        <button className="btn-export" onClick={handleExport}>
+        <button
+          className="btn-export"
+          style={{
+            width: '125px',
+            minWidth: '125px',
+            maxWidth: '125px',
+            textAlign: 'center',
+            flexShrink: 0
+          }}
+          onClick={handleExport}
+        >
           EXPORTAR EXCEL
         </button>
       </div>
     </header>
   );
 };
-

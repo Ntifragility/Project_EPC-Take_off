@@ -41,7 +41,6 @@ export const AddPanel: React.FC = () => {
   const [qty, setQty] = useState<number>(1);
   const [unit, setUnit] = useState('UND');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredRules = triggerQuery.trim()
     ? rules.filter(r => r.trigger.toLowerCase().includes(triggerQuery.toLowerCase()))
@@ -369,68 +368,26 @@ export const AddPanel: React.FC = () => {
 
         {/* Batch CSV / Excel */}
         <div className="field">
-          <div className="field-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <span>LOTE CSV / EXCEL</span>
-            <button
-              type="button"
-              onClick={() => setShowExcelGuide(true)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--mu)',
-                cursor: 'pointer',
-                fontSize: '10px',
-                fontFamily: 'var(--mo)',
-                textDecoration: 'underline',
-                padding: 0
-              }}
-              title="Ver formato y columnas requeridas de Excel"
-            >
-              GUÍA DE COLUMNAS
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <label
-              className="btn-ghost"
-              style={{
-                cursor: 'pointer',
-                padding: '7px 12px',
-                fontSize: '11px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                borderColor: 'var(--b1)',
-                color: 'var(--tx)',
-                fontWeight: 600
-              }}
-              title="Importar archivo Excel (.xlsx, .xlsb, .xls)"
-            >
-              <span>+ SUBIR EXCEL</span>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept=".xlsx,.xlsb,.xls"
-                style={{ display: 'none' }}
-                onChange={handleFileUpload}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={() => setShowExcelGuide(true)}
-              style={{
-                padding: '7px 10px',
-                fontSize: '11px',
-                fontFamily: 'var(--mo)',
-                borderColor: 'var(--b1)',
-                color: 'var(--mu)',
-                fontWeight: 600
-              }}
-              title="Ver columnas y descargar plantilla Excel"
-            >
-              ?
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{
+              width: '100%',
+              padding: '7px 12px',
+              fontSize: '11px',
+              fontWeight: 600,
+              borderColor: 'var(--b1)',
+              color: 'var(--tx)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+            onClick={() => setShowExcelGuide(true)}
+            title="Ver formato, plantilla y subir archivo Excel"
+          >
+            <span>SUBIR EXCEL</span>
+          </button>
         </div>
 
         {/* Dynamic Inputs according to Mode */}
@@ -530,6 +487,7 @@ export const AddPanel: React.FC = () => {
       <ExcelGuideModal
         isOpen={showExcelGuide}
         onClose={() => setShowExcelGuide(false)}
+        onFileUpload={handleFileUpload}
       />
     </div>
   );

@@ -249,7 +249,7 @@
             white-space: nowrap;
             display: flex;
             align-items: center;
-            width: 250px;
+            width: 120px;
             flex-shrink: 0;
         }
 
@@ -574,49 +574,49 @@
             width: 95px
         }
 
-        /* Freeze Panes Logic (columns 1-6) */
-        th:nth-child(1),
-        td:nth-child(1) {
+        /* Freeze Panes Logic (columns 1-6) - Scope strictly to .takeoff-table */
+        .takeoff-table th:nth-child(1),
+        .takeoff-table td:nth-child(1) {
             position: sticky;
             left: 0;
             z-index: 10;
             background: inherit;
         }
 
-        th:nth-child(2),
-        td:nth-child(2) {
+        .takeoff-table th:nth-child(2),
+        .takeoff-table td:nth-child(2) {
             position: sticky;
             left: 40px;
             z-index: 10;
             background: inherit;
         }
 
-        th:nth-child(3),
-        td:nth-child(3) {
+        .takeoff-table th:nth-child(3),
+        .takeoff-table td:nth-child(3) {
             position: sticky;
             left: 80px;
             z-index: 10;
             background: inherit;
         }
 
-        th:nth-child(4),
-        td:nth-child(4) {
+        .takeoff-table th:nth-child(4),
+        .takeoff-table td:nth-child(4) {
             position: sticky;
             left: 250px;
             z-index: 10;
             background: inherit;
         }
 
-        th:nth-child(5),
-        td:nth-child(5) {
+        .takeoff-table th:nth-child(5),
+        .takeoff-table td:nth-child(5) {
             position: sticky;
             left: 280px;
             z-index: 10;
             background: inherit;
         }
 
-        th:nth-child(6),
-        td:nth-child(6) {
+        .takeoff-table th:nth-child(6),
+        .takeoff-table td:nth-child(6) {
             position: sticky;
             left: 420px;
             z-index: 10;
@@ -625,7 +625,7 @@
         }
 
         /* Ensure header parts are also sticky and above rows */
-        thead th:nth-child(-n+6) {
+        .takeoff-table thead th:nth-child(-n+6) {
             z-index: 20;
             background: var(--s2) !important;
         }
