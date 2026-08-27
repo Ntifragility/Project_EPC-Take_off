@@ -72,7 +72,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
             color: 'var(--tx)',
             cursor: 'pointer',
             letterSpacing: '0.5px',
-            transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+            transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+            width: '140px',
+            justifyContent: 'center',
+            flexShrink: 0
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx)';

@@ -249,6 +249,8 @@
             white-space: nowrap;
             display: flex;
             align-items: center;
+            width: 250px;
+            flex-shrink: 0;
         }
 
         .logo span {
