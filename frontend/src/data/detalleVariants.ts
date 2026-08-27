@@ -283,17 +283,30 @@ export function getCalculatedVariantItems(
   const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
 
   return variants
+    .filter(v => {
+      const isJumper = v.unit.toLowerCase().includes('jumper') || v.desc.toLowerCase().includes('jumper');
+      const isSoporte = v.unit.toLowerCase().includes('soporte') || v.desc.toLowerCase().includes('soporte');
+
+      if (isJumper && (!numJumpers || numJumpers <= 0)) {
+        return false;
+      }
+      if (isSoporte && (!numSoportes || numSoportes <= 0)) {
+        return false;
+      }
+      return true;
+    })
     .map(v => {
       const unitLower = v.unit.toLowerCase();
+      const descLower = v.desc.toLowerCase();
       let calculatedQty = v.qty;
       let calculatedOt = v.ot;
 
-      if (unitLower.includes('soporte') && typeof v.qty === 'number') {
+      if ((unitLower.includes('soporte') || descLower.includes('soporte')) && typeof v.qty === 'number') {
         calculatedQty = parseFloat((v.qty * (numSoportes || 0)).toFixed(4));
         if (typeof v.ot === 'number') {
           calculatedOt = parseFloat((v.ot * (numSoportes || 0)).toFixed(4));
         }
-      } else if (unitLower.includes('jumper') && typeof v.qty === 'number') {
+      } else if ((unitLower.includes('jumper') || descLower.includes('jumper')) && typeof v.qty === 'number') {
         calculatedQty = parseFloat((v.qty * (numJumpers || 0)).toFixed(4));
         if (typeof v.ot === 'number') {
           calculatedOt = parseFloat((v.ot * (numJumpers || 0)).toFixed(4));

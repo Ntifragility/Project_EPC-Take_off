@@ -262,10 +262,23 @@ export function applyDetalleVariant(
 
   const newMiddle: TakeoffItem[] = variant
     .filter(v => {
-      // 1) Filter out items with qty <= 0 (e.g. 0 jumpers / 0 soportes)
+      const isJumper = v.unit.toLowerCase().includes('jumper') || v.desc.toUpperCase().includes('JUMPER');
+      const isSoporte = v.unit.toLowerCase().includes('soporte') || v.desc.toUpperCase().includes('SOPORTE');
+
+      // 1) If JUMPERS <= 0, do NOT consider ANY item related to jumpers
+      if (isJumper && (!numJumpers || numJumpers <= 0)) {
+        return false;
+      }
+
+      // 2) If SOPORTES <= 0, do NOT consider ANY item related to soportes
+      if (isSoporte && (!numSoportes || numSoportes <= 0)) {
+        return false;
+      }
+
+      // 3) Filter out items with numeric qty <= 0
       if (typeof v.qty === 'number' && v.qty <= 0) return false;
 
-      // 2) Do not duplicate primary cableItem if it already exists in currentItems for this tag
+      // 4) Do not duplicate primary cableItem if it already exists in currentItems for this tag
       if (cableItem && v.desc.trim().toUpperCase() === cableDescUp) {
         if (cableOt && (cableItem.metradoOt === 'Var.' || cableItem.metradoOt === 'VAR.' || !cableItem.metradoOt)) {
           cableItem.metradoOt = String(cableOt);
@@ -273,7 +286,7 @@ export function applyDetalleVariant(
         return false;
       }
 
-      // 3) Do not duplicate primary tuberiaItem if it already exists in currentItems for this tag
+      // 5) Do not duplicate primary tuberiaItem if it already exists in currentItems for this tag
       if (tuberiaItem && (v.desc.trim().toUpperCase() === tuberiaDescUp || (v.desc.toUpperCase().includes('TUBERIA') && tuberiaItem))) {
         if (tuberiaOt && (tuberiaItem.metradoOt === 'Var.' || tuberiaItem.metradoOt === 'VAR.' || !tuberiaItem.metradoOt)) {
           tuberiaItem.metradoOt = tuberiaOt;
@@ -286,14 +299,16 @@ export function applyDetalleVariant(
     .map(v => {
       let finalOt = v.ot !== undefined ? String(v.ot) : '';
       let finalQty = v.qty;
+      const isJumper = v.unit.toLowerCase().includes('jumper') || v.desc.toUpperCase().includes('JUMPER');
+      const isSoporte = v.unit.toLowerCase().includes('soporte') || v.desc.toUpperCase().includes('SOPORTE');
 
-      if (v.unit.toLowerCase().includes('soporte')) {
+      if (isSoporte) {
         const nQty = typeof v.qty === 'number' ? v.qty : 1;
         finalQty = parseFloat((nQty * (numSoportes || 0)).toFixed(4));
         if (v.ot !== undefined && typeof v.ot === 'number') {
           finalOt = String(parseFloat((v.ot * (numSoportes || 0)).toFixed(4)));
         }
-      } else if (v.unit.toLowerCase().includes('jumper')) {
+      } else if (isJumper) {
         const nQty = typeof v.qty === 'number' ? v.qty : 1;
         finalQty = parseFloat((nQty * (numJumpers || 0)).toFixed(4));
         if (v.ot !== undefined && typeof v.ot === 'number') {
