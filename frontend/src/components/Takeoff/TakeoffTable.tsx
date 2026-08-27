@@ -84,7 +84,6 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             </select>
           </th>
           <th>DESCRIPCIÓN</th>
-          <th>CANT.</th>
           <th>METRADO OT</th>
           <th>UNID</th>
         </tr>

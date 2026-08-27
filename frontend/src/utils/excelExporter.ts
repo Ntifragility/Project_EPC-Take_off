@@ -14,14 +14,12 @@ export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[
     'TAG EN PLANO',
     'DETALLE',
     'DESCRIPCION',
-    'CANTIDAD',
     'METRADO OT',
     'UNIDAD'
   ];
 
   const data = items.map(it => {
     const pkg = packages.find(p => p.id === it.pkgId)?.name || 'SIN PARTIDA';
-    const isCount = isCountable(it.desc, section);
     return {
       'PARTIDA': pkg,
       'MATERIAL': it.material || '',
@@ -31,7 +29,6 @@ export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[
       'TAG EN PLANO': it.tagPlano || '',
       'DETALLE': it.detalle || '',
       'DESCRIPCION': it.desc || '',
-      'CANTIDAD': isCount ? (typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 0) : '',
       'METRADO OT': it.metradoOt || '',
       'UNIDAD': it.unit || ''
     };
@@ -49,7 +46,6 @@ export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[
     { wch: 12 }, // Tag en plano
     { wch: 10 }, // Detalle
     { wch: 50 }, // Descripcion
-    { wch: 10 }, // Cantidad
     { wch: 12 }, // Metrado OT
     { wch: 8 }   // Unidad
   ];

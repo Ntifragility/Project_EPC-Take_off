@@ -216,21 +216,6 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
           {item.desc}
         </td>
         <td>
-          {countable ? (
-            <input
-              className="edit-input edit-input-mono"
-              id="edit-qty"
-              type="number"
-              min="0"
-              value={qty}
-              onChange={e => setQty(parseFloat(e.target.value) || 0)}
-              onKeyDown={handleKeyDown}
-            />
-          ) : (
-            <input type="hidden" value={qty} />
-          )}
-        </td>
-        <td>
           <input
             className="edit-input edit-input-mono"
             id="edit-mot"
@@ -275,7 +260,6 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
       <td className="td-u">{item.tagPlano || ''}</td>
       <td className="td-u">{item.detalle || ''}</td>
       <td className="td-d">{item.desc}</td>
-      <td className="td-q">{countable ? item.qty : ''}</td>
       <td className="td-u">{item.metradoOt || ''}</td>
       <td className="td-u" style={{ position: 'relative' }}>
         {item.unit}
