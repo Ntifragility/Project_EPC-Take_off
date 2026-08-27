@@ -235,7 +235,32 @@ export function applyDetalleVariant(
     ? currentItems.indexOf(tuberiaItem) + 1
     : (cableItem ? currentItems.indexOf(cableItem) + 1 : firstIdx + 1);
 
+  const cableDescUp = cableItem ? cableItem.desc.trim().toUpperCase() : '';
+  const tuberiaDescUp = tuberiaItem ? tuberiaItem.desc.trim().toUpperCase() : '';
+
   const newMiddle: TakeoffItem[] = variant
+    .filter(v => {
+      // 1) Filter out items with qty <= 0 (e.g. 0 jumpers / 0 soportes)
+      if (typeof v.qty === 'number' && v.qty <= 0) return false;
+
+      // 2) Do not duplicate primary cableItem if it already exists in currentItems for this tag
+      if (cableItem && v.desc.trim().toUpperCase() === cableDescUp) {
+        if (cableOt && (cableItem.metradoOt === 'Var.' || cableItem.metradoOt === 'VAR.' || !cableItem.metradoOt)) {
+          cableItem.metradoOt = String(cableOt);
+        }
+        return false;
+      }
+
+      // 3) Do not duplicate primary tuberiaItem if it already exists in currentItems for this tag
+      if (tuberiaItem && (v.desc.trim().toUpperCase() === tuberiaDescUp || (v.desc.toUpperCase().includes('TUBERIA') && tuberiaItem))) {
+        if (tuberiaOt && (tuberiaItem.metradoOt === 'Var.' || tuberiaItem.metradoOt === 'VAR.' || !tuberiaItem.metradoOt)) {
+          tuberiaItem.metradoOt = tuberiaOt;
+        }
+        return false;
+      }
+
+      return true;
+    })
     .map(v => {
       let finalOt = v.ot !== undefined ? String(v.ot) : '';
       let finalQty = v.qty;
@@ -254,13 +279,31 @@ export function applyDetalleVariant(
         }
       }
 
+      // Replace 'Var.' or 'VAR.' with appropriate measurement if present
+      if (finalOt.toUpperCase() === 'VAR.' || v.otDynamic === 'var') {
+        if (v.desc.toUpperCase().includes('CABLE')) {
+          finalOt = cableOt ? String(cableOt) : '';
+        } else if (v.desc.toUpperCase().includes('TUBERIA') || v.desc.toUpperCase().includes('TUBERÍA')) {
+          finalOt = tuberiaOt || '';
+        }
+      }
+
+      if (v.qty === 'Var.') {
+        if (v.desc.toUpperCase().includes('CABLE')) {
+          finalQty = cableOt || 1;
+        } else if (v.desc.toUpperCase().includes('TUBERIA') || v.desc.toUpperCase().includes('TUBERÍA')) {
+          finalQty = parseFloat(tuberiaOt) || 1;
+        } else {
+          finalQty = 1;
+        }
+      }
+
       if (v.otDynamic === '1c/3m') {
         finalOt = Math.ceil(cableOt / 3).toString();
       } else if (v.otDynamic === 'empty') {
         finalOt = '';
-      } else if (String(v.ot).toUpperCase() === 'VAR.' && v.desc.toUpperCase().includes('TUBERIA')) {
-        finalOt = tuberiaOt || '';
       }
+
       const isP = isPrimaryMaterial(v.desc);
       return {
         id: uid(),
