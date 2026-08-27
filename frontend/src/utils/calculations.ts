@@ -212,45 +212,49 @@ export function applyDetalleVariant(
   const cableOt = (cableOtParam !== undefined && cableOtParam !== '') ? parseFloat(cableOtParam) : (cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0);
   const autoManageTuberia = shouldAutoManageTuberia(detalleCode);
 
-  if (autoManageTuberia && (detalleCode === '153' || detalleCode === 'NA')) {
+  if (detalleCode === '153' || detalleCode === 'NA') {
     if (tuberiaItem) {
       const idx = currentItems.indexOf(tuberiaItem);
       if (idx !== -1) currentItems.splice(idx, 1);
+      tuberiaItem = undefined;
     }
-  } else if (autoManageTuberia) {
+  } else {
     const tuberiaDesc = detalleCode.startsWith('020')
       ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"'
       : 'TUBERIA PVC SCH 80 Ø3/4"';
 
-    if (!tuberiaItem) {
-      const insertTubAt = cableItem ? currentItems.indexOf(cableItem) + 1 : currentItems.indexOf(refItem) + 1;
-      tuberiaItem = {
-        id: uid(),
-        pkgId: refItem.pkgId,
-        desc: tuberiaDesc,
-        qty: 1,
-        unit: 'm',
-        notes: '',
-        ruleId: 'r2',
-        material: 'P',
-        plano: refItem.plano,
-        rev: refItem.rev,
-        tagUnico: generateTagUnico(refItem.plano, tagPlano, 'P'),
-        tagPlano: tagPlano,
-        detalle: detalleCode,
-        metradoOt: tuberiaOt
-      };
-      currentItems.splice(insertTubAt, 0, tuberiaItem);
-    } else {
-      tuberiaItem.desc = tuberiaDesc;
-      tuberiaItem.material = 'P';
-      tuberiaItem.tagUnico = generateTagUnico(tuberiaItem.plano, tagPlano, 'P');
-      if (tuberiaOt) tuberiaItem.metradoOt = tuberiaOt;
+    const variantHasTuberia = variant && variant.some(v => v.desc.toUpperCase().includes('TUBERIA') || v.desc.toUpperCase().includes('TUBERÍA'));
+    const shouldKeepTuberia = (tuberiaOt !== undefined && tuberiaOt !== '') || variantHasTuberia || autoManageTuberia || !!tuberiaItem;
+
+    if (shouldKeepTuberia) {
+      if (!tuberiaItem) {
+        const insertTubAt = cableItem ? currentItems.indexOf(cableItem) + 1 : currentItems.indexOf(refItem) + 1;
+        tuberiaItem = {
+          id: uid(),
+          pkgId: refItem.pkgId,
+          desc: tuberiaDesc,
+          qty: 1,
+          unit: 'm',
+          notes: '',
+          ruleId: refItem.ruleId || 'r2',
+          material: 'P',
+          plano: refItem.plano,
+          rev: refItem.rev,
+          tagUnico: generateTagUnico(refItem.plano, tagPlano, 'P'),
+          tagPlano: tagPlano,
+          detalle: detalleCode,
+          metradoOt: tuberiaOt
+        };
+        currentItems.splice(insertTubAt, 0, tuberiaItem);
+      } else {
+        tuberiaItem.desc = tuberiaDesc;
+        tuberiaItem.material = 'P';
+        tuberiaItem.tagUnico = generateTagUnico(tuberiaItem.plano, tagPlano, 'P');
+        if (tuberiaOt !== undefined && tuberiaOt !== '') {
+          tuberiaItem.metradoOt = tuberiaOt;
+        }
+      }
     }
-  } else if (tuberiaItem) {
-    const idx = currentItems.indexOf(tuberiaItem);
-    if (idx !== -1) currentItems.splice(idx, 1);
-    tuberiaItem = undefined;
   }
 
   const insertAt = tuberiaItem && currentItems.indexOf(tuberiaItem) !== -1
