@@ -196,38 +196,14 @@ export function parseTakeoffCsv(
         (tagRaw.startsWith('M') ? (activeArea === 'AREA HUMEDA' ? 'ND' : '151') : '')
       );
       if (rowDetalle) {
-        let numSoportes = 1;
+        let numSoportes = 0;
         if (soportesRaw && !isNaN(parseInt(soportesRaw, 10)) && parseInt(soportesRaw, 10) > 0) {
           numSoportes = parseInt(soportesRaw, 10);
-        } else if (hasSoporteItems(rowDetalle, activeArea)) {
-          if (soportesPromptCache[rowDetalle] !== undefined) {
-            numSoportes = soportesPromptCache[rowDetalle];
-          } else {
-            const resp = window.prompt(
-              `DETALLE ${rowDetalle}: Incluye materiales con SOPORTE y la columna 6 (SOPORTES) está vacía.\n\n¿Cuántos soportes se requieren por mecha?`,
-              '1'
-            );
-            const val = resp !== null && !isNaN(parseInt(resp, 10)) && parseInt(resp, 10) > 0 ? parseInt(resp, 10) : 1;
-            soportesPromptCache[rowDetalle] = val;
-            numSoportes = val;
-          }
         }
 
-        let numJumpers = 1;
+        let numJumpers = 0;
         if (jumpersRaw && !isNaN(parseInt(jumpersRaw, 10)) && parseInt(jumpersRaw, 10) > 0) {
           numJumpers = parseInt(jumpersRaw, 10);
-        } else if (hasJumperItems(rowDetalle, activeArea)) {
-          if (jumperPromptCache[rowDetalle] !== undefined) {
-            numJumpers = jumperPromptCache[rowDetalle];
-          } else {
-            const resp = window.prompt(
-              `DETALLE ${rowDetalle}: Incluye materiales con JUMPER y la columna 5 (JUMPERS) está vacía.\n\n¿Cuántos jumpers se requieren por mecha?`,
-              '1'
-            );
-            const val = resp !== null && !isNaN(parseInt(resp, 10)) && parseInt(resp, 10) > 0 ? parseInt(resp, 10) : 1;
-            jumperPromptCache[rowDetalle] = val;
-            numJumpers = val;
-          }
         }
         itemsResult = applyDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers);
       }

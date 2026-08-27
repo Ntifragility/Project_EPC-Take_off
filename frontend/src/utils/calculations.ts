@@ -235,49 +235,51 @@ export function applyDetalleVariant(
     ? currentItems.indexOf(tuberiaItem) + 1
     : (cableItem ? currentItems.indexOf(cableItem) + 1 : firstIdx + 1);
 
-  const newMiddle: TakeoffItem[] = variant.map(v => {
-    let finalOt = v.ot !== undefined ? String(v.ot) : '';
-    let finalQty = v.qty;
+  const newMiddle: TakeoffItem[] = variant
+    .map(v => {
+      let finalOt = v.ot !== undefined ? String(v.ot) : '';
+      let finalQty = v.qty;
 
-    if (v.unit.toLowerCase().includes('soporte')) {
-      const nQty = typeof v.qty === 'number' ? v.qty : 1;
-      finalQty = parseFloat((nQty * numSoportes).toFixed(4));
-      if (v.ot !== undefined && typeof v.ot === 'number') {
-        finalOt = String(parseFloat((v.ot * numSoportes).toFixed(4)));
+      if (v.unit.toLowerCase().includes('soporte')) {
+        const nQty = typeof v.qty === 'number' ? v.qty : 1;
+        finalQty = parseFloat((nQty * (numSoportes || 0)).toFixed(4));
+        if (v.ot !== undefined && typeof v.ot === 'number') {
+          finalOt = String(parseFloat((v.ot * (numSoportes || 0)).toFixed(4)));
+        }
+      } else if (v.unit.toLowerCase().includes('jumper')) {
+        const nQty = typeof v.qty === 'number' ? v.qty : 1;
+        finalQty = parseFloat((nQty * (numJumpers || 0)).toFixed(4));
+        if (v.ot !== undefined && typeof v.ot === 'number') {
+          finalOt = String(parseFloat((v.ot * (numJumpers || 0)).toFixed(4)));
+        }
       }
-    } else if (v.unit.toLowerCase().includes('jumper')) {
-      const nQty = typeof v.qty === 'number' ? v.qty : 1;
-      finalQty = parseFloat((nQty * numJumpers).toFixed(4));
-      if (v.ot !== undefined && typeof v.ot === 'number') {
-        finalOt = String(parseFloat((v.ot * numJumpers).toFixed(4)));
-      }
-    }
 
-    if (v.otDynamic === '1c/3m') {
-      finalOt = Math.ceil(cableOt / 3).toString();
-    } else if (v.otDynamic === 'empty') {
-      finalOt = '';
-    } else if (String(v.ot).toUpperCase() === 'VAR.' && v.desc.toUpperCase().includes('TUBERIA')) {
-      finalOt = tuberiaOt || '';
-    }
-    const isP = isPrimaryMaterial(v.desc);
-    return {
-      id: uid(),
-      pkgId: refItem.pkgId,
-      desc: v.desc,
-      qty: finalQty,
-      unit: getAbsoluteUnit(v.unit),
-      notes: '',
-      ruleId: 'r2',
-      material: isP ? 'P' : 'C',
-      plano: refItem.plano,
-      rev: refItem.rev,
-      tagUnico: isP ? generateTagUnico(refItem.plano, tagPlano, 'P') : '',
-      tagPlano: tagPlano,
-      detalle: detalleCode,
-      metradoOt: finalOt
-    };
-  });
+      if (v.otDynamic === '1c/3m') {
+        finalOt = Math.ceil(cableOt / 3).toString();
+      } else if (v.otDynamic === 'empty') {
+        finalOt = '';
+      } else if (String(v.ot).toUpperCase() === 'VAR.' && v.desc.toUpperCase().includes('TUBERIA')) {
+        finalOt = tuberiaOt || '';
+      }
+      const isP = isPrimaryMaterial(v.desc);
+      return {
+        id: uid(),
+        pkgId: refItem.pkgId,
+        desc: v.desc,
+        qty: finalQty,
+        unit: getAbsoluteUnit(v.unit),
+        notes: '',
+        ruleId: 'r2',
+        material: (isP ? 'P' : 'C') as MaterialType,
+        plano: refItem.plano,
+        rev: refItem.rev,
+        tagUnico: isP ? generateTagUnico(refItem.plano, tagPlano, 'P') : '',
+        tagPlano: tagPlano,
+        detalle: detalleCode,
+        metradoOt: finalOt
+      };
+    })
+    .filter(v => typeof v.qty !== 'number' || v.qty > 0);
 
   currentItems.splice(insertAt, 0, ...newMiddle);
 

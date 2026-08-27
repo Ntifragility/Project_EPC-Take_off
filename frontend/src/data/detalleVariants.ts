@@ -275,36 +275,38 @@ export function hasJumperItems(detalleCode: string, area = 'AREA HUMEDA'): boole
 export function getCalculatedVariantItems(
   detalleCode: string,
   area = 'AREA HUMEDA',
-  numSoportes = 1,
-  numJumpers = 1
+  numSoportes = 0,
+  numJumpers = 0
 ): DetalleVariantItem[] {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
   const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
   const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
 
-  return variants.map(v => {
-    const unitLower = v.unit.toLowerCase();
-    let calculatedQty = v.qty;
-    let calculatedOt = v.ot;
+  return variants
+    .map(v => {
+      const unitLower = v.unit.toLowerCase();
+      let calculatedQty = v.qty;
+      let calculatedOt = v.ot;
 
-    if (unitLower.includes('soporte') && typeof v.qty === 'number') {
-      calculatedQty = parseFloat((v.qty * numSoportes).toFixed(4));
-      if (typeof v.ot === 'number') {
-        calculatedOt = parseFloat((v.ot * numSoportes).toFixed(4));
+      if (unitLower.includes('soporte') && typeof v.qty === 'number') {
+        calculatedQty = parseFloat((v.qty * (numSoportes || 0)).toFixed(4));
+        if (typeof v.ot === 'number') {
+          calculatedOt = parseFloat((v.ot * (numSoportes || 0)).toFixed(4));
+        }
+      } else if (unitLower.includes('jumper') && typeof v.qty === 'number') {
+        calculatedQty = parseFloat((v.qty * (numJumpers || 0)).toFixed(4));
+        if (typeof v.ot === 'number') {
+          calculatedOt = parseFloat((v.ot * (numJumpers || 0)).toFixed(4));
+        }
       }
-    } else if (unitLower.includes('jumper') && typeof v.qty === 'number') {
-      calculatedQty = parseFloat((v.qty * numJumpers).toFixed(4));
-      if (typeof v.ot === 'number') {
-        calculatedOt = parseFloat((v.ot * numJumpers).toFixed(4));
-      }
-    }
 
-    return {
-      ...v,
-      qty: calculatedQty,
-      ot: calculatedOt
-    };
-  });
+      return {
+        ...v,
+        qty: calculatedQty,
+        ot: calculatedOt
+      };
+    })
+    .filter(v => typeof v.qty !== 'number' || v.qty > 0);
 }
 
 // ── BARRA POT (ÁREA HÚMEDA) Variants
