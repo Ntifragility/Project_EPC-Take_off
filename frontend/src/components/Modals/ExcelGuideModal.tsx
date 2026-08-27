@@ -63,18 +63,6 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
           {/* Table of Columns */}
           <div>
             <div
-              style={{
-                fontSize: '10px',
-                fontWeight: 700,
-                color: 'var(--mu)',
-                letterSpacing: '0.8px',
-                marginBottom: '5px',
-                textTransform: 'uppercase'
-              }}
-            >
-              Columnas del Libro de Excel
-            </div>
-            <div
               className="tbl-wrap"
               style={{
                 width: '100%',
@@ -187,7 +175,6 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center',
             gap: '8px',
             marginTop: '10px',
             paddingTop: '10px',
