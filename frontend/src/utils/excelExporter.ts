@@ -54,6 +54,16 @@ export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[
   XLSX.utils.book_append_sheet(wb, ws, 'Metrado');
   
   const dateStr = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `metrado_${dateStr}.xlsx`);
+  const defaultName = `metrado_${dateStr}`;
+  const userFileName = window.prompt('Ingresa el nombre del archivo Excel a exportar:', defaultName);
+
+  if (userFileName === null) return; // User cancelled export
+
+  let finalFileName = userFileName.trim() || defaultName;
+  if (!finalFileName.toLowerCase().endsWith('.xlsx')) {
+    finalFileName += '.xlsx';
+  }
+
+  XLSX.writeFile(wb, finalFileName);
 }
 
