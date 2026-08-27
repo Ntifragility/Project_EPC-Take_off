@@ -262,23 +262,10 @@ export function applyDetalleVariant(
 
   const newMiddle: TakeoffItem[] = variant
     .filter(v => {
-      const isJumper = v.unit.toLowerCase().includes('jumper') || v.desc.toUpperCase().includes('JUMPER');
-      const isSoporte = v.unit.toLowerCase().includes('soporte') || v.desc.toUpperCase().includes('SOPORTE');
-
-      // 1) If JUMPERS <= 0, do NOT consider ANY item related to jumpers
-      if (isJumper && (!numJumpers || numJumpers <= 0)) {
-        return false;
-      }
-
-      // 2) If SOPORTES <= 0, do NOT consider ANY item related to soportes
-      if (isSoporte && (!numSoportes || numSoportes <= 0)) {
-        return false;
-      }
-
-      // 3) Filter out items with numeric qty <= 0
+      // 1) Filter out items with qty <= 0 (e.g. 0 jumpers / 0 soportes)
       if (typeof v.qty === 'number' && v.qty <= 0) return false;
 
-      // 4) Do not duplicate primary cableItem if it already exists in currentItems for this tag
+      // 2) Do not duplicate primary cableItem if it already exists in currentItems for this tag
       if (cableItem && v.desc.trim().toUpperCase() === cableDescUp) {
         if (cableOt && (cableItem.metradoOt === 'Var.' || cableItem.metradoOt === 'VAR.' || !cableItem.metradoOt)) {
           cableItem.metradoOt = String(cableOt);
@@ -286,7 +273,7 @@ export function applyDetalleVariant(
         return false;
       }
 
-      // 5) Do not duplicate primary tuberiaItem if it already exists in currentItems for this tag
+      // 3) Do not duplicate primary tuberiaItem if it already exists in currentItems for this tag
       if (tuberiaItem && (v.desc.trim().toUpperCase() === tuberiaDescUp || (v.desc.toUpperCase().includes('TUBERIA') && tuberiaItem))) {
         if (tuberiaOt && (tuberiaItem.metradoOt === 'Var.' || tuberiaItem.metradoOt === 'VAR.' || !tuberiaItem.metradoOt)) {
           tuberiaItem.metradoOt = tuberiaOt;
@@ -299,16 +286,14 @@ export function applyDetalleVariant(
     .map(v => {
       let finalOt = v.ot !== undefined ? String(v.ot) : '';
       let finalQty = v.qty;
-      const isJumper = v.unit.toLowerCase().includes('jumper') || v.desc.toUpperCase().includes('JUMPER');
-      const isSoporte = v.unit.toLowerCase().includes('soporte') || v.desc.toUpperCase().includes('SOPORTE');
 
-      if (isSoporte) {
+      if (v.unit.toLowerCase().includes('soporte')) {
         const nQty = typeof v.qty === 'number' ? v.qty : 1;
         finalQty = parseFloat((nQty * (numSoportes || 0)).toFixed(4));
         if (v.ot !== undefined && typeof v.ot === 'number') {
           finalOt = String(parseFloat((v.ot * (numSoportes || 0)).toFixed(4)));
         }
-      } else if (isJumper) {
+      } else if (v.unit.toLowerCase().includes('jumper')) {
         const nQty = typeof v.qty === 'number' ? v.qty : 1;
         finalQty = parseFloat((nQty * (numJumpers || 0)).toFixed(4));
         if (v.ot !== undefined && typeof v.ot === 'number') {
@@ -318,15 +303,21 @@ export function applyDetalleVariant(
 
       // Replace 'Var.' or 'VAR.' with appropriate measurement if present
       if (finalOt.toUpperCase() === 'VAR.' || v.otDynamic === 'var') {
-        if (v.desc.toUpperCase().includes('CABLE')) {
+        if (v.desc.toUpperCase().includes('JUMPER')) {
+          finalOt = (typeof v.ot === 'number') ? String(v.ot) : '';
+        } else if (v.desc.toUpperCase().includes('CABLE')) {
           finalOt = cableOt ? String(cableOt) : '';
         } else if (v.desc.toUpperCase().includes('TUBERIA') || v.desc.toUpperCase().includes('TUBERÍA')) {
           finalOt = tuberiaOt || '';
+        } else {
+          finalOt = '';
         }
       }
 
       if (v.qty === 'Var.') {
-        if (v.desc.toUpperCase().includes('CABLE')) {
+        if (v.desc.toUpperCase().includes('JUMPER')) {
+          finalQty = (typeof v.qty === 'number') ? v.qty : 1;
+        } else if (v.desc.toUpperCase().includes('CABLE')) {
           finalQty = cableOt || 1;
         } else if (v.desc.toUpperCase().includes('TUBERIA') || v.desc.toUpperCase().includes('TUBERÍA')) {
           finalQty = parseFloat(tuberiaOt) || 1;
