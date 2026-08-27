@@ -158,6 +158,45 @@ export function getSequentialTagsExample(baseTag: string, count: number): string
   return result;
 }
 
+// Consolidates items with identical descriptions for a given tag into a single item in the main table
+export function consolidateTagItems(items: TakeoffItem[], tagPlano: string, pkgId: string): TakeoffItem[] {
+  const result = [...items];
+  const tagSiblings = result.filter(it => it.tagPlano === tagPlano && it.pkgId === pkgId);
+  const seenDescMap = new Map<string, TakeoffItem>();
+  const toRemoveIndices: number[] = [];
+
+  tagSiblings.forEach(it => {
+    const key = it.desc.trim().toUpperCase();
+    const existing = seenDescMap.get(key);
+    if (existing) {
+      // Sum metradoOt if numeric
+      const val1 = parseFloat(existing.metradoOt);
+      const val2 = parseFloat(it.metradoOt);
+      if (!isNaN(val1) && !isNaN(val2)) {
+        existing.metradoOt = String(parseFloat((val1 + val2).toFixed(4)));
+      } else if (it.metradoOt && (!existing.metradoOt || existing.metradoOt === 'Var.' || existing.metradoOt === 'VAR.')) {
+        existing.metradoOt = it.metradoOt;
+      }
+
+      // Sum qty if numeric
+      if (typeof existing.qty === 'number' && typeof it.qty === 'number') {
+        existing.qty = parseFloat((existing.qty + it.qty).toFixed(4));
+      }
+
+      const removeIdx = result.indexOf(it);
+      if (removeIdx !== -1) toRemoveIndices.push(removeIdx);
+    } else {
+      seenDescMap.set(key, it);
+    }
+  });
+
+  toRemoveIndices.sort((a, b) => b - a).forEach(idx => {
+    result.splice(idx, 1);
+  });
+
+  return result;
+}
+
 // Applies DETALLE variant substitutions for CABLE DESNUDO (r1 / r2)
 export function applyDetalleVariant(
   items: TakeoffItem[],
@@ -385,45 +424,6 @@ export function applyDetalleVariant(
 }
 
 // Consolidates items with identical descriptions for a given tag into a single item in the main table
-export function consolidateTagItems(items: TakeoffItem[], tagPlano: string, pkgId: string): TakeoffItem[] {
-  const result = [...items];
-  const tagSiblings = result.filter(it => it.tagPlano === tagPlano && it.pkgId === pkgId);
-  const seenDescMap = new Map<string, TakeoffItem>();
-  const toRemoveIndices: number[] = [];
-
-  tagSiblings.forEach(it => {
-    const key = it.desc.trim().toUpperCase();
-    const existing = seenDescMap.get(key);
-    if (existing) {
-      // Sum metradoOt if numeric
-      const val1 = parseFloat(existing.metradoOt);
-      const val2 = parseFloat(it.metradoOt);
-      if (!isNaN(val1) && !isNaN(val2)) {
-        existing.metradoOt = String(parseFloat((val1 + val2).toFixed(4)));
-      } else if (it.metradoOt && (!existing.metradoOt || existing.metradoOt === 'Var.' || existing.metradoOt === 'VAR.')) {
-        existing.metradoOt = it.metradoOt;
-      }
-
-      // Sum qty if numeric
-      if (typeof existing.qty === 'number' && typeof it.qty === 'number') {
-        existing.qty = parseFloat((existing.qty + it.qty).toFixed(4));
-      }
-
-      const removeIdx = result.indexOf(it);
-      if (removeIdx !== -1) toRemoveIndices.push(removeIdx);
-    } else {
-      seenDescMap.set(key, it);
-    }
-  });
-
-  toRemoveIndices.sort((a, b) => b - a).forEach(idx => {
-    result.splice(idx, 1);
-  });
-
-  return result;
-}
-
-// Applies DETALLE variant substitutions for BARRA POT (r8) and BARRA INST (r9) in AREA HUMEDA
 export function applyBarraPotDetalleVariant(
   items: TakeoffItem[],
   tagPlano: string,
