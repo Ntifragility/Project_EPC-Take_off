@@ -363,11 +363,16 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       const target = updated.find(i => i.id === id);
       if (!target) return updated;
 
-      // Check DETALLE modification on r2
-      if (updates.detalle !== undefined && target.ruleId === 'r2') {
-        const nSop = (updates as any).numSoportes || 1;
-        const nJmp = (updates as any).numJumpers || 1;
-        updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, target.detalle, nSop, nJmp);
+      // Check DETALLE modification on r1 or r2
+      if (updates.detalle !== undefined && (target.ruleId === 'r1' || target.ruleId === 'r2')) {
+        const nSop = (updates as any).numSoportes || 0;
+        const nJmp = (updates as any).numJumpers || 0;
+        const sibs = updated.filter(i => i.tagPlano === target.tagPlano && i.pkgId === target.pkgId);
+        const tItem = sibs.find(i => i.desc.toUpperCase().includes('TUBERIA') || i.desc.toUpperCase().includes('TUBERÍA'));
+        const cItem = sibs.find(i => i.desc.toUpperCase().includes('CABLE') && !i.desc.toUpperCase().includes('JUMPER'));
+        const tOt = tItem ? tItem.metradoOt : '';
+        const cOt = cItem ? cItem.metradoOt : '';
+        updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, target.detalle, nSop, nJmp, tOt, cOt);
       }
 
       // Check CABLE DESNUDO 4/0 AWG changes (update CINTA AMARILLA and TIERRA DE CULTIVO)
@@ -533,10 +538,15 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     let combined = [...items, ...newItems];
 
-    if (rule.id === 'r2' && activeArea !== 'AREA HUMEDA') {
+    if (rule.id === 'r1' || rule.id === 'r2') {
       const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
       uniqueTags.forEach(tag => {
-        combined = applyDetalleVariant(combined, tag, pkgId, detalleCode);
+        const sibs = combined.filter(i => i.tagPlano === tag && i.pkgId === pkgId);
+        const tItem = sibs.find(i => i.desc.toUpperCase().includes('TUBERIA') || i.desc.toUpperCase().includes('TUBERÍA'));
+        const cItem = sibs.find(i => i.desc.toUpperCase().includes('CABLE') && !i.desc.toUpperCase().includes('JUMPER'));
+        const tOt = tItem ? tItem.metradoOt : '';
+        const cOt = cItem ? cItem.metradoOt : '';
+        combined = applyDetalleVariant(combined, tag, pkgId, detalleCode, numSoportes, numJumpers, tOt, cOt);
       });
     }
 

@@ -201,15 +201,15 @@ export function applyDetalleVariant(
   const cableItem = siblings.find(sib => sib.desc.toUpperCase().includes('CABLE'));
   let tuberiaItem = siblings.find(sib => sib.desc.toUpperCase().includes('TUBERIA') || sib.desc.toUpperCase().includes('TUBERÍA'));
 
-  if (cableItem && cableOtParam && (!cableItem.metradoOt || cableItem.metradoOt === 'Var.' || cableItem.metradoOt === 'VAR.')) {
+  if (cableItem && cableOtParam !== undefined && cableOtParam !== '') {
     cableItem.metradoOt = cableOtParam;
   }
-  if (tuberiaItem && tuberiaOtParam && (!tuberiaItem.metradoOt || tuberiaItem.metradoOt === 'Var.' || tuberiaItem.metradoOt === 'VAR.')) {
+  if (tuberiaItem && tuberiaOtParam !== undefined && tuberiaOtParam !== '') {
     tuberiaItem.metradoOt = tuberiaOtParam;
   }
 
-  const tuberiaOt = tuberiaItem ? (tuberiaItem.metradoOt || tuberiaOtParam || '') : (tuberiaOtParam || '');
-  const cableOt = cableItem ? (parseFloat(cableItem.metradoOt) || parseFloat(cableOtParam || '0') || 0) : (parseFloat(cableOtParam || '0') || 0);
+  const tuberiaOt = (tuberiaOtParam !== undefined && tuberiaOtParam !== '') ? tuberiaOtParam : (tuberiaItem ? tuberiaItem.metradoOt : '');
+  const cableOt = (cableOtParam !== undefined && cableOtParam !== '') ? parseFloat(cableOtParam) : (cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0);
   const autoManageTuberia = shouldAutoManageTuberia(detalleCode);
 
   if (autoManageTuberia && (detalleCode === '153' || detalleCode === 'NA')) {
