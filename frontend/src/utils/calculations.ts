@@ -158,14 +158,16 @@ export function getSequentialTagsExample(baseTag: string, count: number): string
   return result;
 }
 
-// Applies DETALLE variant substitutions for CABLE DESNUDO 2/0 AWG (r2)
+// Applies DETALLE variant substitutions for CABLE DESNUDO (r1 / r2)
 export function applyDetalleVariant(
   items: TakeoffItem[],
   tagPlano: string,
   pkgId: string,
   detalleCode: string,
-  numSoportes = 1,
-  numJumpers = 1
+  numSoportes = 0,
+  numJumpers = 0,
+  tuberiaOtParam?: string,
+  cableOtParam?: string
 ): TakeoffItem[] {
   let variant = DYNAMIC_DETALLE_VARIANTS[detalleCode];
   if (!variant && (detalleCode === '008/5' || detalleCode === '008/05')) {
@@ -181,7 +183,7 @@ export function applyDetalleVariant(
 
   const currentItems = [...items];
   const siblings = currentItems.filter(
-    it => it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId
+    it => (it.ruleId === 'r1' || it.ruleId === 'r2') && it.tagPlano === tagPlano && it.pkgId === pkgId
   );
   if (siblings.length === 0) return currentItems;
 
@@ -196,10 +198,18 @@ export function applyDetalleVariant(
   });
 
   const refItem = siblings[0];
-  const cableItem = siblings.find(sib => sib.desc.toUpperCase().includes('CABLE DESNUDO 2/0 AWG'));
-  let tuberiaItem = siblings.find(sib => sib.desc.toUpperCase().includes('TUBERIA'));
-  const tuberiaOt = tuberiaItem ? tuberiaItem.metradoOt : '';
-  const cableOt = cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0;
+  const cableItem = siblings.find(sib => sib.desc.toUpperCase().includes('CABLE'));
+  let tuberiaItem = siblings.find(sib => sib.desc.toUpperCase().includes('TUBERIA') || sib.desc.toUpperCase().includes('TUBERÍA'));
+
+  if (cableItem && cableOtParam && (!cableItem.metradoOt || cableItem.metradoOt === 'Var.' || cableItem.metradoOt === 'VAR.')) {
+    cableItem.metradoOt = cableOtParam;
+  }
+  if (tuberiaItem && tuberiaOtParam && (!tuberiaItem.metradoOt || tuberiaItem.metradoOt === 'Var.' || tuberiaItem.metradoOt === 'VAR.')) {
+    tuberiaItem.metradoOt = tuberiaOtParam;
+  }
+
+  const tuberiaOt = tuberiaItem ? (tuberiaItem.metradoOt || tuberiaOtParam || '') : (tuberiaOtParam || '');
+  const cableOt = cableItem ? (parseFloat(cableItem.metradoOt) || parseFloat(cableOtParam || '0') || 0) : (parseFloat(cableOtParam || '0') || 0);
   const autoManageTuberia = shouldAutoManageTuberia(detalleCode);
 
   if (autoManageTuberia && (detalleCode === '153' || detalleCode === 'NA')) {
@@ -228,13 +238,14 @@ export function applyDetalleVariant(
         tagUnico: generateTagUnico(refItem.plano, tagPlano, 'P'),
         tagPlano: tagPlano,
         detalle: detalleCode,
-        metradoOt: ''
+        metradoOt: tuberiaOt
       };
       currentItems.splice(insertTubAt, 0, tuberiaItem);
     } else {
       tuberiaItem.desc = tuberiaDesc;
       tuberiaItem.material = 'P';
       tuberiaItem.tagUnico = generateTagUnico(tuberiaItem.plano, tagPlano, 'P');
+      if (tuberiaOt) tuberiaItem.metradoOt = tuberiaOt;
     }
   } else if (tuberiaItem) {
     const idx = currentItems.indexOf(tuberiaItem);
