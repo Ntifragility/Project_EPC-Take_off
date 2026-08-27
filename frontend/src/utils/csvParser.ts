@@ -13,12 +13,28 @@ import {
 
 export interface RejectedRowInfo {
   fila: number;
+  plano?: string;
   tag: string;
   longitudCable: string;
   longitudTuberia: string;
   detalle: string;
   jumpers: string;
   motivo: string;
+}
+
+function getRuleNameByTag(tag: string): string | null {
+  if (!tag) return null;
+  const tagUp = tag.trim().toUpperCase();
+  if (tagUp.startsWith('PS')) return 'POZO SIN CAJA REGISTRO';
+  if (tagUp.startsWith('PC')) return 'POZO CON CAJA REGISTRO';
+  if (tagUp.startsWith('TT')) return 'SOLDADURA T 4/0 - 2/0';
+  if (tagUp.startsWith('T')) return 'SOLDADURA T 4/0';
+  if (tagUp.startsWith('X')) return 'SOLDADURA X 4/0';
+  if (tagUp.startsWith('C')) return 'CABLE DESNUDO 4/0 AWG';
+  if (tagUp.startsWith('M')) return 'CABLE DESNUDO 2/0 AWG';
+  if (tagUp.startsWith('BP')) return 'BARRA POT';
+  if (tagUp.startsWith('BI')) return 'BARRA INST';
+  return null;
 }
 
 export async function convertSpreadsheetToCsvText(file: File): Promise<string> {
@@ -61,8 +77,10 @@ export function parseTakeoffCsv(
     delimiter = ',';
   }
 
-  // Skip header (or detect if first row is header by checking if column 2 is not a number)
-  const startIdx = isNaN(parseFloat(rows[0].split(delimiter)[1]?.trim().replace(',', '.'))) ? 1 : 0;
+  // Detect header row by checking for header labels or non-numeric values in length columns
+  const firstParts = rows[0].split(delimiter).map(p => p.trim().toUpperCase());
+  const hasHeaderLabel = firstParts.some(p => p.includes('PLANO') || p.includes('TAG') || p.includes('LONGITUD') || p.includes('DETALLE'));
+  const startIdx = hasHeaderLabel || isNaN(parseFloat(firstParts[1]?.replace(',', '.'))) && isNaN(parseFloat(firstParts[2]?.replace(',', '.'))) ? 1 : 0;
 
   // Cache user responses during batch import (keyed by detalle code)
   const jumperPromptCache: Record<string, number> = {};
@@ -74,32 +92,56 @@ export function parseTakeoffCsv(
     const parts = rawLine.split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ''));
     if (parts.length < 2) continue;
 
-    const tagRaw = parts[0].trim();
-    const lengthRawStr = parts[1]?.trim() || '';
-    const lengthRaw = parseFloat(lengthRawStr.replace(',', '.'));
-    const tuberiaRaw = parts.length > 2 ? parts[2].trim().replace(',', '.') : '';
-    const detalleRaw = parts.length > 3 ? parts[3].trim().toUpperCase() : '';
-    const jumpersRaw = parts.length > 4 ? parts[4].trim() : '';
-    const soportesRaw = parts.length > 5 ? parts[5].trim() : '';
+    let planoRow = '';
+    let tagRaw = '';
+    let lengthRawStr = '';
+    let tuberiaRaw = '';
+    let detalleRaw = '';
+    let jumpersRaw = '';
+    let soportesRaw = '';
+
+    const ruleFromCol1 = parts.length > 1 ? getRuleNameByTag(parts[1]) : null;
+    const ruleFromCol0 = parts.length > 0 ? getRuleNameByTag(parts[0]) : null;
+
+    if (ruleFromCol1) {
+      // 7-column layout: [PLANO, TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES]
+      planoRow = parts[0].trim();
+      tagRaw = parts[1].trim();
+      lengthRawStr = parts[2]?.trim() || '';
+      tuberiaRaw = parts.length > 3 ? parts[3].trim().replace(',', '.') : '';
+      detalleRaw = parts.length > 4 ? parts[4].trim().toUpperCase() : '';
+      jumpersRaw = parts.length > 5 ? parts[5].trim() : '';
+      soportesRaw = parts.length > 6 ? parts[6].trim() : '';
+    } else if (ruleFromCol0) {
+      // 6-column layout: [TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES]
+      planoRow = '';
+      tagRaw = parts[0].trim();
+      lengthRawStr = parts[1]?.trim() || '';
+      tuberiaRaw = parts.length > 2 ? parts[2].trim().replace(',', '.') : '';
+      detalleRaw = parts.length > 3 ? parts[3].trim().toUpperCase() : '';
+      jumpersRaw = parts.length > 4 ? parts[4].trim() : '';
+      soportesRaw = parts.length > 5 ? parts[5].trim() : '';
+    } else {
+      // Fallback
+      planoRow = parts[0].trim();
+      tagRaw = parts[1]?.trim() || parts[0].trim();
+      lengthRawStr = parts[2]?.trim() || parts[1]?.trim() || '';
+      tuberiaRaw = parts.length > 3 ? parts[3].trim().replace(',', '.') : '';
+      detalleRaw = parts.length > 4 ? parts[4].trim().toUpperCase() : '';
+      jumpersRaw = parts.length > 5 ? parts[5].trim() : '';
+      soportesRaw = parts.length > 6 ? parts[6].trim() : '';
+    }
 
     if (!tagRaw) continue;
 
-    let ruleName: string | null = null;
-    const tagUp = tagRaw.toUpperCase();
-
-    if (tagUp.startsWith('PS')) ruleName = 'POZO SIN CAJA REGISTRO';
-    else if (tagUp.startsWith('PC')) ruleName = 'POZO CON CAJA REGISTRO';
-    else if (tagUp.startsWith('TT')) ruleName = 'SOLDADURA T 4/0 - 2/0';
-    else if (tagUp.startsWith('T')) ruleName = 'SOLDADURA T 4/0';
-    else if (tagUp.startsWith('X')) ruleName = 'SOLDADURA X 4/0';
-    else if (tagUp.startsWith('C')) ruleName = 'CABLE DESNUDO 4/0 AWG';
-    else if (tagUp.startsWith('M')) ruleName = 'CABLE DESNUDO 2/0 AWG';
-    else if (tagUp.startsWith('BP')) ruleName = 'BARRA POT';
-    else if (tagUp.startsWith('BI')) ruleName = 'BARRA INST';
+    const ruleName = getRuleNameByTag(tagRaw);
+    const effectivePlano = (planoRow || planoVal || '').toUpperCase();
+    const lengthRaw = parseFloat(lengthRawStr.replace(',', '.'));
 
     if (!ruleName) {
       rejectedRows.push({
         fila: i + 1,
+        plano: planoRow,
         tag: tagRaw,
         longitudCable: lengthRawStr,
         longitudTuberia: tuberiaRaw,
@@ -113,6 +155,7 @@ export function parseTakeoffCsv(
     if (isNaN(lengthRaw)) {
       rejectedRows.push({
         fila: i + 1,
+        plano: planoRow,
         tag: tagRaw,
         longitudCable: lengthRawStr,
         longitudTuberia: tuberiaRaw,
@@ -127,6 +170,7 @@ export function parseTakeoffCsv(
     if (!rule) {
       rejectedRows.push({
         fila: i + 1,
+        plano: planoRow,
         tag: tagRaw,
         longitudCable: lengthRawStr,
         longitudTuberia: tuberiaRaw,
@@ -180,9 +224,9 @@ export function parseTakeoffCsv(
         notes: '',
         ruleId: rule.id,
         material: mat,
-        plano: planoVal,
+        plano: effectivePlano,
         rev: revVal,
-        tagUnico: mat === 'P' ? generateTagUnico(planoVal, tagRaw, 'P') : '',
+        tagUnico: mat === 'P' ? generateTagUnico(effectivePlano, tagRaw, 'P') : '',
         tagPlano: tagRaw,
         detalle: rowDetalle,
         metradoOt

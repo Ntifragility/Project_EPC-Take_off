@@ -12,15 +12,15 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
 
   const handleDownloadXlsx = () => {
     const wsData = [
-      ['TAG', 'LONGITUD_CABLE', 'LONGITUD_TUBERIA', 'DETALLE', 'JUMPERS', 'SOPORTES'],
-      ['M01', 12.5, 2.0, 'ND', '', 1],
-      ['M02', 8.0, 1.5, '008/05', 2, 2],
-      ['C01', 45.0, '', '167/G1', '', ''],
-      ['BP01', 1.0, '', '010/17A', '', 1],
-      ['BI01', 1.0, '', '010/17C', '', 2],
-      ['TT01', 1.0, '', '', '', ''],
-      ['T01', 1.0, '', '', '', ''],
-      ['PC01', 1.0, '', '', '', '']
+      ['PLANO', 'TAG', 'LONGITUD_CABLE', 'LONGITUD_TUBERIA', 'DETALLE', 'JUMPERS', 'SOPORTES'],
+      ['010/17A', 'M01', 12.5, 2.0, 'ND', '', 1],
+      ['010/17A', 'M02', 8.0, 1.5, '008/05', 2, 2],
+      ['010/17A', 'C01', 45.0, '', '167/G1', '', ''],
+      ['010/17A', 'BP01', 1.0, '', '010/17A', '', 1],
+      ['010/17A', 'BI01', 1.0, '', '010/17C', '', 2],
+      ['010/17A', 'TT01', 1.0, '', '', '', ''],
+      ['010/17A', 'T01', 1.0, '', '', '', ''],
+      ['010/17A', 'PC01', 1.0, '', '', '', '']
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
@@ -87,11 +87,19 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
                 </colgroup>
                 <thead>
                   <tr style={{ background: 'var(--s2)', borderBottom: '1px solid var(--b1)' }}>
-                    <th style={{ padding: '6px 10px', textAlign: 'left' }}>TAG</th>
-                    <th style={{ padding: '6px 10px', textAlign: 'left' }}>DETALLE</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'left' }}>COLUMNA</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'left' }}>DESCRIPCIÓN</th>
                   </tr>
                 </thead>
                 <tbody>
+                  <tr style={{ borderBottom: '1px solid var(--b1)' }}>
+                    <td style={{ padding: '6px 10px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)', whiteSpace: 'nowrap' }}>PLANO</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'left', wordBreak: 'break-word' }}>Código del plano (ej. <strong>010/17A</strong>). Opcional.</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid var(--b1)' }}>
+                    <td style={{ padding: '6px 10px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)', whiteSpace: 'nowrap' }}>TAG</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'left', wordBreak: 'break-word' }}>Código del TAG sin guion (ej. <strong>M01</strong>, <strong>C01</strong>).</td>
+                  </tr>
                   <tr style={{ borderBottom: '1px solid var(--b1)' }}>
                     <td style={{ padding: '6px 10px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)', whiteSpace: 'nowrap' }}>LONGITUD_CABLE</td>
                     <td style={{ padding: '6px 10px', textAlign: 'left', wordBreak: 'break-word' }}>Metros de cable. Para barras o soldaduras ingresar 1.</td>
