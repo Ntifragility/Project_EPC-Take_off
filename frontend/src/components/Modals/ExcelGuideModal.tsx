@@ -13,14 +13,14 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
   const handleDownloadXlsx = () => {
     const wsData = [
       ['TAG', 'LONGITUD_CABLE', 'LONGITUD_TUBERIA', 'DETALLE', 'JUMPERS', 'SOPORTES'],
-      ['M-01', 12.5, 2.0, 'ND', '', 1],
-      ['M-02', 8.0, 1.5, '008/05', 2, 2],
-      ['C-01', 45.0, '', '167/G1', '', ''],
-      ['BP-01', 1.0, '', '010/17A', '', 1],
-      ['BI-01', 1.0, '', '010/17C', '', 2],
-      ['TT-01', 1.0, '', '', '', ''],
-      ['T-01', 1.0, '', '', '', ''],
-      ['PC-01', 1.0, '', '', '', '']
+      ['M01', 12.5, 2.0, 'ND', '', 1],
+      ['M02', 8.0, 1.5, '008/05', 2, 2],
+      ['C01', 45.0, '', '167/G1', '', ''],
+      ['BP01', 1.0, '', '010/17A', '', 1],
+      ['BI01', 1.0, '', '010/17C', '', 2],
+      ['TT01', 1.0, '', '', '', ''],
+      ['T01', 1.0, '', '', '', ''],
+      ['PC01', 1.0, '', '', '', '']
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
@@ -118,14 +118,14 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Compact Prefixes Row */}
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', marginTop: '4px' }}>
             <div
               style={{
                 fontSize: '10px',
                 fontWeight: 700,
                 color: 'var(--mu)',
                 letterSpacing: '0.8px',
-                marginBottom: '5px',
+                marginBottom: '8px',
                 textTransform: 'uppercase',
                 textAlign: 'center'
               }}
@@ -134,34 +134,34 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
             </div>
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))',
-                gap: '5px',
-                justifyContent: 'center'
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                gap: '6px'
               }}
             >
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
-                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>M-</span>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 10px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>M</span>
                 <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Mecha 2/0</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
-                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>C-</span>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 10px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>C</span>
                 <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Malla 4/0</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
-                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>BP-</span>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 10px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>BP</span>
                 <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Barra Pot</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
-                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>BI-</span>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 10px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>BI</span>
                 <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Barra Inst</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
-                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>T- / TT-</span>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 10px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>T / TT</span>
                 <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Soldaduras</span>
               </div>
-              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 8px', fontSize: '10.5px', textAlign: 'center' }}>
-                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>PC- / PS-</span>
+              <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '5px', padding: '5px 10px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>PC / PS</span>
                 <span style={{ color: 'var(--mu)', marginLeft: '5px' }}>Pozos PAT</span>
               </div>
             </div>
@@ -175,6 +175,7 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'center',
+            alignItems: 'center',
             gap: '8px',
             marginTop: '10px',
             paddingTop: '10px',

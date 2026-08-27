@@ -104,7 +104,7 @@ export function parseTakeoffCsv(
         longitudTuberia: tuberiaRaw,
         detalle: detalleRaw,
         jumpers: jumpersRaw,
-        motivo: `Prefijo no reconocido (debe comenzar con M-, C-, BP-, BI-, T-, TT-, X-, PC- o PS-)`
+        motivo: `Prefijo no reconocido (debe comenzar con M, C, BP, BI, T, TT, X, PC o PS)`
       });
       continue;
     }
