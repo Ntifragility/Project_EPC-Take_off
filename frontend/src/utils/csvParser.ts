@@ -7,7 +7,8 @@ import {
   generateTagUnico,
   applyDetalleVariant,
   applyBarraPotDetalleVariant,
-  assignTagUnicoSuffixes
+  assignTagUnicoSuffixes,
+  getAbsoluteUnit
 } from './calculations';
 
 export interface RejectedRowInfo {
@@ -175,13 +176,13 @@ export function parseTakeoffCsv(
         pkgId,
         desc: s.desc,
         qty: s.qty,
-        unit: s.unit,
+        unit: getAbsoluteUnit(s.unit, s.desc),
         notes: '',
         ruleId: rule.id,
         material: mat,
         plano: planoVal,
         rev: revVal,
-        tagUnico: generateTagUnico(planoVal, tagRaw, mat),
+        tagUnico: mat === 'P' ? generateTagUnico(planoVal, tagRaw, 'P') : '',
         tagPlano: tagRaw,
         detalle: rowDetalle,
         metradoOt

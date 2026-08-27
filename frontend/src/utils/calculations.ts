@@ -11,7 +11,11 @@ export function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-export function getAbsoluteUnit(rawUnit: string): string {
+export function getAbsoluteUnit(rawUnit: string, desc = ''): string {
+  const descUp = (desc || '').toUpperCase();
+  if (descUp.includes('TERMINAL') || descUp.includes('PERNO')) {
+    return 'und';
+  }
   const normalized = (rawUnit || '').toLowerCase().trim();
   if (normalized.includes('m3')) return 'm3';
   if (normalized.includes('kg')) return 'kg';
@@ -21,10 +25,18 @@ export function getAbsoluteUnit(rawUnit: string): string {
 }
 
 export function isPrimaryMaterial(desc: string): boolean {
+  const up = (desc || '').toUpperCase();
+  // TERMINAL items are NOT P components (must NOT have TAG UNICO)
+  if (up.includes('TERMINAL') && !up.includes('TERMINAL DE COBRE 5/8"')) {
+    return false;
+  }
+  // PERNO items are NOT P components
+  if (up.includes('PERNO')) {
+    return false;
+  }
+
   const primaryList = [
     'BARRA',
-    'CABLE DESNUDO 4/0 AWG',
-    'CABLE DESNUDO 2/0 AWG',
     'CAJA REGISTRO 400 x 400 x 300 mm',
     'CEMENTO GEM (11.3 kg x bls)',
     'CONECTOR GK 1429',
@@ -36,11 +48,10 @@ export function isPrimaryMaterial(desc: string): boolean {
     'SOLDADURA VS',
     'SOLDADURA X 4/0',
     'TERMINAL DE COBRE 5/8"X48" MODELO',
-    'TUBERIA',
     'VARILLA COPPERWELD 3/4"X2.4M'
   ];
-  const up = desc.toUpperCase();
-  if (up.includes('TUBERIA') || up.includes('CABLE')) return true;
+  if (up.includes('TUBERIA') || up.includes('TUBERÍA')) return true;
+  if (up.startsWith('CABLE DESNUDO') || up.startsWith('CABLE AISLADO')) return true;
   return primaryList.some(p => up.includes(p.toUpperCase()));
 }
 
@@ -310,7 +321,7 @@ export function applyDetalleVariant(
         pkgId: refItem.pkgId,
         desc: v.desc,
         qty: finalQty,
-        unit: getAbsoluteUnit(v.unit),
+        unit: getAbsoluteUnit(v.unit, v.desc),
         notes: '',
         ruleId: 'r2',
         material: (isP ? 'P' : 'C') as MaterialType,
