@@ -56,14 +56,17 @@ export function isPrimaryMaterial(desc: string): boolean {
 }
 
 // Helper for sorting P items to guarantee user requirement:
-// 1: CABLE (DESNUDO / AISLADO) -> .....01
+// 1: CABLE DESNUDO              -> .....01
 // 2: TUBERIA (PVC / EMT / ...)  -> .....02
-// Everything else comes after (.03, .04, ...)
+// 3: CABLE AISLADO / JUMPER     -> .....03
+// Everything else comes after (.04, ...)
 export function getPItemPriority(desc: string): number {
   const up = desc.toUpperCase();
-  if (up.includes('CABLE')) return 1;
+  if (up.includes('CABLE') && !up.includes('JUMPER') && !up.includes('AISLADO')) return 1;
   if (up.includes('TUBERIA') || up.includes('TUBERÍA')) return 2;
-  if (up.includes('BARRA')) return 3;
+  if (up.includes('JUMPER') || up.includes('AISLADO')) return 3;
+  if (up.includes('CABLE')) return 1;
+  if (up.includes('BARRA')) return 4;
   return 10;
 }
 
