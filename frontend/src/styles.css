@@ -564,6 +564,10 @@
             font-family: "Aptos Narrow", sans-serif !important;
         }
 
+        col.c-partida {
+            width: 90px
+        }
+
         col.c-n {
             width: 40px
         }
@@ -592,7 +596,7 @@
             width: 105px
         }
 
-        /* Freeze Panes Logic (columns 1-6) - Scope strictly to .takeoff-table */
+        /* Freeze Panes Logic (columns 1-7: PARTIDA, #, MAT, PLANO, REV, TAG ÚNICO, TAG EN PLANO) */
         .takeoff-table th:nth-child(1),
         .takeoff-table td:nth-child(1) {
             position: sticky;
@@ -604,7 +608,7 @@
         .takeoff-table th:nth-child(2),
         .takeoff-table td:nth-child(2) {
             position: sticky;
-            left: 40px;
+            left: 90px;
             z-index: 10;
             background: inherit;
         }
@@ -612,7 +616,7 @@
         .takeoff-table th:nth-child(3),
         .takeoff-table td:nth-child(3) {
             position: sticky;
-            left: 70px;
+            left: 130px;
             z-index: 10;
             background: inherit;
         }
@@ -620,7 +624,7 @@
         .takeoff-table th:nth-child(4),
         .takeoff-table td:nth-child(4) {
             position: sticky;
-            left: 270px;
+            left: 160px;
             z-index: 10;
             background: inherit;
         }
@@ -628,7 +632,7 @@
         .takeoff-table th:nth-child(5),
         .takeoff-table td:nth-child(5) {
             position: sticky;
-            left: 310px;
+            left: 360px;
             z-index: 10;
             background: inherit;
         }
@@ -636,14 +640,22 @@
         .takeoff-table th:nth-child(6),
         .takeoff-table td:nth-child(6) {
             position: sticky;
-            left: 450px;
+            left: 400px;
+            z-index: 10;
+            background: inherit;
+        }
+
+        .takeoff-table th:nth-child(7),
+        .takeoff-table td:nth-child(7) {
+            position: sticky;
+            left: 540px;
             z-index: 10;
             background: inherit;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
         }
 
         /* Ensure header parts are also sticky and above rows */
-        .takeoff-table thead th:nth-child(-n+6) {
+        .takeoff-table thead th:nth-child(-n+7) {
             z-index: 20;
             background: var(--s2) !important;
         }

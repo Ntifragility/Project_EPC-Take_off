@@ -82,6 +82,9 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   if (isEditing) {
     return (
       <tr className="tr-edit">
+        <td className="td-u" style={{ color: 'var(--am)', fontWeight: 700 }}>
+          {item.partida || 'NA'}
+        </td>
         <td className="td-n">{index}</td>
         <td>
           <input
@@ -250,6 +253,9 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
 
   return (
     <tr className="tr-row">
+      <td className="td-u" style={{ color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
+        {item.partida || 'NA'}
+      </td>
       <td className="td-n">{index}</td>
       <td className="td-u" style={{ color: 'var(--tx)', fontWeight: 'bold' }}>
         {item.material || ''}

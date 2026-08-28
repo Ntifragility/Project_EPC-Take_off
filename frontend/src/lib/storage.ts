@@ -1,4 +1,4 @@
-import { TakeoffItem, TakeoffRule, PackageGroup, SectionType } from '../types/takeoff';
+import { TakeoffItem, TakeoffRule, PackageGroup, SectionType, PartidaRecord } from '../types/takeoff';
 import { SEED_RULES, SEED_CANALIZADO_RULES } from '../data/seedRules';
 
 export function getStorageKey(name: string, section: SectionType): string {
@@ -56,6 +56,24 @@ export function saveStoredPackages(section: SectionType, packages: PackageGroup[
     localStorage.setItem(getStorageKey('packages', section), JSON.stringify(packages));
   } catch (err) {
     console.error('Error saving packages to localStorage:', err);
+  }
+}
+
+export function loadStoredPartidas(): PartidaRecord[] {
+  try {
+    const raw = localStorage.getItem('epc-partidas-master');
+    if (raw) return JSON.parse(raw);
+  } catch (err) {
+    console.error('Error loading partidas from localStorage:', err);
+  }
+  return [];
+}
+
+export function saveStoredPartidas(partidas: PartidaRecord[]): void {
+  try {
+    localStorage.setItem('epc-partidas-master', JSON.stringify(partidas));
+  } catch (err) {
+    console.error('Error saving partidas to localStorage:', err);
   }
 }
 

@@ -19,9 +19,14 @@ export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[
   ];
 
   const data = items.map(it => {
-    const pkg = packages.find(p => p.id === it.pkgId)?.name || 'SIN PARTIDA';
+    let metradoOtVal: number | string = '';
+    if (it.metradoOt !== undefined && it.metradoOt !== null && String(it.metradoOt).trim() !== '') {
+      const num = Number(it.metradoOt);
+      metradoOtVal = !isNaN(num) ? num : it.metradoOt;
+    }
+
     return {
-      'PARTIDA': pkg,
+      'PARTIDA': it.partida || 'NA',
       'MATERIAL': it.material || '',
       'PLANO': it.plano || '',
       'REV': it.rev || '',
@@ -29,7 +34,7 @@ export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[
       'TAG EN PLANO': it.tagPlano || '',
       'DETALLE': it.detalle || '',
       'DESCRIPCION': it.desc || '',
-      'METRADO OT': it.metradoOt || '',
+      'METRADO OT': metradoOtVal,
       'UNIDAD': it.unit || ''
     };
   });

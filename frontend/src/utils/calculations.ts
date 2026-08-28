@@ -56,33 +56,34 @@ export function isPrimaryMaterial(desc: string): boolean {
 }
 
 // Helper for sorting P items to guarantee user requirement:
-// 1: CABLE DESNUDO 2/0 AWG -> .....01
-// 2: TUBERIA ...           -> .....02
+// 1: CABLE (DESNUDO / AISLADO) -> .....01
+// 2: TUBERIA (PVC / EMT / ...)  -> .....02
 // Everything else comes after (.03, .04, ...)
 export function getPItemPriority(desc: string): number {
   const up = desc.toUpperCase();
-  if (up.includes('CABLE DESNUDO 2/0 AWG')) return 1;
-  if (up.includes('TUBERIA')) return 2;
-  if (up.includes('CABLE')) return 3;
-  if (up.includes('BARRA')) return 4;
+  if (up.includes('CABLE')) return 1;
+  if (up.includes('TUBERIA') || up.includes('TUBERÍA')) return 2;
+  if (up.includes('BARRA')) return 3;
   return 10;
 }
 
 export function assignTagUnicoSuffixes(items: TakeoffItem[]): TakeoffItem[] {
   const groups: Record<string, TakeoffItem[]> = {};
 
-  // Find all P items
+  // Find all items where material === 'P'
   items.forEach(it => {
-    const isP = it.material === 'P' || isPrimaryMaterial(it.desc);
-    if (isP && it.tagPlano) {
-      if (!groups[it.tagPlano]) groups[it.tagPlano] = [];
-      groups[it.tagPlano].push(it);
+    if (it.material === 'P' && it.tagPlano && it.plano) {
+      const groupKey = `${it.plano}____${it.tagPlano}`;
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(it);
+    } else if (it.material !== 'P') {
+      it.tagUnico = ''; // Consumables never have a TAG UNICO
     }
   });
 
   Object.values(groups).forEach(group => {
     if (group.length > 1) {
-      // Sort group in-place: CABLE DESNUDO 2/0 AWG (.01), TUBERIA (.02), others after
+      // Sort group in-place: CABLE (.01), TUBERIA (.02), others after (.03, etc.)
       group.sort((a, b) => getPItemPriority(a.desc) - getPItemPriority(b.desc));
       group.forEach((it, idx) => {
         const base = generateTagUnico(it.plano, it.tagPlano, 'P');
@@ -420,10 +421,9 @@ export function applyDetalleVariant(
       it.detalle = detalleCode;
     });
 
-  const consolidated = consolidateTagItems(currentItems, tagPlano, pkgId);
-  return skipAssignSuffixes ? consolidated : assignTagUnicoSuffixes(consolidated);
+  return skipAssignSuffixes ? currentItems : assignTagUnicoSuffixes(currentItems);
 }
-// Consolidates items with identical descriptions for a given tag into a single item in the main table
+
 export function applyBarraPotDetalleVariant(
   items: TakeoffItem[],
   tagPlano: string,
@@ -478,8 +478,7 @@ export function applyBarraPotDetalleVariant(
   });
 
   currentItems.splice(firstIdx, 0, ...newItems);
-  const consolidated = consolidateTagItems(currentItems, tagPlano, pkgId);
-  return skipAssignSuffixes ? consolidated : assignTagUnicoSuffixes(consolidated);
+  return skipAssignSuffixes ? currentItems : assignTagUnicoSuffixes(currentItems);
 }
 
 export const applyBarraDetalleVariant = applyBarraPotDetalleVariant;

@@ -237,6 +237,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
 
       <table>
         <colgroup>
+          <col className="c-partida" />
           <col className="c-n" />
           <col className="c-mat" />
           <col className="c-plano" />
@@ -251,6 +252,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         </colgroup>
         <thead>
           <tr style={{ color: 'var(--di)', opacity: 0.8 }}>
+            <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>90px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>40px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>30px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>200px</th>
@@ -264,6 +266,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>90px</th>
           </tr>
           <tr>
+            <th style={{ textAlign: 'center' }}>PARTIDA</th>
             <th style={{ textAlign: 'center' }}>#</th>
             <th style={{ textAlign: 'center' }}>MAT</th>
             <th style={{ padding: '0 4px', textAlign: 'center' }}>

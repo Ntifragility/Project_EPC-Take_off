@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { TakeoffItem, PackageGroup, SupabaseTakeoffRecord, SectionType, TakeoffRule } from '../types/takeoff';
+import { TakeoffItem, PackageGroup, SupabaseTakeoffRecord, SectionType, TakeoffRule, PartidaRecord, SupabasePartidaRecord } from '../types/takeoff';
 import { isCountable } from '../utils/calculations';
 
 // Read Vite environment variables
@@ -31,6 +31,7 @@ export function mapItemsToSupabasePayload(
     const pkgName = packages.find(p => p.id === it.pkgId)?.name || 'SIN PARTIDA';
     const qtyVal = isCountable(it.desc) ? (typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || null) : null;
     return {
+      partida: it.partida || 'NA',
       material: it.material || '',
       plano: it.plano || '',
       rev: it.rev || '',
@@ -238,6 +239,85 @@ export async function saveDetalleVariantToSupabase(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al guardar variante de detalle en Supabase';
     return { success: false, error: message };
+  }
+}
+
+/**
+ * Sync / insert a list of Partidas directly into Supabase (public.partidas_table).
+ */
+export async function syncPartidasToSupabase(
+  partidas: PartidaRecord[]
+): Promise<{ success: boolean; count: number; error?: string }> {
+  if (!supabase) {
+    return {
+      success: false,
+      count: 0,
+      error: 'Supabase client no está configurado. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_KEY en .env.'
+    };
+  }
+
+  if (!partidas || partidas.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  const payload: SupabasePartidaRecord[] = partidas.map(p => ({
+    actividad: p.actividad || 'PAT',
+    area: String(p.area || '').trim(),
+    item: String(p.item || '').trim(),
+    forecast_desc: p.forecastDesc || '',
+    descripcion: p.descripcion || '',
+    und: p.und || 'UND'
+  }));
+
+  try {
+    const { error } = await supabase.from('partidas_table').insert(payload);
+    if (error) {
+      console.error('Supabase partidas write error:', error);
+      return { success: false, count: 0, error: error.message };
+    }
+    return { success: true, count: payload.length };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al sincronizar partidas con Supabase';
+    console.error('Supabase partidas write exception:', err);
+    return { success: false, count: 0, error: message };
+  }
+}
+
+/**
+ * Fetch all master Partidas from Supabase (public.partidas_table).
+ */
+export async function fetchPartidasFromSupabase(): Promise<{
+  data: PartidaRecord[] | null;
+  error?: string;
+}> {
+  if (!supabase) {
+    return { data: null, error: 'Supabase no está configurado' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('partidas_table')
+      .select('*')
+      .order('item', { ascending: true });
+
+    if (error) throw error;
+
+    const mapped: PartidaRecord[] = (data || []).map((row: any) => ({
+      id: row.id,
+      actividad: row.actividad,
+      area: row.area,
+      item: row.item,
+      forecastDesc: row.forecast_desc || '',
+      descripcion: row.descripcion || '',
+      und: row.und || 'UND',
+      createdAt: row.created_at
+    }));
+
+    return { data: mapped };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al obtener partidas de Supabase';
+    console.error('Supabase partidas fetch exception:', err);
+    return { data: null, error: message };
   }
 }
 

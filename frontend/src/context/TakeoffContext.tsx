@@ -6,7 +6,8 @@ import {
   SectionType,
   TabType,
   AddModeType,
-  MaterialType
+  MaterialType,
+  PartidaRecord
 } from '../types/takeoff';
 import {
   loadStoredItems,
@@ -14,7 +15,9 @@ import {
   loadStoredRules,
   saveStoredRules,
   loadStoredPackages,
-  saveStoredPackages
+  saveStoredPackages,
+  loadStoredPartidas,
+  saveStoredPartidas
 } from '../lib/storage';
 import {
   syncItemsToSupabase,
@@ -22,7 +25,9 @@ import {
   saveTakeoffRuleToSupabase,
   deleteTakeoffRuleFromSupabase,
   fetchDetalleVariantsFromSupabase,
-  saveDetalleVariantToSupabase
+  saveDetalleVariantToSupabase,
+  syncPartidasToSupabase,
+  fetchPartidasFromSupabase
 } from '../lib/supabase';
 import {
   uid,
@@ -35,6 +40,7 @@ import {
 } from '../utils/calculations';
 import { getCalculatedVariantItems, updateDynamicVariants } from '../data/detalleVariants';
 import { parseTakeoffCsv } from '../utils/csvParser';
+import { correlateItemsWithPartidas, findMatchingPartidaItem } from '../utils/partidaMatcher';
 import * as XLSX from 'xlsx';
 
 interface ToastState {
@@ -50,6 +56,7 @@ interface TakeoffContextType {
   items: TakeoffItem[];
   packages: PackageGroup[];
   rules: TakeoffRule[];
+  partidas: PartidaRecord[];
   selPkg: string | null;
   addMode: AddModeType;
   searchQuery: string;
@@ -61,6 +68,7 @@ interface TakeoffContextType {
   collapsedRuleAreas: Set<string>;
   undoSnapshot: string | null;
   isSyncing: boolean;
+  isPartidasModalOpen: boolean;
   editingItemId: string | null;
   toast: ToastState | null;
 
@@ -80,6 +88,7 @@ interface TakeoffContextType {
   togglePkgCollapse: (pkgId: string) => void;
   toggleRuleAreaCollapse: (area: string) => void;
   setEditingItemId: (id: string | null) => void;
+  setIsPartidasModalOpen: (open: boolean) => void;
 
   addCustomItem: (desc: string, qty: number, unit: string) => void;
   updateItem: (id: string, updates: Partial<TakeoffItem>) => void;
@@ -105,6 +114,9 @@ interface TakeoffContextType {
   saveRule: (rule: TakeoffRule, isNew: boolean) => void;
   deleteRule: (id: string) => void;
 
+  uploadPartidasList: (newPartidas: PartidaRecord[]) => Promise<void>;
+  correlateAllItems: () => void;
+
   showToast: (message: string, type?: 'info' | 'warn' | 'success') => void;
 }
 
@@ -127,7 +139,13 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     localStorage.setItem('epc-active-area', area);
   };
 
-  const [items, setItems] = useState<TakeoffItem[]>(() => loadStoredItems(section));
+  const [partidas, setPartidas] = useState<PartidaRecord[]>(() => loadStoredPartidas());
+  const [isPartidasModalOpen, setIsPartidasModalOpen] = useState(false);
+  const [items, setItems] = useState<TakeoffItem[]>(() => {
+    const rawItems = loadStoredItems(section);
+    const storedPartidas = loadStoredPartidas();
+    return correlateItemsWithPartidas(rawItems, storedPartidas, 'AREA SECA');
+  });
   const [packages, setPackages] = useState<PackageGroup[]>(() => loadStoredPackages(section));
   const [rules, setRules] = useState<TakeoffRule[]>(() => loadStoredRules(section));
 
@@ -210,9 +228,20 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       } else if (variantsErr) {
         console.warn('[Supabase] Error al cargar variantes de detalles, usando fallback local:', variantsErr);
       }
+
+      // 3. Fetch Master Partidas
+      const { data: cloudPartidas, error: partidasErr } = await fetchPartidasFromSupabase();
+      if (!partidasErr && cloudPartidas && cloudPartidas.length > 0) {
+        setPartidas(cloudPartidas);
+        saveStoredPartidas(cloudPartidas);
+        setItems(prev => correlateItemsWithPartidas(prev, cloudPartidas, activeArea));
+        console.log(`[Supabase] Cargadas ${cloudPartidas.length} partidas master`);
+      } else if (partidasErr) {
+        console.warn('[Supabase] Error al cargar partidas master:', partidasErr);
+      }
     }
     loadCloudConfig();
-  }, [section]);
+  }, [section, activeArea]);
 
   const showToast = (message: string, type: 'info' | 'warn' | 'success' = 'info') => {
     setToast({ message, type });
@@ -241,7 +270,8 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     const loadedRules = loadStoredRules(newSection);
     const loadedPackages = loadStoredPackages(newSection);
 
-    setItems(loadedItems);
+    const correlatedItems = correlateItemsWithPartidas(loadedItems, partidas, activeArea);
+    setItems(correlatedItems);
     setRules(loadedRules);
     setPackages(loadedPackages);
     setSelPkg(loadedPackages[0]?.id || null);
@@ -273,7 +303,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
     const pkgId = selPkg || packages[0]?.id || 'p1';
-    const newItem: TakeoffItem = {
+    const tempItem: TakeoffItem = {
       id: uid(),
       pkgId,
       desc: desc.trim(),
@@ -288,8 +318,9 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       detalle: '',
       metradoOt: ''
     };
+    tempItem.partida = findMatchingPartidaItem(tempItem, partidas, activeArea);
 
-    setItems(prev => [...prev, newItem]);
+    setItems(prev => [...prev, tempItem]);
     showToast('Ítem agregado', 'success');
   };
 
@@ -569,6 +600,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     combined = assignTagUnicoSuffixes(combined);
+    combined = correlateItemsWithPartidas(combined, partidas, activeArea);
 
     setUndoSnapshot(preSnapshot);
     setItems(combined);
@@ -610,7 +642,8 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     if (addedCount > 0) {
       setUndoSnapshot(preSnapshot);
-      setItems(newItems);
+      const correlatedNewItems = correlateItemsWithPartidas(newItems, partidas, activeArea);
+      setItems(correlatedNewItems);
       if (rejectedRows && rejectedRows.length > 0) {
         showToast(
           `${addedCount} ítems agregados. ${rejectedRows.length} fila(s) rechazadas (descargando reporte en Excel)`,
@@ -779,6 +812,33 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     showToast('Regla eliminada', 'warn');
   };
 
+  const correlateAllItems = () => {
+    setItems(prev => {
+      const updated = correlateItemsWithPartidas(prev, partidas, activeArea);
+      saveStoredItems(section, updated);
+      return updated;
+    });
+    showToast('Partidas correlacionadas en todo el metrado', 'success');
+  };
+
+  const uploadPartidasList = async (newPartidas: PartidaRecord[]) => {
+    const result = await syncPartidasToSupabase(newPartidas);
+    const merged = [...partidas, ...newPartidas];
+    setPartidas(merged);
+    saveStoredPartidas(merged);
+    setItems(prev => {
+      const correlated = correlateItemsWithPartidas(prev, merged, activeArea);
+      saveStoredItems(section, correlated);
+      return correlated;
+    });
+
+    if (result.success) {
+      showToast(`¡${result.count} partidas guardadas en Supabase y correlacionadas con éxito!`, 'success');
+    } else {
+      showToast(`Partidas guardadas localmente (${newPartidas.length}). ${result.error || ''}`, 'warn');
+    }
+  };
+
   return (
     <TakeoffContext.Provider
       value={{
@@ -789,6 +849,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         items,
         packages,
         rules,
+        partidas,
         selPkg,
         addMode,
         searchQuery,
@@ -800,6 +861,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         collapsedRuleAreas,
         undoSnapshot,
         isSyncing,
+        isPartidasModalOpen,
         editingItemId,
         toast,
 
@@ -818,6 +880,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         togglePkgCollapse,
         toggleRuleAreaCollapse,
         setEditingItemId,
+        setIsPartidasModalOpen,
 
         addCustomItem,
         updateItem,
@@ -835,6 +898,9 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
         saveRule,
         deleteRule,
+
+        uploadPartidasList,
+        correlateAllItems,
 
         showToast
       }}
