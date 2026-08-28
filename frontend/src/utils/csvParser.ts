@@ -250,7 +250,7 @@ export function parseTakeoffCsv(
         if (jumpersRaw && !isNaN(parseInt(jumpersRaw, 10)) && parseInt(jumpersRaw, 10) > 0) {
           numJumpers = parseInt(jumpersRaw, 10);
         }
-        itemsResult = applyDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, tuberiaRaw, lengthRawStr);
+        itemsResult = applyDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, tuberiaRaw, lengthRawStr, true);
       }
     } else if (rule.id === 'r8' || rule.id === 'r9') {
       const rowDetalle = detalleRaw || (rule.id === 'r8' ? '010/17A' : '010/17C');
@@ -272,7 +272,7 @@ export function parseTakeoffCsv(
             numSoportes = val;
           }
         }
-        itemsResult = applyBarraPotDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes);
+        itemsResult = applyBarraPotDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, true);
       }
     }
 

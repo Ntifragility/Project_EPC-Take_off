@@ -12,7 +12,7 @@ interface TakeoffRowProps {
   onCancelEdit: () => void;
 }
 
-export const TakeoffRow: React.FC<TakeoffRowProps> = ({
+export const TakeoffRow = React.memo<TakeoffRowProps>(({
   item,
   index,
   isEditing,
@@ -274,5 +274,5 @@ export const TakeoffRow: React.FC<TakeoffRowProps> = ({
       </td>
     </tr>
   );
-};
+});
 

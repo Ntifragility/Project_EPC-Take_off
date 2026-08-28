@@ -206,7 +206,8 @@ export function applyDetalleVariant(
   numSoportes = 0,
   numJumpers = 0,
   tuberiaOtParam?: string,
-  cableOtParam?: string
+  cableOtParam?: string,
+  skipAssignSuffixes = false
 ): TakeoffItem[] {
   let variant = DYNAMIC_DETALLE_VARIANTS[detalleCode];
   if (!variant && (detalleCode === '008/5' || detalleCode === '008/05')) {
@@ -420,7 +421,7 @@ export function applyDetalleVariant(
     });
 
   const consolidated = consolidateTagItems(currentItems, tagPlano, pkgId);
-  return assignTagUnicoSuffixes(consolidated);
+  return skipAssignSuffixes ? consolidated : assignTagUnicoSuffixes(consolidated);
 }
 
 // Consolidates items with identical descriptions for a given tag into a single item in the main table
@@ -429,7 +430,8 @@ export function applyBarraPotDetalleVariant(
   tagPlano: string,
   pkgId: string,
   detalleCode: string,
-  numSoportes = 1
+  numSoportes = 1,
+  skipAssignSuffixes = false
 ): TakeoffItem[] {
   const variant =
     DYNAMIC_BARRA_POT_VARIANTS[detalleCode] ||
@@ -478,7 +480,7 @@ export function applyBarraPotDetalleVariant(
 
   currentItems.splice(firstIdx, 0, ...newItems);
   const consolidated = consolidateTagItems(currentItems, tagPlano, pkgId);
-  return assignTagUnicoSuffixes(consolidated);
+  return skipAssignSuffixes ? consolidated : assignTagUnicoSuffixes(consolidated);
 }
 
 export const applyBarraDetalleVariant = applyBarraPotDetalleVariant;
