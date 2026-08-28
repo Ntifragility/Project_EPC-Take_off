@@ -1,14 +1,16 @@
 import React from 'react';
 import { useTakeoff } from '../../context/TakeoffContext';
 import { AddPanel } from './AddPanel';
-import { SearchBar } from './SearchBar';
 import { PackageGroupView } from './PackageGroupView';
 
 export const TakeoffView: React.FC = () => {
-  const { items, packages, searchQuery, filterDetalle } = useTakeoff();
+  const { items, packages, searchQuery, filterPlano, filterDetalle } = useTakeoff();
 
-  // Filter items by search and detalle
+  // Filter items by search, plano, and detalle
   const filteredItems = items.filter(it => {
+    if (filterPlano && it.plano !== filterPlano) {
+      return false;
+    }
     if (filterDetalle && it.detalle !== filterDetalle) {
       return false;
     }
@@ -17,7 +19,8 @@ export const TakeoffView: React.FC = () => {
       const tag = (it.tagPlano || '').toLowerCase();
       const desc = (it.desc || '').toLowerCase();
       const tagU = (it.tagUnico || '').toLowerCase();
-      return tag.includes(q) || desc.includes(q) || tagU.includes(q);
+      const plano = (it.plano || '').toLowerCase();
+      return tag.includes(q) || desc.includes(q) || tagU.includes(q) || plano.includes(q);
     }
     return true;
   });
@@ -44,7 +47,6 @@ export const TakeoffView: React.FC = () => {
   return (
     <div>
       <AddPanel />
-      <SearchBar filteredCount={filteredItems.length} />
 
       <div id="table-container">
         {items.length === 0 ? (

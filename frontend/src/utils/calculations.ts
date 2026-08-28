@@ -423,7 +423,6 @@ export function applyDetalleVariant(
   const consolidated = consolidateTagItems(currentItems, tagPlano, pkgId);
   return skipAssignSuffixes ? consolidated : assignTagUnicoSuffixes(consolidated);
 }
-
 // Consolidates items with identical descriptions for a given tag into a single item in the main table
 export function applyBarraPotDetalleVariant(
   items: TakeoffItem[],

@@ -165,6 +165,7 @@ export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVari
     ],
     '010/15': [
       { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
+      { desc: 'CABLE DESNUDO 4/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
       { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
       { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 3/8" TIPO YA26 DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
       { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },

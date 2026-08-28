@@ -10,8 +10,13 @@ interface TakeoffTableProps {
 export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   const {
     items: allItems,
+    filterPlano,
+    setFilterPlano,
     filterDetalle,
     setFilterDetalle,
+    searchQuery,
+    setSearchQuery,
+    clearFilters,
     editingItemId,
     setEditingItemId
   } = useTakeoff();
@@ -19,10 +24,15 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   const [pageSize, setPageSize] = useState<number>(100);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  // Reset page to 1 whenever total items or page size changes
+  // Reset page to 1 whenever total items, filters, or page size changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [items.length, pageSize, filterDetalle]);
+  }, [items.length, pageSize, filterPlano, filterDetalle]);
+
+  // Extract unique plano values for filter
+  const availablePlanos = Array.from(
+    new Set(allItems.map(i => i.plano).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
   // Extract unique detalle values for filter
   const availableDetalles = Array.from(
@@ -37,10 +47,11 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   const startIndex = isPaginated ? (safePage - 1) * pageSize : 0;
   const endIndex = isPaginated ? Math.min(startIndex + pageSize, totalItems) : totalItems;
   const visibleItems = items.slice(startIndex, endIndex);
+  const hasActiveFilters = Boolean(filterPlano || filterDetalle || searchQuery);
 
   return (
     <div className="takeoff-table-wrapper">
-      {totalItems > 50 && (
+      {(totalItems > 50 || hasActiveFilters) && (
         <div
           className="table-pagination-bar"
           style={{
@@ -80,6 +91,78 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             <span style={{ color: 'var(--mu)' }}>
               Mostrando {startIndex + 1}-{endIndex} de {totalItems.toLocaleString()} ítems
             </span>
+
+            {filterPlano && (
+              <button
+                onClick={() => setFilterPlano('')}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '4px',
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontSize: '10.5px',
+                  fontFamily: 'var(--mo)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginLeft: '6px'
+                }}
+                title={`Quitar filtro de Plano (${filterPlano})`}
+              >
+                <span>PLANO: {filterPlano}</span>
+                <span style={{ fontWeight: 'bold' }}>✕</span>
+              </button>
+            )}
+
+            {filterDetalle && (
+              <button
+                onClick={() => setFilterDetalle('')}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '4px',
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontSize: '10.5px',
+                  fontFamily: 'var(--mo)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginLeft: '6px'
+                }}
+                title={`Quitar filtro de Detalle (${filterDetalle})`}
+              >
+                <span>DETALLE: {filterDetalle}</span>
+                <span style={{ fontWeight: 'bold' }}>✕</span>
+              </button>
+            )}
+
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '4px',
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontSize: '10.5px',
+                  fontFamily: 'var(--mo)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginLeft: '6px'
+                }}
+                title={`Quitar búsqueda ("${searchQuery}")`}
+              >
+                <span>BÚSQUEDA: "{searchQuery}"</span>
+                <span style={{ fontWeight: 'bold' }}>✕</span>
+              </button>
+            )}
           </div>
 
           {isPaginated && (
@@ -183,35 +266,108 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
           <tr>
             <th>#</th>
             <th>MAT</th>
-            <th>PLANO</th>
+            <th style={{ padding: '0 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '2px' }}>
+                <select
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'inherit',
+                    fontFamily: 'inherit',
+                    fontWeight: 'inherit',
+                    fontSize: 'inherit',
+                    width: '100%',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                  value={filterPlano}
+                  onChange={e => setFilterPlano(e.target.value)}
+                >
+                  <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
+                    PLANO
+                  </option>
+                  {availablePlanos.map(p => (
+                    <option key={p} value={p} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                {filterPlano && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterPlano('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    title="Quitar filtro de Plano"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                      <line x1="16" y1="14" x2="22" y2="20" stroke="#ef4444" strokeWidth="2.5" />
+                      <line x1="22" y1="14" x2="16" y2="20" stroke="#ef4444" strokeWidth="2.5" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </th>
             <th>REV</th>
             <th>TAG ÚNICO</th>
             <th>TAG EN PLANO</th>
-            <th style={{ padding: 0 }}>
-              <select
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'inherit',
-                  fontFamily: 'inherit',
-                  fontWeight: 'inherit',
-                  fontSize: 'inherit',
-                  width: '100%',
-                  cursor: 'pointer',
-                  outline: 'none'
-                }}
-                value={filterDetalle}
-                onChange={e => setFilterDetalle(e.target.value)}
-              >
-                <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
-                  DETALLE (FILTRO)
-                </option>
-                {availableDetalles.map(d => (
-                  <option key={d} value={d} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
-                    {d}
+            <th style={{ padding: '0 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '2px' }}>
+                <select
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'inherit',
+                    fontFamily: 'inherit',
+                    fontWeight: 'inherit',
+                    fontSize: 'inherit',
+                    width: '100%',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                  value={filterDetalle}
+                  onChange={e => setFilterDetalle(e.target.value)}
+                >
+                  <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
+                    DETALLE
                   </option>
-                ))}
-              </select>
+                  {availableDetalles.map(d => (
+                    <option key={d} value={d} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                {filterDetalle && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterDetalle('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    title="Quitar filtro de Detalle"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                      <line x1="16" y1="14" x2="22" y2="20" stroke="#ef4444" strokeWidth="2.5" />
+                      <line x1="22" y1="14" x2="16" y2="20" stroke="#ef4444" strokeWidth="2.5" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </th>
             <th>DESCRIPCIÓN</th>
             <th>METRADO OT</th>

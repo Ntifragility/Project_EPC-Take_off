@@ -138,7 +138,7 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
                 textAlign: 'center'
               }}
             >
-              Prefijos Reconocidos (Filas no reconocidas se rechazan a Excel)
+              Prefijos de TAG (Se rechazan los no reconocidos)
             </div>
             <div
               style={{
@@ -190,21 +190,35 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
             borderTop: '1px solid var(--b1)'
           }}
         >
-          <button className="btn-ghost btn-sm" style={{ borderColor: 'var(--b1)', fontSize: '10.5px', padding: '4px 10px' }} onClick={handleDownloadXlsx}>
+          <button
+            className="btn-ghost btn-sm btn-success"
+            style={{
+              width: '175px',
+              height: '34px',
+              fontSize: '11px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '6px'
+            }}
+            onClick={handleDownloadXlsx}
+          >
             PLANTILLA (.XLSX)
           </button>
           <label
-            className="btn-primary"
+            className="btn-primary btn-success"
             style={{
               cursor: 'pointer',
-              padding: '5px 12px',
-              fontSize: '10.5px',
-              fontWeight: 600,
+              width: '175px',
+              height: '34px',
+              fontSize: '11px',
+              fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               borderRadius: '6px',
-              border: 'none',
-              height: '30px'
+              margin: 0
             }}
             title="Importar archivo Excel (.xlsx, .xlsb, .xls) ahora"
           >

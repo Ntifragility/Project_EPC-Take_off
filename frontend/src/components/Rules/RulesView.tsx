@@ -21,6 +21,7 @@ export const RulesView: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TakeoffRule | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
 
   const handleOpenNew = () => {
     setEditingRule(null);
@@ -32,6 +33,28 @@ export const RulesView: React.FC = () => {
     setEditingRule(rule);
     setIsNew(false);
     setModalOpen(true);
+  };
+
+  const toggleRuleExpand = (ruleId: string) => {
+    setExpandedRules(prev => {
+      const next = new Set(prev);
+      if (next.has(ruleId)) {
+        next.delete(ruleId);
+      } else {
+        next.add(ruleId);
+      }
+      return next;
+    });
+  };
+
+  const allExpanded = rules.length > 0 && rules.every(r => expandedRules.has(r.id));
+
+  const toggleAllExpand = () => {
+    if (allExpanded) {
+      setExpandedRules(new Set());
+    } else {
+      setExpandedRules(new Set(rules.map(r => r.id)));
+    }
   };
 
   return (
@@ -47,9 +70,20 @@ export const RulesView: React.FC = () => {
               : 'Reglas y matrices estándar para Área Seca.'}
           </div>
         </div>
-        <button className="btn-primary" onClick={handleOpenNew}>
-          + NUEVA REGLA
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {rules.length > 0 && (
+            <button
+              className="btn-ghost"
+              onClick={toggleAllExpand}
+              style={{ fontSize: '11px', padding: '6px 12px' }}
+            >
+              {allExpanded ? '▲ COLAPSAR TODAS' : '▼ EXPANDIR TODAS'}
+            </button>
+          )}
+          <button className="btn-primary" onClick={handleOpenNew}>
+            + NUEVA REGLA
+          </button>
+        </div>
       </div>
 
       {rules.length === 0 ? (
@@ -60,6 +94,8 @@ export const RulesView: React.FC = () => {
         </div>
       ) : (
         rules.map(r => {
+          const isExpanded = expandedRules.has(r.id);
+
           // Special view for r2 (CABLE DESNUDO 2/0 AWG) - Displays ONLY current session's detalles
           if (r.id === 'r2') {
             const areaDetalles = getDetallesForArea(activeArea);
@@ -85,7 +121,9 @@ export const RulesView: React.FC = () => {
                           fontSize: '11px',
                           padding: '3px 8px',
                           borderRadius: '4px',
-                          fontWeight: 700
+                          fontWeight: 700,
+                          fontFamily: 'var(--mo)',
+                          marginRight: '90px'
                         }}
                       >
                         {activeArea === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'} ({areaDetalles.length} detalles)
@@ -106,206 +144,235 @@ export const RulesView: React.FC = () => {
                         : 'Desglose de materiales y accesorios por DETALLE:'}
                     </div>
 
+                    {/* Foldable Row / Banner */}
                     <div
+                      onClick={() => toggleRuleExpand(r.id)}
                       style={{
-                        margin: '12px 14px',
-                        overflowX: 'auto',
-                        WebkitOverflowScrolling: 'touch',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 12px',
+                        background: 'var(--s2)',
                         border: '1px solid var(--b1)',
-                        borderRadius: '6px',
-                        background: 'var(--s2)'
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        fontSize: '11px',
+                        fontFamily: 'var(--mo)',
+                        color: 'var(--tx)',
+                        margin: '8px 14px 8px 14px',
+                        transition: 'all 0.15s ease'
                       }}
+                      title="Haga clic para mostrar u ocultar"
                     >
-                      <table
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                        <span>{isExpanded ? '▼' : '▶'}</span>
+                        <span>{isExpanded ? 'Ocultar' : 'Mostrar'}</span>
+                      </span>
+                    </div>
+
+                    {isExpanded && (
+                      <div
                         style={{
-                          width: '100%',
-                          minWidth: '600px',
-                          borderCollapse: 'collapse',
-                          fontFamily: 'var(--mo)',
-                          fontSize: '11px'
+                          margin: '12px 14px',
+                          overflowX: 'auto',
+                          WebkitOverflowScrolling: 'touch',
+                          border: '1px solid var(--b1)',
+                          borderRadius: '6px',
+                          background: 'var(--s2)'
                         }}
                       >
-                        <colgroup>
-                          <col style={{ width: '85px' }} />
-                          <col style={{ width: 'auto' }} />
-                          <col style={{ width: '120px' }} />
-                          <col style={{ width: '110px' }} />
-                        </colgroup>
-                        <thead>
-                          <tr style={{ background: 'var(--s1)' }}>
-                            <th
-                              style={{
-                                borderRight: '1px solid var(--b1)',
-                                borderBottom: '1px solid var(--b1)',
-                                padding: '8px',
-                                textAlign: 'center',
-                                color: 'var(--tx)',
-                                fontWeight: 'bold'
-                              }}
-                            >
-                              DETALLE
-                            </th>
-                            <th
-                              style={{
-                                borderRight: '1px solid var(--b1)',
-                                borderBottom: '1px solid var(--b1)',
-                                padding: '8px',
-                                textAlign: 'left',
-                                color: 'var(--tx)',
-                                fontWeight: 'bold'
-                              }}
-                            >
-                              DESCRIPCIÓN CORTA
-                            </th>
-                            <th
-                              style={{
-                                borderRight: '1px solid var(--b1)',
-                                borderBottom: '1px solid var(--b1)',
-                                padding: '8px',
-                                textAlign: 'center',
-                                color: 'var(--tx)',
-                                fontWeight: 'bold'
-                              }}
-                            >
-                              METRADO OT
-                            </th>
-                            <th
-                              style={{
-                                borderBottom: '1px solid var(--b1)',
-                                padding: '8px',
-                                textAlign: 'center',
-                                color: 'var(--tx)',
-                                fontWeight: 'bold'
-                              }}
-                            >
-                              UNIDAD
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {areaDetalles.map(([detalleCode, itemsList], detIdx) => {
-                            const tuberiaDesc = detalleCode.startsWith('020')
-                              ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"'
-                              : 'TUBERIA PVC SCH 80 Ø3/4"';
+                        <table
+                          style={{
+                            width: '100%',
+                            minWidth: '600px',
+                            borderCollapse: 'collapse',
+                            fontFamily: 'var(--mo)',
+                            fontSize: '11px'
+                          }}
+                        >
+                          <colgroup>
+                            <col style={{ width: '85px' }} />
+                            <col style={{ width: 'auto' }} />
+                            <col style={{ width: '120px' }} />
+                            <col style={{ width: '110px' }} />
+                          </colgroup>
+                          <thead>
+                            <tr style={{ background: 'var(--s1)' }}>
+                              <th
+                                style={{
+                                  borderRight: '1px solid var(--b1)',
+                                  borderBottom: '1px solid var(--b1)',
+                                  padding: '8px',
+                                  textAlign: 'center',
+                                  color: 'var(--tx)',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                DETALLE
+                              </th>
+                              <th
+                                style={{
+                                  borderRight: '1px solid var(--b1)',
+                                  borderBottom: '1px solid var(--b1)',
+                                  padding: '8px',
+                                  textAlign: 'left',
+                                  color: 'var(--tx)',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                DESCRIPCIÓN
+                              </th>
+                              <th
+                                style={{
+                                  borderRight: '1px solid var(--b1)',
+                                  borderBottom: '1px solid var(--b1)',
+                                  padding: '8px',
+                                  textAlign: 'center',
+                                  color: 'var(--tx)',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                METRADO OT
+                              </th>
+                              <th
+                                style={{
+                                  borderBottom: '1px solid var(--b1)',
+                                  padding: '8px',
+                                  textAlign: 'center',
+                                  color: 'var(--tx)',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                UNIDAD
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {areaDetalles.map(([detalleCode, itemsList], detIdx) => {
+                              const tuberiaDesc = detalleCode.startsWith('020')
+                                ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"'
+                                : 'TUBERIA PVC SCH 80 Ø3/4"';
 
-                            const itemsWithTuberia =
-                              activeArea === 'AREA SECA' &&
-                              shouldAutoManageTuberia(detalleCode) &&
-                              detalleCode !== '153' &&
-                              detalleCode !== 'NA'
-                                ? [...itemsList, { desc: tuberiaDesc, qty: 1, unit: 'm', ot: 'Var.' }]
-                                : [...itemsList];
+                              const itemsWithTuberia =
+                                activeArea === 'AREA SECA' &&
+                                shouldAutoManageTuberia(detalleCode) &&
+                                detalleCode !== '153' &&
+                                detalleCode !== 'NA'
+                                  ? [...itemsList, { desc: tuberiaDesc, qty: 1, unit: 'm', ot: 'Var.' }]
+                                  : [...itemsList];
 
-                            const sortedItems = [...itemsWithTuberia].sort((a, b) => {
-                              const descA = (a.desc || '').toUpperCase();
-                              const descB = (b.desc || '').toUpperCase();
-                              const getScore = (desc: string) => {
-                                if (desc.startsWith('CABLE DESNUDO 2/0 AWG')) return 0;
-                                if (desc.startsWith('TUBERIA') || desc.startsWith('TUBERÍA')) return 1;
-                                return 2;
-                              };
-                              const scoreA = getScore(descA);
-                              const scoreB = getScore(descB);
-                              if (scoreA !== scoreB) {
-                                return scoreA - scoreB;
-                              }
-                              return descA.localeCompare(descB);
-                            });
+                              const sortedItems = [...itemsWithTuberia].sort((a, b) => {
+                                const descA = (a.desc || '').toUpperCase();
+                                const descB = (b.desc || '').toUpperCase();
+                                const getScore = (desc: string) => {
+                                  if (desc.startsWith('CABLE DESNUDO 2/0 AWG')) return 0;
+                                  if (desc.startsWith('TUBERIA') || desc.startsWith('TUBERÍA')) return 1;
+                                  return 2;
+                                };
+                                const scoreA = getScore(descA);
+                                const scoreB = getScore(descB);
+                                if (scoreA !== scoreB) {
+                                  return scoreA - scoreB;
+                                }
+                                return descA.localeCompare(descB);
+                              });
 
-                            return sortedItems.map((item, i) => {
-                              const isLast = i === sortedItems.length - 1;
-                              const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
-                              const bg = detIdx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent';
+                              return sortedItems.map((item, i) => {
+                                const isLast = i === sortedItems.length - 1;
+                                const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
+                                const bg = detIdx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent';
 
-                              return (
-                                <tr
-                                  key={`${detalleCode}-${i}`}
-                                  style={{ borderBottom: bb, background: bg }}
-                                >
-                                  {i === 0 && (
+                                return (
+                                  <tr
+                                    key={`${detalleCode}-${i}`}
+                                    style={{ borderBottom: bb, background: bg }}
+                                  >
+                                    {i === 0 && (
+                                      <td
+                                        rowSpan={sortedItems.length}
+                                        style={{
+                                          borderBottom: '2px solid var(--b1)',
+                                          borderRight: '1px solid var(--b1)',
+                                          padding: '8px 10px',
+                                          verticalAlign: 'middle',
+                                          textAlign: 'center'
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            background: 'var(--ad)',
+                                            border: '1px solid var(--b1)',
+                                            borderRadius: '4px',
+                                            padding: '4px 8px',
+                                            display: 'inline-block',
+                                            fontFamily: 'var(--mo)',
+                                            fontSize: '11px',
+                                            color: 'var(--tx)',
+                                            fontWeight: 'bold'
+                                          }}
+                                        >
+                                          {detalleCode}
+                                        </span>
+                                      </td>
+                                    )}
                                     <td
-                                      rowSpan={sortedItems.length}
                                       style={{
-                                        borderBottom: '2px solid var(--b1)',
                                         borderRight: '1px solid var(--b1)',
                                         padding: '8px 10px',
+                                        fontFamily: 'var(--mo)',
+                                        fontSize: '11.5px',
+                                        color: 'var(--tx)',
+                                        verticalAlign: 'middle',
+                                        lineHeight: 1.4
+                                      }}
+                                    >
+                                      {item.desc}
+                                    </td>
+                                    <td
+                                      style={{
+                                        borderRight: '1px solid var(--b1)',
+                                        padding: '8px 10px',
+                                        fontFamily: 'var(--mo)',
+                                        fontSize: '11px',
+                                        color: 'var(--mu)',
+                                        fontWeight: 'bold',
                                         verticalAlign: 'middle',
                                         textAlign: 'center'
                                       }}
                                     >
-                                      <span
-                                        style={{
-                                          background: 'var(--ad)',
-                                          border: '1px solid var(--b1)',
-                                          borderRadius: '4px',
-                                          padding: '4px 8px',
-                                          display: 'inline-block',
-                                          fontFamily: 'var(--mo)',
-                                          fontSize: '11px',
-                                          color: 'var(--tx)',
-                                          fontWeight: 'bold'
-                                        }}
-                                      >
-                                        {detalleCode}
-                                      </span>
+                                      {item.otDynamic === '1c/3m' ? (
+                                        <span style={{ color: 'var(--tx)' }} title="Fórmula: Cable / 3">1c / 3m</span>
+                                      ) : item.qty === 'Var.' || item.ot === 'Var.' ? (
+                                        <span style={{ color: 'var(--tx)' }}>Var.</span>
+                                      ) : item.otDynamic === 'empty' ? (
+                                        <span style={{ color: 'var(--mu)', fontStyle: 'italic' }}>—</span>
+                                      ) : (
+                                        item.ot
+                                      )}
                                     </td>
-                                  )}
-                                  <td
-                                    style={{
-                                      borderRight: '1px solid var(--b1)',
-                                      padding: '8px 10px',
-                                      fontFamily: 'var(--mo)',
-                                      fontSize: '11.5px',
-                                      color: 'var(--text)',
-                                      verticalAlign: 'middle',
-                                      lineHeight: 1.4
-                                    }}
-                                  >
-                                    {item.desc}
-                                  </td>
-                                  <td
-                                    style={{
-                                      borderRight: '1px solid var(--b1)',
-                                      padding: '8px 10px',
-                                      fontFamily: 'var(--mo)',
-                                      fontSize: '11px',
-                                      color: 'var(--mu)',
-                                      fontWeight: 'bold',
-                                      verticalAlign: 'middle',
-                                      textAlign: 'center'
-                                    }}
-                                  >
-                                    {item.otDynamic === '1c/3m' ? (
-                                      <span style={{ color: 'var(--tx)' }} title="Fórmula: Cable / 3">1c / 3m</span>
-                                    ) : item.qty === 'Var.' || item.ot === 'Var.' ? (
-                                      <span style={{ color: 'var(--tx)' }}>Var.</span>
-                                    ) : item.otDynamic === 'empty' ? (
-                                      <span style={{ color: 'var(--mu)', fontStyle: 'italic' }}>—</span>
-                                    ) : (
-                                      item.ot
-                                    )}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: '8px 10px',
-                                      fontFamily: 'var(--mo)',
-                                      fontSize: '11px',
-                                      color: 'var(--tx)',
-                                      fontWeight: 600,
-                                      verticalAlign: 'middle',
-                                      textAlign: 'center',
-                                      whiteSpace: 'nowrap'
-                                    }}
-                                  >
-                                    {item.unit}
-                                  </td>
-                                </tr>
-                              );
-                            });
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                    <td
+                                      style={{
+                                        padding: '8px 10px',
+                                        fontFamily: 'var(--mo)',
+                                        fontSize: '11px',
+                                        color: 'var(--tx)',
+                                        fontWeight: 600,
+                                        verticalAlign: 'middle',
+                                        textAlign: 'center',
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >
+                                      {item.unit}
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
 
                     {activeArea === 'AREA SECA' && (
                       <>
@@ -361,6 +428,9 @@ export const RulesView: React.FC = () => {
 
           // Special card for BARRA POT (r8) with dynamic variants for ÁREA HÚMEDA
           if (r.id === 'r8' && activeArea === 'AREA HUMEDA') {
+            const potEntries = Object.entries(BARRA_POT_VARIANTS_HUMEDA);
+            const totalItemsCount = potEntries.reduce((acc, [_, list]) => acc + list.length, 0);
+
             return (
               <div className="rule-card" key={r.id}>
                 <div style={{ marginBottom: '14px' }}>
@@ -381,171 +451,230 @@ export const RulesView: React.FC = () => {
                         fontSize: '11px',
                         padding: '3px 8px',
                         borderRadius: '4px',
-                        fontWeight: 700
+                        fontWeight: 700,
+                        fontFamily: 'var(--mo)',
+                        marginRight: '90px'
                       }}
                     >
                       MATRIZ ÁREA HÚMEDA (010/17A - 010/17B)
                     </span>
                   </div>
 
-                  {/* Detalle Variants Table for BARRA POT */}
                   <div
                     style={{
-                      border: '1px solid var(--b1)',
-                      borderRadius: '6px',
-                      overflowX: 'auto',
-                      background: 'var(--s2)'
+                      color: 'var(--mu)',
+                      fontSize: '11px',
+                      marginBottom: '8px',
+                      fontFamily: 'var(--mo)',
+                      paddingLeft: '14px'
                     }}
                   >
-                    <table
+                    Desglose oficial de materiales y accesorios por DETALLE:
+                  </div>
+
+                  {/* Foldable Row / Banner */}
+                  <div
+                    onClick={() => toggleRuleExpand(r.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 12px',
+                      background: 'var(--s2)',
+                      border: '1px solid var(--b1)',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      fontSize: '11px',
+                      fontFamily: 'var(--mo)',
+                      color: 'var(--tx)',
+                      margin: '8px 14px 8px 14px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Haga clic para mostrar u ocultar"
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                      <span>{isExpanded ? '▼' : '▶'}</span>
+                      <span>{isExpanded ? 'Ocultar' : 'Mostrar'}</span>
+                    </span>
+                  </div>
+
+                  {isExpanded && (
+                    <div
                       style={{
-                        width: '100%',
-                        borderCollapse: 'collapse',
-                        fontSize: '11.5px',
-                        textAlign: 'left'
+                        margin: '12px 14px',
+                        overflowX: 'auto',
+                        WebkitOverflowScrolling: 'touch',
+                        border: '1px solid var(--b1)',
+                        borderRadius: '6px',
+                        background: 'var(--s2)'
                       }}
                     >
-                      <thead>
-                        <tr
-                          style={{
-                            background: 'var(--s1)',
-                            borderBottom: '2px solid var(--b1)',
-                            color: 'var(--tx)'
-                          }}
-                        >
-                          <th style={{ padding: '8px 10px', width: '90px' }}>DETALLE</th>
-                          <th style={{ padding: '8px 10px', width: '90px' }}>MAT / TIPO</th>
-                          <th style={{ padding: '8px 10px', width: '70px', textAlign: 'right' }}>CANT.</th>
-                          <th style={{ padding: '8px 10px', width: '90px' }}>UNID.</th>
-                          <th style={{ padding: '8px 10px' }}>DESCRIPCION CORTA</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(BARRA_POT_VARIANTS_HUMEDA).map(([detCode, vItems]) =>
-                          vItems.map((item, i) => {
-                            const isLast = i === vItems.length - 1;
-                            const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
-                            const isBarra = item.material === 'P';
+                      <table
+                        style={{
+                          width: '100%',
+                          minWidth: '600px',
+                          borderCollapse: 'collapse',
+                          fontFamily: 'var(--mo)',
+                          fontSize: '11px',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <colgroup>
+                          <col style={{ width: '85px' }} />
+                          <col style={{ width: 'auto' }} />
+                          <col style={{ width: '120px' }} />
+                          <col style={{ width: '110px' }} />
+                        </colgroup>
+                        <thead>
+                          <tr style={{ background: 'var(--s1)' }}>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              DETALLE
+                            </th>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'left',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              DESCRIPCIÓN
+                            </th>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              METRADO OT
+                            </th>
+                            <th
+                              style={{
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              UNIDAD
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {potEntries.map(([detCode, vItems], detIdx) =>
+                            vItems.map((item, i) => {
+                              const isLast = i === vItems.length - 1;
+                              const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
+                              const bg = detIdx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent';
 
-                            return (
-                              <tr
-                                key={`${detCode}-${i}`}
-                                style={{
-                                  borderBottom: bb,
-                                  background: isBarra ? 'var(--ad)' : 'transparent'
-                                }}
-                              >
-                                {i === 0 && (
+                              return (
+                                <tr key={`${detCode}-${i}`} style={{ borderBottom: bb, background: bg }}>
+                                  {i === 0 && (
+                                    <td
+                                      rowSpan={vItems.length}
+                                      style={{
+                                        borderBottom: '2px solid var(--b1)',
+                                        borderRight: '1px solid var(--b1)',
+                                        padding: '8px 10px',
+                                        verticalAlign: 'middle',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          background: 'var(--ad)',
+                                          border: '1px solid var(--b1)',
+                                          borderRadius: '4px',
+                                          padding: '4px 8px',
+                                          display: 'inline-block',
+                                          fontFamily: 'var(--mo)',
+                                          fontSize: '11px',
+                                          color: 'var(--tx)',
+                                          fontWeight: 'bold'
+                                        }}
+                                      >
+                                        {detCode}
+                                      </span>
+                                    </td>
+                                  )}
                                   <td
-                                    rowSpan={vItems.length}
                                     style={{
-                                      borderBottom: '2px solid var(--b1)',
                                       borderRight: '1px solid var(--b1)',
                                       padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11.5px',
+                                      color: 'var(--tx)',
+                                      verticalAlign: 'middle',
+                                      lineHeight: 1.4
+                                    }}
+                                  >
+                                    {item.desc}
+                                  </td>
+                                  <td
+                                    style={{
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: 'var(--tx)',
+                                      fontWeight: 'bold',
                                       verticalAlign: 'middle',
                                       textAlign: 'center'
                                     }}
                                   >
-                                    <span
-                                      style={{
-                                        background: 'var(--ad)',
-                                        border: '1px solid var(--b1)',
-                                        borderRadius: '4px',
-                                        padding: '4px 8px',
-                                        display: 'inline-block',
-                                        fontFamily: 'var(--mo)',
-                                        fontSize: '11px',
-                                        color: 'var(--tx)',
-                                        fontWeight: 'bold'
-                                      }}
-                                    >
-                                      {detCode}
-                                    </span>
+                                    {item.metradoOt || item.qty}
                                   </td>
-                                )}
-                                <td
-                                  style={{
-                                    borderRight: '1px solid var(--b1)',
-                                    padding: '8px 10px',
-                                    verticalAlign: 'middle'
-                                  }}
-                                >
-                                  <span
-                                    className={`mat-tag ${item.material === 'P' ? 'mat-p' : 'mat-c'}`}
-                                  >
-                                    {item.material}
-                                  </span>
-                                  <span
+                                  <td
                                     style={{
-                                      marginLeft: '6px',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
                                       fontSize: '11px',
-                                      color: 'var(--mu)'
+                                      color: 'var(--tx)',
+                                      fontWeight: 600,
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center',
+                                      whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    {isBarra ? 'BARRA' : item.desc.includes('PERNO') ? 'PERNO' : 'SOPORTE'}
-                                  </span>
-                                </td>
-                                <td
-                                  style={{
-                                    borderRight: '1px solid var(--b1)',
-                                    padding: '8px 10px',
-                                    textAlign: 'right',
-                                    fontFamily: 'var(--mo)',
-                                    color: 'var(--text)',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  {item.qty}
-                                </td>
-                                <td
-                                  style={{
-                                    borderRight: '1px solid var(--b1)',
-                                    padding: '8px 10px',
-                                    color: 'var(--mu)',
-                                    fontFamily: 'var(--mo)',
-                                    fontSize: '11px'
-                                  }}
-                                >
-                                  {item.unit}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: '8px 10px',
-                                    fontFamily: 'var(--mo)',
-                                    fontSize: '11.5px',
-                                    color: isBarra ? 'var(--text)' : 'var(--mu)',
-                                    fontWeight: isBarra ? 600 : 400,
-                                    lineHeight: 1.4
-                                  }}
-                                >
-                                  {item.desc}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                                    {item.unit}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
-                <div className="rule-card-row">
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
-                      Accesorios autogenerados según el Detalle constructivo seleccionado (010/17A, 010/17B).
-                    </div>
-                  </div>
-                  <div className="rule-card-acts">
-                    <button className="btn-ghost btn-sm" onClick={() => handleOpenEdit(r)}>
-                      EDITAR
-                    </button>
-                    <button
-                      className="btn-ghost btn-sm btn-danger"
-                      onClick={() => deleteRule(r.id)}
-                    >
-                      ELIMINAR
-                    </button>
-                  </div>
+                <div className="rule-card-acts">
+                  <button className="btn-ghost btn-sm" onClick={() => handleOpenEdit(r)}>
+                    EDITAR
+                  </button>
+                  <button
+                    className="btn-ghost btn-sm btn-danger"
+                    onClick={() => deleteRule(r.id)}
+                  >
+                    ELIMINAR
+                  </button>
                 </div>
               </div>
             );
@@ -553,6 +682,9 @@ export const RulesView: React.FC = () => {
 
           // Special card for BARRA INST (r9) with dynamic variants for ÁREA HÚMEDA
           if (r.id === 'r9' && activeArea === 'AREA HUMEDA') {
+            const instEntries = Object.entries(BARRA_INST_VARIANTS_HUMEDA);
+            const totalInstItemsCount = instEntries.reduce((acc, [_, list]) => acc + list.length, 0);
+
             return (
               <div className="rule-card" key={r.id}>
                 <div style={{ marginBottom: '14px' }}>
@@ -573,192 +705,461 @@ export const RulesView: React.FC = () => {
                         fontSize: '11px',
                         padding: '3px 8px',
                         borderRadius: '4px',
-                        fontWeight: 700
+                        fontWeight: 700,
+                        fontFamily: 'var(--mo)',
+                        marginRight: '90px'
                       }}
                     >
                       MATRIZ ÁREA HÚMEDA (010/17C - 010/17D)
                     </span>
                   </div>
 
-                  {/* Detalle Variants Table for BARRA INST */}
                   <div
                     style={{
-                      border: '1px solid var(--b1)',
-                      borderRadius: '6px',
-                      overflowX: 'auto',
-                      background: 'var(--s2)'
+                      color: 'var(--mu)',
+                      fontSize: '11px',
+                      marginBottom: '8px',
+                      fontFamily: 'var(--mo)',
+                      paddingLeft: '14px'
                     }}
                   >
-                    <table
+                    Desglose oficial de materiales y accesorios por DETALLE:
+                  </div>
+
+                  {/* Foldable Row / Banner */}
+                  <div
+                    onClick={() => toggleRuleExpand(r.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 12px',
+                      background: 'var(--s2)',
+                      border: '1px solid var(--b1)',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      fontSize: '11px',
+                      fontFamily: 'var(--mo)',
+                      color: 'var(--tx)',
+                      margin: '8px 14px 8px 14px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Haga clic para mostrar u ocultar"
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                      <span>{isExpanded ? '▼' : '▶'}</span>
+                      <span>{isExpanded ? 'Ocultar' : 'Mostrar'}</span>
+                    </span>
+                  </div>
+
+                  {isExpanded && (
+                    <div
                       style={{
-                        width: '100%',
-                        borderCollapse: 'collapse',
-                        fontSize: '11.5px',
-                        textAlign: 'left'
+                        margin: '12px 14px',
+                        overflowX: 'auto',
+                        WebkitOverflowScrolling: 'touch',
+                        border: '1px solid var(--b1)',
+                        borderRadius: '6px',
+                        background: 'var(--s2)'
                       }}
                     >
-                      <thead>
-                        <tr
-                          style={{
-                            background: 'var(--s1)',
-                            borderBottom: '2px solid var(--b1)',
-                            color: 'var(--tx)'
-                          }}
-                        >
-                          <th style={{ padding: '8px 10px', width: '90px' }}>DETALLE</th>
-                          <th style={{ padding: '8px 10px', width: '90px' }}>MAT / TIPO</th>
-                          <th style={{ padding: '8px 10px', width: '70px', textAlign: 'right' }}>CANT.</th>
-                          <th style={{ padding: '8px 10px', width: '90px' }}>UNID.</th>
-                          <th style={{ padding: '8px 10px' }}>DESCRIPCION CORTA</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(BARRA_INST_VARIANTS_HUMEDA).map(([detCode, vItems]) =>
-                          vItems.map((item, i) => {
-                            const isLast = i === vItems.length - 1;
-                            const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
-                            const isBarra = item.material === 'P';
+                      <table
+                        style={{
+                          width: '100%',
+                          minWidth: '600px',
+                          borderCollapse: 'collapse',
+                          fontFamily: 'var(--mo)',
+                          fontSize: '11px',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <colgroup>
+                          <col style={{ width: '85px' }} />
+                          <col style={{ width: 'auto' }} />
+                          <col style={{ width: '120px' }} />
+                          <col style={{ width: '110px' }} />
+                        </colgroup>
+                        <thead>
+                          <tr style={{ background: 'var(--s1)' }}>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              DETALLE
+                            </th>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'left',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              DESCRIPCIÓN
+                            </th>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              METRADO OT
+                            </th>
+                            <th
+                              style={{
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              UNIDAD
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {instEntries.map(([detCode, vItems], detIdx) =>
+                            vItems.map((item, i) => {
+                              const isLast = i === vItems.length - 1;
+                              const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
+                              const bg = detIdx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent';
 
-                            return (
-                              <tr
-                                key={`${detCode}-${i}`}
-                                style={{
-                                  borderBottom: bb,
-                                  background: isBarra ? 'var(--ad)' : 'transparent'
-                                }}
-                              >
-                                {i === 0 && (
+                              return (
+                                <tr key={`${detCode}-${i}`} style={{ borderBottom: bb, background: bg }}>
+                                  {i === 0 && (
+                                    <td
+                                      rowSpan={vItems.length}
+                                      style={{
+                                        borderBottom: '2px solid var(--b1)',
+                                        borderRight: '1px solid var(--b1)',
+                                        padding: '8px 10px',
+                                        verticalAlign: 'middle',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          background: 'var(--ad)',
+                                          border: '1px solid var(--b1)',
+                                          borderRadius: '4px',
+                                          padding: '4px 8px',
+                                          display: 'inline-block',
+                                          fontFamily: 'var(--mo)',
+                                          fontSize: '11px',
+                                          color: 'var(--tx)',
+                                          fontWeight: 'bold'
+                                        }}
+                                      >
+                                        {detCode}
+                                      </span>
+                                    </td>
+                                  )}
                                   <td
-                                    rowSpan={vItems.length}
                                     style={{
-                                      borderBottom: '2px solid var(--b1)',
                                       borderRight: '1px solid var(--b1)',
                                       padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11.5px',
+                                      color: 'var(--tx)',
+                                      verticalAlign: 'middle',
+                                      lineHeight: 1.4
+                                    }}
+                                  >
+                                    {item.desc}
+                                  </td>
+                                  <td
+                                    style={{
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: 'var(--tx)',
+                                      fontWeight: 'bold',
                                       verticalAlign: 'middle',
                                       textAlign: 'center'
                                     }}
                                   >
-                                    <span
-                                      style={{
-                                        background: 'var(--ad)',
-                                        border: '1px solid var(--b1)',
-                                        borderRadius: '4px',
-                                        padding: '4px 8px',
-                                        display: 'inline-block',
-                                        fontFamily: 'var(--mo)',
-                                        fontSize: '11px',
-                                        color: 'var(--tx)',
-                                        fontWeight: 'bold'
-                                      }}
-                                    >
-                                      {detCode}
-                                    </span>
+                                    {item.metradoOt || item.qty}
                                   </td>
-                                )}
-                                <td
-                                  style={{
-                                    borderRight: '1px solid var(--b1)',
-                                    padding: '8px 10px',
-                                    verticalAlign: 'middle'
-                                  }}
-                                >
-                                  <span
-                                    className={`mat-tag ${item.material === 'P' ? 'mat-p' : 'mat-c'}`}
-                                  >
-                                    {item.material}
-                                  </span>
-                                  <span
+                                  <td
                                     style={{
-                                      marginLeft: '6px',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
                                       fontSize: '11px',
-                                      color: 'var(--mu)'
+                                      color: 'var(--tx)',
+                                      fontWeight: 600,
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center',
+                                      whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    {isBarra ? 'BARRA' : item.desc.includes('PERNO') ? 'PERNO' : 'SOPORTE'}
-                                  </span>
-                                </td>
-                                <td
-                                  style={{
-                                    borderRight: '1px solid var(--b1)',
-                                    padding: '8px 10px',
-                                    textAlign: 'right',
-                                    fontFamily: 'var(--mo)',
-                                    color: 'var(--text)',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  {item.qty}
-                                </td>
-                                <td
-                                  style={{
-                                    borderRight: '1px solid var(--b1)',
-                                    padding: '8px 10px',
-                                    color: 'var(--mu)',
-                                    fontFamily: 'var(--mo)',
-                                    fontSize: '11px'
-                                  }}
-                                >
-                                  {item.unit}
-                                </td>
-                                <td
-                                  style={{
-                                    padding: '8px 10px',
-                                    fontFamily: 'var(--mo)',
-                                    fontSize: '11.5px',
-                                    color: isBarra ? 'var(--text)' : 'var(--mu)',
-                                    fontWeight: isBarra ? 600 : 400,
-                                    lineHeight: 1.4
-                                  }}
-                                >
-                                  {item.desc}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                                    {item.unit}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
-                <div className="rule-card-row">
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
-                      Accesorios autogenerados según el Detalle constructivo seleccionado (010/17C, 010/17D con aisladores).
-                    </div>
-                  </div>
-                  <div className="rule-card-acts">
-                    <button className="btn-ghost btn-sm" onClick={() => handleOpenEdit(r)}>
-                      EDITAR
-                    </button>
-                    <button
-                      className="btn-ghost btn-sm btn-danger"
-                      onClick={() => deleteRule(r.id)}
-                    >
-                      ELIMINAR
-                    </button>
-                  </div>
+                <div className="rule-card-acts">
+                  <button className="btn-ghost btn-sm" onClick={() => handleOpenEdit(r)}>
+                    EDITAR
+                  </button>
+                  <button
+                    className="btn-ghost btn-sm btn-danger"
+                    onClick={() => deleteRule(r.id)}
+                  >
+                    ELIMINAR
+                  </button>
                 </div>
               </div>
             );
           }
 
-          // Standard rule card
+          // Standard rule card (POZO CON CAJA REGISTRO, POZO SIN CAJA REGISTRO, CABLE DESNUDO 4/0, SOLDADURAS, CANALIZADO, etc.)
+          const getBadgeText = (trigger: string) => {
+            if (trigger.includes('POZO')) return 'ESTRUCTURA DE POZO';
+            if (trigger.includes('SOLDADURA')) return 'CONEXIÓN TERMIOWELD';
+            if (trigger.includes('CABLE')) return 'CONDUCTOR PRINCIPAL';
+            if (trigger.includes('CANALIZADO')) return 'CANALIZACIÓN Y SOPORTES';
+            if (trigger.includes('BARRA')) return 'BARRA DE COBRE Y ACCESORIOS';
+            return 'REGLA ESTÁNDAR';
+          };
+
           return (
             <div className="rule-card" key={r.id}>
               <div className="rule-card-row">
                 <div style={{ flex: 1 }}>
-                  <div className="rule-trigger">{r.trigger}</div>
-                  <div className="rule-subitems">
-                    {r.subitems.map((s, i) => (
-                      <div className="rule-sub" key={s.id}>
-                        <span className="rule-sub-n">{i + 1}.</span>
-                        <span className="rule-sub-d">{s.desc}</span>
-                        <span className="rule-sub-q">{s.qty}</span>
-                        <span style={{ color: 'var(--mu)' }}>{s.unit}</span>
-                      </div>
-                    ))}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '6px'
+                    }}
+                  >
+                    <div className="rule-trigger">{r.trigger}</div>
+                    <span
+                      style={{
+                        background: 'var(--s2)',
+                        border: '1px solid var(--b1)',
+                        color: 'var(--tx)',
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                        fontFamily: 'var(--mo)',
+                        marginRight: '90px'
+                      }}
+                    >
+                      {getBadgeText(r.trigger)} ({r.subitems.length} insumos)
+                    </span>
                   </div>
+
+                  <div
+                    style={{
+                      color: 'var(--mu)',
+                      fontSize: '11px',
+                      marginBottom: '8px',
+                      fontFamily: 'var(--mo)',
+                      paddingLeft: '14px'
+                    }}
+                  >
+                    Desglose oficial de materiales y accesorios por regla constructiva:
+                  </div>
+
+                  {/* Foldable Row / Banner */}
+                  <div
+                    onClick={() => toggleRuleExpand(r.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 12px',
+                      background: 'var(--s2)',
+                      border: '1px solid var(--b1)',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      fontSize: '11px',
+                      fontFamily: 'var(--mo)',
+                      color: 'var(--tx)',
+                      margin: '8px 14px 8px 14px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Haga clic para mostrar u ocultar"
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                      <span>{isExpanded ? '▼' : '▶'}</span>
+                      <span>{isExpanded ? 'Ocultar' : 'Mostrar'}</span>
+                    </span>
+                  </div>
+
+                  {isExpanded && (
+                    <div
+                      style={{
+                        margin: '12px 14px',
+                        overflowX: 'auto',
+                        WebkitOverflowScrolling: 'touch',
+                        border: '1px solid var(--b1)',
+                        borderRadius: '6px',
+                        background: 'var(--s2)'
+                      }}
+                    >
+                      <table
+                        style={{
+                          width: '100%',
+                          minWidth: '500px',
+                          borderCollapse: 'collapse',
+                          fontFamily: 'var(--mo)',
+                          fontSize: '11px'
+                        }}
+                      >
+                        <colgroup>
+                          <col style={{ width: '45px' }} />
+                          <col style={{ width: 'auto' }} />
+                          <col style={{ width: '120px' }} />
+                          <col style={{ width: '110px' }} />
+                        </colgroup>
+                        <thead>
+                          <tr style={{ background: 'var(--s1)' }}>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              #
+                            </th>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'left',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              DESCRIPCIÓN
+                            </th>
+                            <th
+                              style={{
+                                borderRight: '1px solid var(--b1)',
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              METRADO OT / CANT.
+                            </th>
+                            <th
+                              style={{
+                                borderBottom: '1px solid var(--b1)',
+                                padding: '8px',
+                                textAlign: 'center',
+                                color: 'var(--tx)',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              UNIDAD
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {r.subitems.map((s, i) => {
+                            const isLast = i === r.subitems.length - 1;
+                            return (
+                              <tr
+                                key={s.id || i}
+                                style={{
+                                  borderBottom: isLast ? 'none' : '1px solid var(--b2)',
+                                  background: i % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent'
+                                }}
+                              >
+                                <td
+                                  style={{
+                                    borderRight: '1px solid var(--b1)',
+                                    padding: '8px 10px',
+                                    textAlign: 'center',
+                                    color: 'var(--di)',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
+                                  {i + 1}
+                                </td>
+                                <td
+                                  style={{
+                                    borderRight: '1px solid var(--b1)',
+                                    padding: '8px 10px',
+                                    fontFamily: 'var(--mo)',
+                                    fontSize: '11.5px',
+                                    color: 'var(--tx)',
+                                    verticalAlign: 'middle',
+                                    lineHeight: 1.4
+                                  }}
+                                >
+                                  {s.desc}
+                                </td>
+                                <td
+                                  style={{
+                                    borderRight: '1px solid var(--b1)',
+                                    padding: '8px 10px',
+                                    fontFamily: 'var(--mo)',
+                                    fontSize: '11px',
+                                    color: 'var(--tx)',
+                                    fontWeight: 'bold',
+                                    verticalAlign: 'middle',
+                                    textAlign: 'center'
+                                  }}
+                                >
+                                  {s.qty}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: '8px 10px',
+                                    fontFamily: 'var(--mo)',
+                                    fontSize: '11px',
+                                    color: 'var(--tx)',
+                                    fontWeight: 600,
+                                    verticalAlign: 'middle',
+                                    textAlign: 'center',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {s.unit}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
                 <div className="rule-card-acts">
                   <button className="btn-ghost btn-sm" onClick={() => handleOpenEdit(r)}>
@@ -787,4 +1188,3 @@ export const RulesView: React.FC = () => {
     </div>
   );
 };
-

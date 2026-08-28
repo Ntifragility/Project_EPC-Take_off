@@ -53,6 +53,7 @@ interface TakeoffContextType {
   selPkg: string | null;
   addMode: AddModeType;
   searchQuery: string;
+  filterPlano: string;
   filterDetalle: string;
   customPlano: string;
   customRev: string;
@@ -71,7 +72,9 @@ interface TakeoffContextType {
   setSelPkg: (pkgId: string) => void;
   setAddMode: (mode: AddModeType) => void;
   setSearchQuery: (query: string) => void;
+  setFilterPlano: (plano: string) => void;
   setFilterDetalle: (detalle: string) => void;
+  clearFilters: () => void;
   setCustomPlano: (plano: string) => void;
   setCustomRev: (rev: string) => void;
   togglePkgCollapse: (pkgId: string) => void;
@@ -131,7 +134,14 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [selPkg, setSelPkg] = useState<string | null>(() => packages[0]?.id || null);
   const [addMode, setAddMode] = useState<AddModeType>('rule');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterPlano, setFilterPlano] = useState('');
   const [filterDetalle, setFilterDetalle] = useState('');
+
+  const clearFilters = () => {
+    setFilterPlano('');
+    setFilterDetalle('');
+    setSearchQuery('');
+  };
   const [customPlano, setCustomPlano] = useState<string>(() => localStorage.getItem('epc-plano') || '');
   const [customRev, setCustomRev] = useState<string>(() => localStorage.getItem('epc-rev') || '');
 
@@ -223,6 +233,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     setTab('takeoff');
     setEditingItemId(null);
     setSearchQuery('');
+    setFilterPlano('');
     setFilterDetalle('');
     setUndoSnapshot(null);
 
@@ -781,6 +792,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         selPkg,
         addMode,
         searchQuery,
+        filterPlano,
         filterDetalle,
         customPlano,
         customRev,
@@ -798,7 +810,9 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         setSelPkg,
         setAddMode,
         setSearchQuery,
+        setFilterPlano,
         setFilterDetalle,
+        clearFilters,
         setCustomPlano,
         setCustomRev,
         togglePkgCollapse,
