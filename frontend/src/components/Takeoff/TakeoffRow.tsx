@@ -189,14 +189,14 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
               style={{
                 width: '100%',
                 height: '100%',
-                background: 'rgba(255,255,255,0.05)',
-                color: 'inherit',
-                border: 'none'
+                background: 'var(--s1)',
+                color: 'var(--tx)',
+                border: '1px solid var(--b1)'
               }}
             >
-              <option value=""></option>
+              <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}></option>
               {getDetallesForArea(activeArea).map(([k]) => (
-                <option key={k} value={k}>
+                <option key={k} value={k} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
                   {k}
                 </option>
               ))}

@@ -48,11 +48,12 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '6px 12px',
-            background: 'var(--bg-card, #1e1e1e)',
-            border: '1px solid var(--border, #333)',
+            background: 'var(--s2)',
+            border: '1px solid var(--b1)',
             borderRadius: '4px 4px 0 0',
             fontSize: '12px',
             fontFamily: 'var(--mo, monospace)',
+            color: 'var(--tx)',
             marginBottom: '4px'
           }}
         >
@@ -62,21 +63,21 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
               value={pageSize}
               onChange={e => setPageSize(Number(e.target.value))}
               style={{
-                background: 'var(--bg-input, #2a2a2a)',
-                color: 'inherit',
-                border: '1px solid var(--border, #444)',
+                background: 'var(--s1)',
+                color: 'var(--tx)',
+                border: '1px solid var(--b1)',
                 borderRadius: '3px',
                 padding: '2px 6px',
                 cursor: 'pointer'
               }}
             >
-              <option value={50}>50 filas/pág</option>
-              <option value={100}>100 filas/pág</option>
-              <option value={250}>250 filas/pág</option>
-              <option value={500}>500 filas/pág</option>
-              <option value={0}>Mostrar Todas ({totalItems.toLocaleString()})</option>
+              <option value={50} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>50 filas/pág</option>
+              <option value={100} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>100 filas/pág</option>
+              <option value={250} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>250 filas/pág</option>
+              <option value={500} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>500 filas/pág</option>
+              <option value={0} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>Mostrar Todas ({totalItems.toLocaleString()})</option>
             </select>
-            <span style={{ opacity: 0.7 }}>
+            <span style={{ color: 'var(--mu)' }}>
               Mostrando {startIndex + 1}-{endIndex} de {totalItems.toLocaleString()} ítems
             </span>
           </div>
@@ -86,31 +87,63 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
               <button
                 disabled={safePage <= 1}
                 onClick={() => setCurrentPage(1)}
-                style={{ padding: '2px 8px', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', opacity: safePage <= 1 ? 0.4 : 1 }}
+                style={{
+                  background: 'var(--s1)',
+                  color: 'var(--tx)',
+                  border: '1px solid var(--b1)',
+                  borderRadius: '3px',
+                  padding: '2px 8px',
+                  cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                  opacity: safePage <= 1 ? 0.4 : 1
+                }}
               >
                 ⏮
               </button>
               <button
                 disabled={safePage <= 1}
                 onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-                style={{ padding: '2px 8px', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', opacity: safePage <= 1 ? 0.4 : 1 }}
+                style={{
+                  background: 'var(--s1)',
+                  color: 'var(--tx)',
+                  border: '1px solid var(--b1)',
+                  borderRadius: '3px',
+                  padding: '2px 8px',
+                  cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                  opacity: safePage <= 1 ? 0.4 : 1
+                }}
               >
                 ◀ Ant
               </button>
-              <span>
+              <span style={{ color: 'var(--tx)' }}>
                 Pág. {safePage} / {totalPages}
               </span>
               <button
                 disabled={safePage >= totalPages}
                 onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-                style={{ padding: '2px 8px', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', opacity: safePage >= totalPages ? 0.4 : 1 }}
+                style={{
+                  background: 'var(--s1)',
+                  color: 'var(--tx)',
+                  border: '1px solid var(--b1)',
+                  borderRadius: '3px',
+                  padding: '2px 8px',
+                  cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                  opacity: safePage >= totalPages ? 0.4 : 1
+                }}
               >
                 Sig ▶
               </button>
               <button
                 disabled={safePage >= totalPages}
                 onClick={() => setCurrentPage(totalPages)}
-                style={{ padding: '2px 8px', cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', opacity: safePage >= totalPages ? 0.4 : 1 }}
+                style={{
+                  background: 'var(--s1)',
+                  color: 'var(--tx)',
+                  border: '1px solid var(--b1)',
+                  borderRadius: '3px',
+                  padding: '2px 8px',
+                  cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                  opacity: safePage >= totalPages ? 0.4 : 1
+                }}
               >
                 ⏭
               </button>
@@ -170,11 +203,11 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                 value={filterDetalle}
                 onChange={e => setFilterDetalle(e.target.value)}
               >
-                <option value="" style={{ color: '#000' }}>
+                <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
                   DETALLE (FILTRO)
                 </option>
                 {availableDetalles.map(d => (
-                  <option key={d} value={d} style={{ color: '#000' }}>
+                  <option key={d} value={d} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
                     {d}
                   </option>
                 ))}

@@ -100,6 +100,11 @@
             box-shadow: 0 0 0 1px var(--tx);
         }
 
+        select option {
+            background-color: var(--s1);
+            color: var(--tx);
+        }
+
         input[type=number] {
             -moz-appearance: textfield;
             appearance: textfield;
