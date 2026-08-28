@@ -151,7 +151,7 @@ export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVari
     '010/13': [
       { desc: 'CABLE AISLADO 2/0 AWG THHN', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
       { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
       { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' }
     ],
     '010/14': [
@@ -166,7 +166,7 @@ export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVari
       { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
       { desc: 'CABLE DESNUDO 4/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
       { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 3/8" TIPO YA26 DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
       { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
       { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
       { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
@@ -175,7 +175,7 @@ export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVari
     '010/16': [
       { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
       { desc: 'PLATINA DE ACERO 100x50x4mm, CON DOS PERFORACIONES DE Ø14mm.', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
       { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' },
       { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
       { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
@@ -208,13 +208,13 @@ export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVari
     '010/18': [
       { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
       { desc: 'CABLE AISLADO 2/0 AWG THHN (JUMPER)', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
+      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
       { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' },
       { desc: 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
       { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
       { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' },
       { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' },
+      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' },
       { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' }
     ]
   }
