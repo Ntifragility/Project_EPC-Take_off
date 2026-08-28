@@ -1,15 +1,16 @@
 import React from 'react';
 import { useTakeoff } from '../context/TakeoffContext';
-import { exportTakeoffExcel } from '../utils/excelExporter';
+import { exportTakeoffExcel, exportTagSummaryExcel } from '../utils/excelExporter';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { consolidateAccessories } from '../utils/calculations';
 
 interface HeaderProps {
   onOpenSummaryModal: () => void;
   onOpenAreaModal: () => void;
+  onOpenTagSummaryModal: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaModal }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaModal, onOpenTagSummaryModal }) => {
   const {
     section,
     tab,
@@ -120,6 +121,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
           >
             RESUMEN MAT
           </button>
+          <button
+            className="nav-tab"
+            style={{ color: 'var(--am, #eab308)', fontStyle: 'normal', fontWeight: 600 }}
+            onClick={onOpenTagSummaryModal}
+            title="Ver tabla resumen 6 columnas (TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES)"
+          >
+            RESUMEN TAG
+          </button>
         </nav>
       </div>
 
@@ -217,8 +226,27 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
             flexShrink: 0
           }}
           onClick={handleExport}
+          title="Exportar la tabla completa de metrado a Excel"
         >
           EXPORTAR EXCEL
+        </button>
+
+        <button
+          className="btn-export"
+          style={{
+            width: '125px',
+            minWidth: '125px',
+            maxWidth: '125px',
+            textAlign: 'center',
+            flexShrink: 0,
+            background: 'var(--s3)',
+            border: '1px solid var(--b1)',
+            color: 'var(--am, #eab308)'
+          }}
+          onClick={() => exportTagSummaryExcel(items)}
+          title="Exportar tabla resumen 6 columnas (TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES) a Excel"
+        >
+          RESUMEN EXCEL
         </button>
       </div>
     </header>

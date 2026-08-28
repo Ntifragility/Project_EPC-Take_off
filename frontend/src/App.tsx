@@ -7,11 +7,13 @@ import { RulesView } from './components/Rules/RulesView';
 import { PackagesView } from './components/Packages/PackagesView';
 import { MaterialSummaryModal } from './components/Modals/MaterialSummaryModal';
 import { AreaSelectModal } from './components/Modals/AreaSelectModal';
+import { TagSummaryModal } from './components/Modals/TagSummaryModal';
 
 const AppContent: React.FC = () => {
   const { tab, customPlano, setCustomPlano } = useTakeoff();
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [areaModalOpen, setAreaModalOpen] = useState(false);
+  const [tagSummaryModalOpen, setTagSummaryModalOpen] = useState(false);
 
   // When opening the site, if no active area is chosen yet, open the 2-card selector modal
   useEffect(() => {
@@ -55,6 +57,7 @@ const AppContent: React.FC = () => {
       <Header
         onOpenSummaryModal={() => setSummaryModalOpen(true)}
         onOpenAreaModal={() => setAreaModalOpen(true)}
+        onOpenTagSummaryModal={() => setTagSummaryModalOpen(true)}
       />
 
       <main className="main" id="main-content">
@@ -66,6 +69,11 @@ const AppContent: React.FC = () => {
       <MaterialSummaryModal
         isOpen={summaryModalOpen}
         onClose={() => setSummaryModalOpen(false)}
+      />
+
+      <TagSummaryModal
+        isOpen={tagSummaryModalOpen}
+        onClose={() => setTagSummaryModalOpen(false)}
       />
 
       <AreaSelectModal
