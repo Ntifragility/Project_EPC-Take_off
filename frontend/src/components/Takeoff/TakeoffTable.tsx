@@ -252,46 +252,79 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         <thead>
           <tr style={{ color: 'var(--di)', opacity: 0.8 }}>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>40px</th>
-            <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>40px</th>
-            <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>170px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>30px</th>
+            <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>200px</th>
+            <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>40px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>140px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>75px</th>
-            <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>95px</th>
+            <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>105px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>AUTO</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>70px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>75px</th>
             <th style={{ padding: '2px', fontSize: '10px', fontWeight: 400, borderBottom: 'none', fontFamily: 'var(--mo)' }}>90px</th>
           </tr>
           <tr>
-            <th>#</th>
-            <th>MAT</th>
-            <th style={{ padding: '0 4px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '2px' }}>
-                <select
+            <th style={{ textAlign: 'center' }}>#</th>
+            <th style={{ textAlign: 'center' }}>MAT</th>
+            <th style={{ padding: '0 4px', textAlign: 'center' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                <div
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'inherit',
-                    fontFamily: 'inherit',
-                    fontWeight: 'inherit',
-                    fontSize: 'inherit',
-                    width: '100%',
-                    cursor: 'pointer',
-                    outline: 'none'
+                    position: 'relative',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    background: filterPlano ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                    border: filterPlano ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid transparent',
+                    transition: 'all 0.15s ease'
                   }}
-                  value={filterPlano}
-                  onChange={e => setFilterPlano(e.target.value)}
                 >
-                  <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
-                    PLANO
-                  </option>
-                  {availablePlanos.map(p => (
-                    <option key={p} value={p} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
-                      {p}
+                  <select
+                    style={{
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      appearance: 'none',
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      color: filterPlano ? 'var(--am)' : 'inherit',
+                      fontFamily: 'inherit',
+                      fontWeight: filterPlano ? 700 : 600,
+                      fontSize: 'inherit',
+                      cursor: 'pointer',
+                      paddingRight: '14px',
+                      textAlign: 'center',
+                      textAlignLast: 'center'
+                    }}
+                    value={filterPlano}
+                    onChange={e => setFilterPlano(e.target.value)}
+                    title="Filtrar por Plano"
+                  >
+                    <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)', textAlign: 'left' }}>
+                      PLANO
                     </option>
-                  ))}
-                </select>
+                    {availablePlanos.map(p => (
+                      <option key={p} value={p} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)', textAlign: 'left' }}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: '3px',
+                      pointerEvents: 'none',
+                      fontSize: '9px',
+                      color: filterPlano ? 'var(--am)' : 'var(--mu)',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    ▼
+                  </span>
+                </div>
+
                 {filterPlano && (
                   <button
                     type="button"
@@ -301,8 +334,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                       border: 'none',
                       color: '#ef4444',
                       cursor: 'pointer',
-                      padding: '2px 4px',
-                      display: 'flex',
+                      padding: '2px',
+                      display: 'inline-flex',
                       alignItems: 'center'
                     }}
                     title="Quitar filtro de Plano"
@@ -316,35 +349,68 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                 )}
               </div>
             </th>
-            <th>REV</th>
-            <th>TAG ÚNICO</th>
-            <th>TAG EN PLANO</th>
-            <th style={{ padding: '0 4px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '2px' }}>
-                <select
+            <th style={{ textAlign: 'center' }}>REV</th>
+            <th style={{ textAlign: 'center' }}>TAG ÚNICO</th>
+            <th style={{ textAlign: 'center' }}>TAG EN PLANO</th>
+            <th style={{ padding: '0 4px', textAlign: 'center' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                <div
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'inherit',
-                    fontFamily: 'inherit',
-                    fontWeight: 'inherit',
-                    fontSize: 'inherit',
-                    width: '100%',
-                    cursor: 'pointer',
-                    outline: 'none'
+                    position: 'relative',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                    background: filterDetalle ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                    border: filterDetalle ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid transparent',
+                    transition: 'all 0.15s ease'
                   }}
-                  value={filterDetalle}
-                  onChange={e => setFilterDetalle(e.target.value)}
                 >
-                  <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
-                    DETALLE
-                  </option>
-                  {availableDetalles.map(d => (
-                    <option key={d} value={d} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
-                      {d}
+                  <select
+                    style={{
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      appearance: 'none',
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      color: filterDetalle ? 'var(--am)' : 'inherit',
+                      fontFamily: 'inherit',
+                      fontWeight: filterDetalle ? 700 : 600,
+                      fontSize: 'inherit',
+                      cursor: 'pointer',
+                      paddingRight: '14px',
+                      textAlign: 'center',
+                      textAlignLast: 'center'
+                    }}
+                    value={filterDetalle}
+                    onChange={e => setFilterDetalle(e.target.value)}
+                    title="Filtrar por Detalle"
+                  >
+                    <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)', textAlign: 'left' }}>
+                      DETALLE
                     </option>
-                  ))}
-                </select>
+                    {availableDetalles.map(d => (
+                      <option key={d} value={d} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)', textAlign: 'left' }}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: '3px',
+                      pointerEvents: 'none',
+                      fontSize: '9px',
+                      color: filterDetalle ? 'var(--am)' : 'var(--mu)',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    ▼
+                  </span>
+                </div>
+
                 {filterDetalle && (
                   <button
                     type="button"
@@ -354,8 +420,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                       border: 'none',
                       color: '#ef4444',
                       cursor: 'pointer',
-                      padding: '2px 4px',
-                      display: 'flex',
+                      padding: '2px',
+                      display: 'inline-flex',
                       alignItems: 'center'
                     }}
                     title="Quitar filtro de Detalle"
@@ -369,9 +435,9 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                 )}
               </div>
             </th>
-            <th>DESCRIPCIÓN</th>
-            <th>METRADO OT</th>
-            <th>UNID</th>
+            <th style={{ textAlign: 'center' }}>DESCRIPCIÓN</th>
+            <th style={{ textAlign: 'center' }}>METRADO OT</th>
+            <th style={{ textAlign: 'center' }}>UNID</th>
           </tr>
         </thead>
         <tbody>

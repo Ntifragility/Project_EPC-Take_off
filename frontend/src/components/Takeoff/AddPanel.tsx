@@ -77,7 +77,7 @@ export const AddPanel: React.FC = () => {
     }
 
     const count = r.subitems.length;
-    return count === 1 ? '1 ítem se agregará' : `${count} ítems se agregarán`;
+    return count === 1 ? '1 ítem' : `${count} ítems`;
   };
 
   const handleApplyTrigger = (ruleId: string) => {
@@ -341,7 +341,7 @@ export const AddPanel: React.FC = () => {
               id="global-rev"
               type="text"
               value={customRev}
-              style={{ width: '40px', textTransform: 'uppercase' }}
+              style={{ width: '80px', textTransform: 'uppercase' }}
               onChange={e => setCustomRev(e.target.value.toUpperCase())}
               placeholder="0"
             />
@@ -399,7 +399,7 @@ export const AddPanel: React.FC = () => {
 
         {/* Dynamic Inputs according to Mode */}
         {addMode === 'rule' ? (
-          <div className="field" style={{ flex: 1 }} ref={dropdownRef}>
+          <div className="field" style={{ flex: 1.5 }} ref={dropdownRef}>
             <div className="field-label">BUSCAR REGLA / DISPARADOR</div>
             <div className="ac-wrap">
               <input
@@ -491,7 +491,7 @@ export const AddPanel: React.FC = () => {
         )}
 
         {/* Search / Filter Table Field next to BUSCAR REGLA / DISPARADOR */}
-        <div className="field" style={{ flex: 1, minWidth: '220px' }}>
+        <div className="field" style={{ flex: 0.5, minWidth: '150px' }}>
           <div className="field-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>FILTRAR TABLA</span>
             {undoSnapshot && (

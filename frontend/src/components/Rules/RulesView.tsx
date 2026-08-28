@@ -126,22 +126,8 @@ export const RulesView: React.FC = () => {
                           marginRight: '90px'
                         }}
                       >
-                        {activeArea === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'} ({areaDetalles.length} detalles)
+                        {areaDetalles.length} detalles
                       </span>
-                    </div>
-
-                    <div
-                      style={{
-                        color: 'var(--mu)',
-                        fontSize: '11px',
-                        marginBottom: '8px',
-                        fontFamily: 'var(--mo)',
-                        paddingLeft: '14px'
-                      }}
-                    >
-                      {activeArea === 'AREA HUMEDA'
-                        ? 'Desglose oficial de materiales y accesorios por DETALLE:'
-                        : 'Desglose de materiales y accesorios por DETALLE:'}
                     </div>
 
                     {/* Foldable Row / Banner */}
@@ -456,20 +442,8 @@ export const RulesView: React.FC = () => {
                         marginRight: '90px'
                       }}
                     >
-                      MATRIZ ÁREA HÚMEDA (010/17A - 010/17B)
+                      {activeArea === 'AREA HUMEDA' ? '2 detalles' : '1 detalle'}
                     </span>
-                  </div>
-
-                  <div
-                    style={{
-                      color: 'var(--mu)',
-                      fontSize: '11px',
-                      marginBottom: '8px',
-                      fontFamily: 'var(--mo)',
-                      paddingLeft: '14px'
-                    }}
-                  >
-                    Desglose oficial de materiales y accesorios por DETALLE:
                   </div>
 
                   {/* Foldable Row / Banner */}
@@ -710,20 +684,8 @@ export const RulesView: React.FC = () => {
                         marginRight: '90px'
                       }}
                     >
-                      MATRIZ ÁREA HÚMEDA (010/17C - 010/17D)
+                      {activeArea === 'AREA HUMEDA' ? '2 detalles' : '1 detalle'}
                     </span>
-                  </div>
-
-                  <div
-                    style={{
-                      color: 'var(--mu)',
-                      fontSize: '11px',
-                      marginBottom: '8px',
-                      fontFamily: 'var(--mo)',
-                      paddingLeft: '14px'
-                    }}
-                  >
-                    Desglose oficial de materiales y accesorios por DETALLE:
                   </div>
 
                   {/* Foldable Row / Banner */}
@@ -935,15 +897,6 @@ export const RulesView: React.FC = () => {
           }
 
           // Standard rule card (POZO CON CAJA REGISTRO, POZO SIN CAJA REGISTRO, CABLE DESNUDO 4/0, SOLDADURAS, CANALIZADO, etc.)
-          const getBadgeText = (trigger: string) => {
-            if (trigger.includes('POZO')) return 'ESTRUCTURA DE POZO';
-            if (trigger.includes('SOLDADURA')) return 'CONEXIÓN TERMIOWELD';
-            if (trigger.includes('CABLE')) return 'CONDUCTOR PRINCIPAL';
-            if (trigger.includes('CANALIZADO')) return 'CANALIZACIÓN Y SOPORTES';
-            if (trigger.includes('BARRA')) return 'BARRA DE COBRE Y ACCESORIOS';
-            return 'REGLA ESTÁNDAR';
-          };
-
           return (
             <div className="rule-card" key={r.id}>
               <div className="rule-card-row">
@@ -970,20 +923,8 @@ export const RulesView: React.FC = () => {
                         marginRight: '90px'
                       }}
                     >
-                      {getBadgeText(r.trigger)} ({r.subitems.length} insumos)
+                      {r.subitems.length} {r.subitems.length === 1 ? 'insumo' : 'insumos'}
                     </span>
-                  </div>
-
-                  <div
-                    style={{
-                      color: 'var(--mu)',
-                      fontSize: '11px',
-                      marginBottom: '8px',
-                      fontFamily: 'var(--mo)',
-                      paddingLeft: '14px'
-                    }}
-                  >
-                    Desglose oficial de materiales y accesorios por regla constructiva:
                   </div>
 
                   {/* Foldable Row / Banner */}

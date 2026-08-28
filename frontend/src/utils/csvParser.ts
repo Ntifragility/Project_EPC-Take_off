@@ -233,7 +233,7 @@ export function parseTakeoffCsv(
       };
     });
 
-    itemsResult.push(...batch);
+    let processedBatch: TakeoffItem[] = batch;
 
     if (rule.id === 'r1' || rule.id === 'r2') {
       const rowDetalle = detalleRaw || (
@@ -250,7 +250,7 @@ export function parseTakeoffCsv(
         if (jumpersRaw && !isNaN(parseInt(jumpersRaw, 10)) && parseInt(jumpersRaw, 10) > 0) {
           numJumpers = parseInt(jumpersRaw, 10);
         }
-        itemsResult = applyDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, tuberiaRaw, lengthRawStr, true);
+        processedBatch = applyDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, tuberiaRaw, lengthRawStr, true);
       }
     } else if (rule.id === 'r8' || rule.id === 'r9') {
       const rowDetalle = detalleRaw || (rule.id === 'r8' ? '010/17A' : '010/17C');
@@ -272,11 +272,12 @@ export function parseTakeoffCsv(
             numSoportes = val;
           }
         }
-        itemsResult = applyBarraPotDetalleVariant(itemsResult, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, true);
+        processedBatch = applyBarraPotDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, true);
       }
     }
 
-    addedCount += batch.length;
+    itemsResult.push(...processedBatch);
+    addedCount += processedBatch.length;
   }
 
   return { newItems: assignTagUnicoSuffixes(itemsResult), addedCount, rejectedRows };
