@@ -485,3 +485,59 @@ export function applyBarraPotDetalleVariant(
 }
 
 export const applyBarraDetalleVariant = applyBarraPotDetalleVariant;
+
+/**
+ * Consolidates identical consumable/accessory items (material !== 'P') belonging
+ * to the same package, plano, and tagPlano into a single combined row with total calculations.
+ * Primary items (material === 'P', e.g. cables, conduit) are never merged.
+ */
+export function consolidateAccessories(items: TakeoffItem[]): TakeoffItem[] {
+  if (!items || items.length === 0) return [];
+
+  const result: TakeoffItem[] = [];
+  const consumableIndexMap = new Map<string, number>();
+
+  for (const it of items) {
+    // Primary items (P) or items without tagPlano are never consolidated
+    if (it.material === 'P' || !it.tagPlano) {
+      result.push({ ...it });
+      continue;
+    }
+
+    const normDesc = it.desc.trim().toUpperCase();
+    const key = `${it.pkgId || ''}____${it.plano || ''}____${it.tagPlano || ''}____${normDesc}____${it.material}`;
+
+    if (consumableIndexMap.has(key)) {
+      const targetIdx = consumableIndexMap.get(key)!;
+      const target = result[targetIdx];
+
+      // Sum quantities
+      const q1 = typeof target.qty === 'number' ? target.qty : (parseFloat(String(target.qty)) || 0);
+      const q2 = typeof it.qty === 'number' ? it.qty : (parseFloat(String(it.qty)) || 0);
+      target.qty = parseFloat((q1 + q2).toFixed(4));
+
+      // Sum metradoOt
+      const ot1 = parseFloat(String(target.metradoOt || '0')) || 0;
+      const ot2 = parseFloat(String(it.metradoOt || '0')) || 0;
+      const totalOt = parseFloat((ot1 + ot2).toFixed(4));
+      target.metradoOt = String(totalOt);
+
+      // Standardize unit
+      target.unit = getAbsoluteUnit(target.unit || it.unit, target.desc);
+
+      // Merge notes if distinct
+      if (it.notes && it.notes !== target.notes) {
+        target.notes = target.notes ? `${target.notes}; ${it.notes}` : it.notes;
+      }
+    } else {
+      const cloned: TakeoffItem = {
+        ...it,
+        unit: getAbsoluteUnit(it.unit, it.desc)
+      };
+      consumableIndexMap.set(key, result.length);
+      result.push(cloned);
+    }
+  }
+
+  return result;
+}

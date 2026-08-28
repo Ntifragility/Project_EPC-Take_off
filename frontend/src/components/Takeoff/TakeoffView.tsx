@@ -2,9 +2,18 @@ import React from 'react';
 import { useTakeoff } from '../../context/TakeoffContext';
 import { AddPanel } from './AddPanel';
 import { PackageGroupView } from './PackageGroupView';
+import { consolidateAccessories } from '../../utils/calculations';
 
 export const TakeoffView: React.FC = () => {
-  const { items, packages, searchQuery, filterPlano, filterDetalle } = useTakeoff();
+  const {
+    items,
+    packages,
+    searchQuery,
+    filterPlano,
+    filterDetalle,
+    accessoryViewMode,
+    setAccessoryViewMode
+  } = useTakeoff();
 
   // Filter items by search, plano, and detalle
   const filteredItems = items.filter(it => {
@@ -25,16 +34,21 @@ export const TakeoffView: React.FC = () => {
     return true;
   });
 
-  // Group filtered items by packages
+  // Consolidate accessories dynamically if in JOIN mode (non-destructive)
+  const displayItems = accessoryViewMode === 'join'
+    ? consolidateAccessories(filteredItems)
+    : filteredItems;
+
+  // Group filtered display items by packages
   const groups: { pkg: { id: string; name: string }; items: typeof items }[] = [];
   packages.forEach(pkg => {
-    const pkgItems = filteredItems.filter(it => it.pkgId === pkg.id);
+    const pkgItems = displayItems.filter(it => it.pkgId === pkg.id);
     if (pkgItems.length > 0) {
       groups.push({ pkg, items: pkgItems });
     }
   });
 
-  const unassignedItems = filteredItems.filter(
+  const unassignedItems = displayItems.filter(
     it => !packages.some(p => p.id === it.pkgId)
   );
   if (unassignedItems.length > 0) {
@@ -47,6 +61,58 @@ export const TakeoffView: React.FC = () => {
   return (
     <div>
       <AddPanel />
+
+      {items.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '12px',
+            padding: '7px 14px',
+            background: 'var(--s2)',
+            border: '1px solid var(--b1)',
+            borderRadius: '6px',
+            fontFamily: 'var(--mo, monospace)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--tx)', letterSpacing: '0.5px' }}>
+              CONSUMIBLES:
+            </span>
+            <div className="mode-toggle" style={{ display: 'inline-flex' }}>
+              <button
+                type="button"
+                className={`mode-btn ${accessoryViewMode === 'separated' ? 'active' : ''}`}
+                onClick={() => setAccessoryViewMode('separated')}
+                style={{ fontSize: '11px', padding: '4px 12px', fontWeight: 600 }}
+                title="Mostrar consumibles base y jumpers en filas separadas independientes"
+              >
+                SEPARADOS
+              </button>
+              <button
+                type="button"
+                className={`mode-btn ${accessoryViewMode === 'join' ? 'active' : ''}`}
+                onClick={() => setAccessoryViewMode('join')}
+                style={{ fontSize: '11px', padding: '4px 12px', fontWeight: 600 }}
+                title="Consolidar y sumar totales de consumibles idénticos por TAG (Base + Jumpers)"
+              >
+                UNIDOS (TOTALES)
+              </button>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
+            {accessoryViewMode === 'join' ? (
+              <span style={{ color: 'var(--am, #eab308)', fontWeight: 600 }}>
+                ● Modo Unido: Accesorios y jumpers consolidados en totales por TAG
+              </span>
+            ) : (
+              <span>● Modo Separado: Accesorios desglosados en líneas independientes</span>
+            )}
+          </div>
+        </div>
+      )}
 
       <div id="table-container">
         {items.length === 0 ? (

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTakeoff } from '../context/TakeoffContext';
 import { exportTakeoffExcel } from '../utils/excelExporter';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { consolidateAccessories } from '../utils/calculations';
 
 interface HeaderProps {
   onOpenSummaryModal: () => void;
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
     items,
     packages,
     isSyncing,
+    accessoryViewMode,
     setSection,
     setTab,
     toggleTheme,
@@ -25,7 +27,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
   } = useTakeoff();
 
   const handleExport = () => {
-    exportTakeoffExcel(items, packages, section);
+    const exportItems = accessoryViewMode === 'join' ? consolidateAccessories(items) : items;
+    exportTakeoffExcel(exportItems, packages, section);
   };
 
   const hasSupabase = isSupabaseConfigured();

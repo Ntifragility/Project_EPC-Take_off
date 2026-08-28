@@ -2,6 +2,7 @@ export type MaterialType = 'P' | 'C';
 export type SectionType = 'pat' | 'canalizado';
 export type TabType = 'takeoff' | 'rules' | 'packages';
 export type AddModeType = 'rule' | 'custom';
+export type AccessoryViewMode = 'separated' | 'join';
 
 export interface TakeoffItem {
   id: string;             // Client-side unique ID

@@ -7,7 +7,8 @@ import {
   TabType,
   AddModeType,
   MaterialType,
-  PartidaRecord
+  PartidaRecord,
+  AccessoryViewMode
 } from '../types/takeoff';
 import {
   loadStoredItems,
@@ -36,7 +37,8 @@ import {
   getSequentialTag,
   applyDetalleVariant,
   applyBarraPotDetalleVariant,
-  assignTagUnicoSuffixes
+  assignTagUnicoSuffixes,
+  consolidateAccessories
 } from '../utils/calculations';
 import { getCalculatedVariantItems, updateDynamicVariants } from '../data/detalleVariants';
 import { parseTakeoffCsv } from '../utils/csvParser';
@@ -70,6 +72,7 @@ interface TakeoffContextType {
   isSyncing: boolean;
   isPartidasModalOpen: boolean;
   editingItemId: string | null;
+  accessoryViewMode: AccessoryViewMode;
   toast: ToastState | null;
 
   // Actions
@@ -79,6 +82,8 @@ interface TakeoffContextType {
   setActiveArea: (area: 'AREA SECA' | 'AREA HUMEDA') => void;
   setSelPkg: (pkgId: string) => void;
   setAddMode: (mode: AddModeType) => void;
+  setAccessoryViewMode: (mode: AccessoryViewMode) => void;
+  toggleAccessoryViewMode: () => void;
   setSearchQuery: (query: string) => void;
   setFilterPlano: (plano: string) => void;
   setFilterDetalle: (detalle: string) => void;
@@ -171,6 +176,19 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [undoSnapshot, setUndoSnapshot] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [accessoryViewMode, setAccessoryViewModeState] = useState<AccessoryViewMode>(() => {
+    return (localStorage.getItem('epc-accessory-view-mode') as AccessoryViewMode) || 'separated';
+  });
+
+  const setAccessoryViewMode = (mode: AccessoryViewMode) => {
+    setAccessoryViewModeState(mode);
+    localStorage.setItem('epc-accessory-view-mode', mode);
+  };
+
+  const toggleAccessoryViewMode = () => {
+    setAccessoryViewMode(accessoryViewMode === 'separated' ? 'join' : 'separated');
+  };
+
   const [toast, setToast] = useState<ToastState | null>(null);
 
   // Sync theme to document body
@@ -863,6 +881,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         isSyncing,
         isPartidasModalOpen,
         editingItemId,
+        accessoryViewMode,
         toast,
 
         setSection,
@@ -871,6 +890,8 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         setActiveArea,
         setSelPkg,
         setAddMode,
+        setAccessoryViewMode,
+        toggleAccessoryViewMode,
         setSearchQuery,
         setFilterPlano,
         setFilterDetalle,
