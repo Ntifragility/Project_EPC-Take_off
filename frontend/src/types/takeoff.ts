@@ -35,6 +35,8 @@ export interface TakeoffRule {
   id: string;
   trigger: string;
   subitems: RuleSubitem[];
+  detalle?: string;
+  tagPrefix?: string;
 }
 
 export interface PackageGroup {

@@ -27,7 +27,7 @@ function getRuleNameByTag(tag: string): string | null {
   const tagUp = tag.trim().toUpperCase();
   if (tagUp.startsWith('PS')) return 'POZO SIN CAJA REGISTRO';
   if (tagUp.startsWith('PC')) return 'POZO CON CAJA REGISTRO';
-  if (tagUp.startsWith('TT')) return 'SOLDADURA T 4/0 - 2/0';
+  if (tagUp.startsWith('TT')) return 'SOLDADURA T 4/0 -2/0';
   if (tagUp.startsWith('T')) return 'SOLDADURA T 4/0';
   if (tagUp.startsWith('X')) return 'SOLDADURA X 4/0';
   if (tagUp.startsWith('C')) return 'CABLE DESNUDO 4/0 AWG';
@@ -209,6 +209,8 @@ export function parseTakeoffCsv(
       }
 
       const rowDetalle = detalleRaw || (
+        tagRaw.startsWith('TT') ? '008/4T2' :
+        tagRaw.startsWith('T') ? '008/4T1' :
         tagRaw.startsWith('C') ? '167/G1' :
         (tagRaw.startsWith('M') ? (activeArea === 'AREA HUMEDA' ? 'ND' : '151') :
         (tagRaw.startsWith('BP') ? '166' :

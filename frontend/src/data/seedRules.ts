@@ -4,6 +4,8 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r1',
     trigger: 'CABLE DESNUDO 4/0 AWG',
+    detalle: '167/G1',
+    tagPrefix: 'C',
     subitems: [
       { id: 's1', desc: 'CABLE DESNUDO 4/0 AWG', qty: 1, unit: 'm' },
       { id: 's2', desc: 'CINTA AMARILLA', qty: 1, unit: 'm' },
@@ -13,6 +15,8 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r2',
     trigger: 'CABLE DESNUDO 2/0 AWG',
+    detalle: '151',
+    tagPrefix: 'M',
     subitems: [
       { id: 's4', desc: 'CABLE DESNUDO 2/0 AWG', qty: 1, unit: 'm' },
       { id: 's5', desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 1, unit: 'm' }
@@ -21,6 +25,7 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r3',
     trigger: 'POZO CON CAJA REGISTRO',
+    tagPrefix: 'PC',
     subitems: [
       { id: 's8', desc: 'POZO CON CAJA REGISTRO', qty: 1, unit: 'und' },
       { id: 's9', desc: 'CEMENTO GEM (11.3 kg x bls)', qty: 1, unit: 'kg' },
@@ -33,6 +38,7 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r4',
     trigger: 'POZO SIN CAJA REGISTRO',
+    tagPrefix: 'PS',
     subitems: [
       { id: 's13b', desc: 'POZO SIN CAJA REGISTRO', qty: 1, unit: 'und' },
       { id: 's14', desc: 'CEMENTO GEM (11.3 kg x bls)', qty: 1, unit: 'kg' },
@@ -46,6 +52,8 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r5',
     trigger: 'SOLDADURA T 4/0',
+    detalle: '008/4T1',
+    tagPrefix: 'T',
     subitems: [
       { id: 's20', desc: 'SOLDADURA T 4/0', qty: 1, unit: 'und' },
       { id: 's21', desc: 'CARGA 150', qty: 1, unit: 'und' },
@@ -54,9 +62,11 @@ export const SEED_RULES: TakeoffRule[] = [
   },
   {
     id: 'r6',
-    trigger: 'SOLDADURA T 4/0 - 2/0',
+    trigger: 'SOLDADURA T 4/0 -2/0',
+    detalle: '008/4T2',
+    tagPrefix: 'TT',
     subitems: [
-      { id: 's23', desc: 'SOLDADURA T 4/0  - 2/0', qty: 1, unit: 'und' },
+      { id: 's23', desc: 'SOLDADURA T 4/0 -2/0', qty: 1, unit: 'und' },
       { id: 's24', desc: 'CARGA 90', qty: 1, unit: 'und' },
       { id: 's25', desc: 'MOLDE TAC2Q2G', qty: 0.0167, unit: 'und' },
     ]
@@ -64,6 +74,7 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r7',
     trigger: 'SOLDADURA X 4/0',
+    tagPrefix: 'X',
     subitems: [
       { id: 's26', desc: 'SOLDADURA X 4/0', qty: 1, unit: 'und' },
       { id: 's27', desc: 'CARGA 250', qty: 1, unit: 'und' },
@@ -73,6 +84,8 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r8',
     trigger: 'BARRA POT',
+    detalle: '166',
+    tagPrefix: 'BP',
     subitems: [
       { id: 'sbp', desc: 'BARRA POT', qty: 1, unit: 'und' }
     ]
@@ -80,12 +93,79 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r9',
     trigger: 'BARRA INST',
+    detalle: '166C',
+    tagPrefix: 'BI',
     subitems: [
       { id: 'sbi1', desc: 'BARRA INST', qty: 1, unit: 'und' },
       { id: 'sbi2', desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und' }
     ]
   }
 ];
+
+export function getDefaultTagPrefixByRule(trigger: string): string {
+  const up = (trigger || '').toUpperCase().trim();
+  if (
+    up.includes('SOLDADURA T 4/0 -2/0') ||
+    up.includes('SOLDADURA T 4/0-2/0') ||
+    up.includes('SOLDADURA T 4/0  - 2/0') ||
+    up.includes('SOLDADURA T 4/0 - 2/0')
+  ) {
+    return 'TT';
+  }
+  if (up === 'SOLDADURA T 4/0' || up.startsWith('SOLDADURA T 4/0')) {
+    return 'T';
+  }
+  if (up.includes('SOLDADURA X')) {
+    return 'X';
+  }
+  if (up.includes('POZO CON CAJA')) {
+    return 'PC';
+  }
+  if (up.includes('POZO SIN CAJA') || up.includes('POZO')) {
+    return 'PS';
+  }
+  if (up.includes('CABLE DESNUDO 4/0')) {
+    return 'C';
+  }
+  if (up.includes('CABLE DESNUDO 2/0')) {
+    return 'M';
+  }
+  if (up.includes('BARRA POT')) {
+    return 'BP';
+  }
+  if (up.includes('BARRA INST')) {
+    return 'BI';
+  }
+  return '';
+}
+
+export function getDefaultDetalleByRule(trigger: string, activeArea = 'AREA SECA'): string {
+  const up = (trigger || '').toUpperCase().trim();
+  if (
+    up.includes('SOLDADURA T 4/0 -2/0') ||
+    up.includes('SOLDADURA T 4/0-2/0') ||
+    up.includes('SOLDADURA T 4/0  - 2/0') ||
+    up.includes('SOLDADURA T 4/0 - 2/0')
+  ) {
+    return '008/4T2';
+  }
+  if (up === 'SOLDADURA T 4/0' || up.startsWith('SOLDADURA T 4/0')) {
+    return '008/4T1';
+  }
+  if (up.includes('CABLE DESNUDO 4/0')) {
+    return '167/G1';
+  }
+  if (up.includes('CABLE DESNUDO 2/0')) {
+    return activeArea === 'AREA HUMEDA' ? 'ND' : '151';
+  }
+  if (up.includes('BARRA POT')) {
+    return activeArea === 'AREA HUMEDA' ? '010/17A' : '166';
+  }
+  if (up.includes('BARRA INST')) {
+    return activeArea === 'AREA HUMEDA' ? '010/17C' : '166C';
+  }
+  return '';
+}
 
 export const SEED_CANALIZADO_RULES: TakeoffRule[] = [
   {

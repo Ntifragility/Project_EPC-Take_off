@@ -5,6 +5,7 @@ import { TakeoffRule } from '../../types/takeoff';
 import { hasSoporteItems, hasJumperItems, getDetallesForArea } from '../../data/detalleVariants';
 import { convertSpreadsheetToCsvText } from '../../utils/csvParser';
 import { ExcelGuideModal } from '../Modals/ExcelGuideModal';
+import { getDefaultTagPrefixByRule, getDefaultDetalleByRule } from '../../data/seedRules';
 
 export const AddPanel: React.FC = () => {
   const {
@@ -104,7 +105,12 @@ export const AddPanel: React.FC = () => {
       if (isNaN(numInstances) || numInstances < 1) return;
     }
 
+    const autoPrefix = rule.tagPrefix || getDefaultTagPrefixByRule(rule.trigger);
+    const autoDetalle = rule.detalle || getDefaultDetalleByRule(rule.trigger, activeArea);
+
     let baseTagPlano = '';
+    const suggestedTag = autoPrefix ? `${autoPrefix}01` : 'M04';
+
     if (
       numInstances > 1 &&
       (upTrigger.includes('SOLDADURA') ||
@@ -112,26 +118,23 @@ export const AddPanel: React.FC = () => {
         isCableRule ||
         section === 'canalizado')
     ) {
-      const promptText = `Ingresa el TAG EN PLANO BASE (ej: M04) para ${numInstances} instancias de:\n"${rule.trigger}"\n\nSe crearán secuencialmente: ${getSequentialTagsExample(
-        'M04',
+      const promptText = `Ingresa el TAG EN PLANO BASE (ej: ${suggestedTag}) para ${numInstances} instancias de:\n"${rule.trigger}"\n\nSe crearán secuencialmente: ${getSequentialTagsExample(
+        suggestedTag,
         numInstances
       )}`;
-      const tagInput = window.prompt(promptText, '');
+      const tagInput = window.prompt(promptText, suggestedTag);
       if (tagInput === null) return;
       baseTagPlano = tagInput.trim();
     } else {
       const tagInput = window.prompt(
-        `Ingresa el TAG EN PLANO para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`
+        `Ingresa el TAG EN PLANO para la regla seleccionada: ${rule.trigger}\n(Prefijo sugerido: ${autoPrefix || '—'})`,
+        suggestedTag
       );
       if (tagInput === null) return;
       baseTagPlano = tagInput.trim();
     }
 
-    let detalle = '';
-    const tagForDetalle = (baseTagPlano || '').trim().toUpperCase();
-    const startsWithC = tagForDetalle.startsWith('C');
-    const defaultDet = startsWithC ? '167/G1' : '';
-
+    let detalle = autoDetalle;
     let numSoportes = 1;
     let numJumpers = 1;
     let jumperPrompted = false;
@@ -155,14 +158,13 @@ export const AddPanel: React.FC = () => {
         numSoportes = parseInt(sopInput, 10);
         if (isNaN(numSoportes) || numSoportes < 1) numSoportes = 1;
       } else {
-        const detInput = window.prompt(`Ingresa el DETALLE para BARRA POT (ÁREA SECA):`, '166');
-        if (detInput === null) return;
-        detalle = detInput.trim();
+        detalle = '166';
       }
     } else if (upTrigger.includes('BARRA INST')) {
       if (activeArea === 'AREA HUMEDA') {
         const detInput = window.prompt(
           `SELECCIONAR DETALLE PARA BARRA INST (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17C (Barra CON AISLADORES + 2 Soportes)\n- 010/17D (Barra CON AISLADORES + 4 Pernos + 2 Soportes)`,
+          '010/17C'
         );
         if (detInput === null) return;
         detalle = detInput.trim().toUpperCase() || '010/17C';
@@ -175,9 +177,7 @@ export const AddPanel: React.FC = () => {
         numSoportes = parseInt(sopInput, 10);
         if (isNaN(numSoportes) || numSoportes < 1) numSoportes = 1;
       } else {
-        const detInput = window.prompt(`Ingresa el DETALLE para BARRA INST (ÁREA SECA):`, '166C');
-        if (detInput === null) return;
-        detalle = detInput.trim();
+        detalle = '166C';
       }
     } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
       if (activeArea === 'AREA HUMEDA') {
@@ -212,7 +212,9 @@ export const AddPanel: React.FC = () => {
       } else {
         detalle = '151'; // Standard DETALLE for Area Seca
       }
-    } else {
+    } else if (!detalle) {
+      const tagForDetalle = (baseTagPlano || '').trim().toUpperCase();
+      const defaultDet = tagForDetalle.startsWith('C') ? '167/G1' : '';
       const detInput = window.prompt(
         `Ingresa el DETALLE para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`,
         defaultDet

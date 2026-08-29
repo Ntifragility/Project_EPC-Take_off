@@ -26,7 +26,38 @@ export function saveStoredItems(section: SectionType, items: TakeoffItem[]): voi
 export function loadStoredRules(section: SectionType): TakeoffRule[] {
   try {
     const raw = localStorage.getItem(getStorageKey('rules', section));
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: TakeoffRule[] = JSON.parse(raw);
+      return parsed.map(r => {
+        const up = r.trigger.toUpperCase().trim();
+        if (
+          up === 'SOLDADURA T 4/0 - 2/0' ||
+          up === 'SOLDADURA T 4/0  - 2/0' ||
+          up === 'SOLDADURA T 4/0-2/0' ||
+          up === 'SOLDADURA T 4/0 -2/0'
+        ) {
+          return {
+            ...r,
+            trigger: 'SOLDADURA T 4/0 -2/0',
+            detalle: '008/4T2',
+            tagPrefix: 'TT',
+            subitems: r.subitems.map(s =>
+              s.desc.toUpperCase().includes('SOLDADURA T 4/0')
+                ? { ...s, desc: 'SOLDADURA T 4/0 -2/0' }
+                : s
+            )
+          };
+        }
+        if (up === 'SOLDADURA T 4/0') {
+          return {
+            ...r,
+            detalle: '008/4T1',
+            tagPrefix: 'T'
+          };
+        }
+        return r;
+      });
+    }
   } catch (err) {
     console.error('Error loading rules from localStorage:', err);
   }

@@ -43,6 +43,7 @@ import {
 import { getCalculatedVariantItems, updateDynamicVariants } from '../data/detalleVariants';
 import { parseTakeoffCsv } from '../utils/csvParser';
 import { correlateItemsWithPartidas, findMatchingPartidaItem } from '../utils/partidaMatcher';
+import { getDefaultTagPrefixByRule, getDefaultDetalleByRule } from '../data/seedRules';
 import * as XLSX from 'xlsx';
 
 interface ToastState {
@@ -249,9 +250,37 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       // 1. Fetch Takeoff Rules
       const { data: cloudRules, error: rulesErr } = await fetchTakeoffRulesFromSupabase(section);
       if (!rulesErr && cloudRules) {
-        setRules(cloudRules);
-        saveStoredRules(section, cloudRules); // Sync to local storage as fallback
-        console.log(`[Supabase] Cargadas ${cloudRules.length} reglas para ${section}`);
+        const enrichedRules = cloudRules.map(r => {
+          const up = r.trigger.toUpperCase().trim();
+          let trigger = r.trigger;
+          let subitems = r.subitems;
+
+          if (
+            up === 'SOLDADURA T 4/0 - 2/0' ||
+            up === 'SOLDADURA T 4/0  - 2/0' ||
+            up === 'SOLDADURA T 4/0-2/0' ||
+            up === 'SOLDADURA T 4/0 -2/0'
+          ) {
+            trigger = 'SOLDADURA T 4/0 -2/0';
+            subitems = r.subitems.map(s =>
+              s.desc.toUpperCase().includes('SOLDADURA T 4/0')
+                ? { ...s, desc: 'SOLDADURA T 4/0 -2/0' }
+                : s
+            );
+          }
+
+          return {
+            ...r,
+            trigger,
+            subitems,
+            detalle: r.detalle || getDefaultDetalleByRule(trigger, activeArea),
+            tagPrefix: r.tagPrefix || getDefaultTagPrefixByRule(trigger)
+          };
+        });
+
+        setRules(enrichedRules);
+        saveStoredRules(section, enrichedRules); // Sync to local storage as fallback
+        console.log(`[Supabase] Cargadas ${enrichedRules.length} reglas para ${section}`);
       } else if (rulesErr) {
         console.warn('[Supabase] Error al cargar reglas, usando fallback local:', rulesErr);
       }
