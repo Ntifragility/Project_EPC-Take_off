@@ -141,6 +141,68 @@ export const AddPanel: React.FC = () => {
 
     if (section === 'canalizado') {
       detalle = rule.trigger.replace(/^DETALLE\s+/i, '').trim();
+    } else if (upTrigger.includes('SOLDADURA T 4/0 -2/0') || upTrigger.includes('SOLDADURA T 4/0-2/0')) {
+      if (activeArea === 'AREA HUMEDA') {
+        const detInput = window.prompt(
+          `SELECCIONAR DETALLE PARA SOLDADURA T 4/0 -2/0 (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 008/4T2 (Estándar)\n\nIngresa el código de DETALLE:`,
+          '008/4T2'
+        );
+        if (detInput === null) return;
+        detalle = detInput.trim().toUpperCase() || '008/4T2';
+      } else {
+        detalle = '167/X2';
+      }
+    } else if (upTrigger === 'SOLDADURA T 4/0' || upTrigger.startsWith('SOLDADURA T 4/0')) {
+      if (activeArea === 'AREA HUMEDA') {
+        const detInput = window.prompt(
+          `SELECCIONAR DETALLE PARA SOLDADURA T 4/0 (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 008/4T1 (Estándar)\n\nIngresa el código de DETALLE:`,
+          '008/4T1'
+        );
+        if (detInput === null) return;
+        detalle = detInput.trim().toUpperCase() || '008/4T1';
+      } else {
+        detalle = '167/X1';
+      }
+    } else if (upTrigger.includes('CABLE DESNUDO 4/0')) {
+      if (activeArea === 'AREA HUMEDA') {
+        const detInput = window.prompt(
+          `SELECCIONAR DETALLE PARA CABLE DESNUDO 4/0 AWG (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 008/3A (Estándar)\n\nIngresa el código de DETALLE:`,
+          '008/3A'
+        );
+        if (detInput === null) return;
+        detalle = detInput.trim().toUpperCase() || '008/3A';
+      } else {
+        detalle = '167/G1';
+      }
+    } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
+      const validDetalles = getDetallesForArea(activeArea).map(([k]) => k);
+      const detInput = window.prompt(
+        `SELECCIONAR DETALLE PARA CABLE DESNUDO 2/0 AWG (${activeArea}):\n\nOpciones disponibles:\n${validDetalles.join(', ')}\n\nIngresa el código de DETALLE:`,
+        'ND'
+      );
+      if (detInput === null) return;
+      detalle = detInput.trim().toUpperCase() || 'ND';
+
+      if (hasSoporteItems(detalle, activeArea)) {
+        const sopInput = window.prompt(
+          `¿Cuántos soportes se requieren por mecha para el detalle ${detalle}?\n(Multiplica los materiales "u / soporte" y "m/ soporte")`,
+          '1'
+        );
+        if (sopInput === null) return;
+        numSoportes = parseInt(sopInput, 10);
+        if (isNaN(numSoportes) || numSoportes < 1) numSoportes = 1;
+      }
+
+      if (hasJumperItems(detalle, activeArea)) {
+        const jmpInput = window.prompt(
+          `¿Cuántos jumpers se requieren por mecha para el detalle ${detalle}?\n(Multiplica los materiales con Jumper)`,
+          '1'
+        );
+        if (jmpInput === null) return;
+        numJumpers = parseInt(jmpInput, 10);
+        if (isNaN(numJumpers) || numJumpers < 1) numJumpers = 1;
+        jumperPrompted = true;
+      }
     } else if (upTrigger.includes('BARRA POT')) {
       if (activeArea === 'AREA HUMEDA') {
         const detInput = window.prompt(
@@ -158,7 +220,7 @@ export const AddPanel: React.FC = () => {
         numSoportes = parseInt(sopInput, 10);
         if (isNaN(numSoportes) || numSoportes < 1) numSoportes = 1;
       } else {
-        detalle = '166';
+        detalle = '166A';
       }
     } else if (upTrigger.includes('BARRA INST')) {
       if (activeArea === 'AREA HUMEDA') {
@@ -179,45 +241,10 @@ export const AddPanel: React.FC = () => {
       } else {
         detalle = '166C';
       }
-    } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
-      if (activeArea === 'AREA HUMEDA') {
-        const validDetalles = getDetallesForArea('AREA HUMEDA').map(([k]) => k);
-        const detInput = window.prompt(
-          `SELECCIONAR DETALLE PARA CABLE DESNUDO 2/0 AWG (ÁREA HÚMEDA):\n\nOpciones disponibles:\n${validDetalles.join(', ')}\n\nIngresa el código de DETALLE:`,
-          'ND'
-        );
-        if (detInput === null) return;
-        detalle = detInput.trim().toUpperCase() || 'ND';
-
-        if (hasSoporteItems(detalle, 'AREA HUMEDA')) {
-          const sopInput = window.prompt(
-            `¿Cuántos soportes se requieren por mecha para el detalle ${detalle}?\n(Multiplica los materiales "u / soporte" y "m/ soporte")`,
-            '1'
-          );
-          if (sopInput === null) return;
-          numSoportes = parseInt(sopInput, 10);
-          if (isNaN(numSoportes) || numSoportes < 1) numSoportes = 1;
-        }
-
-        if (hasJumperItems(detalle, 'AREA HUMEDA')) {
-          const jmpInput = window.prompt(
-            `¿Cuántos jumpers se requieren por mecha para el detalle ${detalle}?\n(Multiplica los materiales con Jumper)`,
-            '1'
-          );
-          if (jmpInput === null) return;
-          numJumpers = parseInt(jmpInput, 10);
-          if (isNaN(numJumpers) || numJumpers < 1) numJumpers = 1;
-          jumperPrompted = true;
-        }
-      } else {
-        detalle = '151'; // Standard DETALLE for Area Seca
-      }
     } else if (!detalle) {
-      const tagForDetalle = (baseTagPlano || '').trim().toUpperCase();
-      const defaultDet = tagForDetalle.startsWith('C') ? '167/G1' : '';
       const detInput = window.prompt(
         `Ingresa el DETALLE para la regla seleccionada: ${rule.trigger}\n(Dejar en blanco si no aplica)`,
-        defaultDet
+        ''
       );
       if (detInput === null) return;
       detalle = detInput.trim();

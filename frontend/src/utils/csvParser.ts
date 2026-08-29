@@ -209,12 +209,12 @@ export function parseTakeoffCsv(
       }
 
       const rowDetalle = detalleRaw || (
-        tagRaw.startsWith('TT') ? '008/4T2' :
-        tagRaw.startsWith('T') ? '008/4T1' :
-        tagRaw.startsWith('C') ? '167/G1' :
-        (tagRaw.startsWith('M') ? (activeArea === 'AREA HUMEDA' ? 'ND' : '151') :
-        (tagRaw.startsWith('BP') ? '166' :
-        (tagRaw.startsWith('BI') ? '166C' : '')))
+        tagRaw.startsWith('TT') ? (activeArea === 'AREA HUMEDA' ? '008/4T2' : '167/X2') :
+        tagRaw.startsWith('T') ? (activeArea === 'AREA HUMEDA' ? '008/4T1' : '167/X1') :
+        tagRaw.startsWith('C') ? (activeArea === 'AREA HUMEDA' ? '008/3A' : '167/G1') :
+        (tagRaw.startsWith('M') ? 'ND' :
+        (tagRaw.startsWith('BP') ? (activeArea === 'AREA HUMEDA' ? '010/17A' : '166A') :
+        (tagRaw.startsWith('BI') ? (activeArea === 'AREA HUMEDA' ? '010/17C' : '166C') : '')))
       );
 
       return {

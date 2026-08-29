@@ -52,7 +52,7 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r5',
     trigger: 'SOLDADURA T 4/0',
-    detalle: '008/4T1',
+    detalle: '167/X1',
     tagPrefix: 'T',
     subitems: [
       { id: 's20', desc: 'SOLDADURA T 4/0', qty: 1, unit: 'und' },
@@ -63,7 +63,7 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r6',
     trigger: 'SOLDADURA T 4/0 -2/0',
-    detalle: '008/4T2',
+    detalle: '167/X2',
     tagPrefix: 'TT',
     subitems: [
       { id: 's23', desc: 'SOLDADURA T 4/0 -2/0', qty: 1, unit: 'und' },
@@ -84,7 +84,7 @@ export const SEED_RULES: TakeoffRule[] = [
   {
     id: 'r8',
     trigger: 'BARRA POT',
-    detalle: '166',
+    detalle: '166A',
     tagPrefix: 'BP',
     subitems: [
       { id: 'sbp', desc: 'BARRA POT', qty: 1, unit: 'und' }
@@ -141,28 +141,30 @@ export function getDefaultTagPrefixByRule(trigger: string): string {
 
 export function getDefaultDetalleByRule(trigger: string, activeArea = 'AREA SECA'): string {
   const up = (trigger || '').toUpperCase().trim();
+  const isHumeda = activeArea === 'AREA HUMEDA';
+
   if (
     up.includes('SOLDADURA T 4/0 -2/0') ||
     up.includes('SOLDADURA T 4/0-2/0') ||
     up.includes('SOLDADURA T 4/0  - 2/0') ||
     up.includes('SOLDADURA T 4/0 - 2/0')
   ) {
-    return '008/4T2';
+    return isHumeda ? '008/4T2' : '167/X2';
   }
   if (up === 'SOLDADURA T 4/0' || up.startsWith('SOLDADURA T 4/0')) {
-    return '008/4T1';
+    return isHumeda ? '008/4T1' : '167/X1';
   }
   if (up.includes('CABLE DESNUDO 4/0')) {
-    return '167/G1';
+    return isHumeda ? '008/3A' : '167/G1';
   }
   if (up.includes('CABLE DESNUDO 2/0')) {
-    return activeArea === 'AREA HUMEDA' ? 'ND' : '151';
+    return 'ND';
   }
   if (up.includes('BARRA POT')) {
-    return activeArea === 'AREA HUMEDA' ? '010/17A' : '166';
+    return isHumeda ? '010/17A' : '166A';
   }
   if (up.includes('BARRA INST')) {
-    return activeArea === 'AREA HUMEDA' ? '010/17C' : '166C';
+    return isHumeda ? '010/17C' : '166C';
   }
   return '';
 }
