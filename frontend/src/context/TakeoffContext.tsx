@@ -747,17 +747,33 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       showToast('No hay ítems en la pantalla para guardar', 'warn');
       return;
     }
-    if (!window.confirm(`¿Deseas enviar (añadir) los ${items.length} ítems a la base de datos Supabase?`)) {
+
+    const isJoined = accessoryViewMode === 'join';
+    const itemsToSync = isJoined ? consolidateAccessories(items) : items;
+    const modeLabel = isJoined ? 'UNIDOS (TOTALES)' : 'SEPARADOS (DETALLADO)';
+
+    const confirmMessage = isJoined
+      ? `⚠️ ATENCIÓN - GUARDAR EN BASE DE DATOS (MODO UNIDO):\n\n` +
+        `Vas a depositar ${itemsToSync.length} filas en Supabase en modo UNIDOS (Totales Consolidados).\n\n` +
+        `• Los accesorios base y jumpers de cada TAG se guardarán sumados en una sola fila combinada.\n` +
+        `• Asegúrate de que este es el formato deseado para el registro en BD.\n\n` +
+        `¿Deseas proceder y enviar los ${itemsToSync.length} ítems consolidados a la base de datos?`
+      : `ℹ️ CONFIRMAR ENVÍO A BASE DE DATOS (MODO SEPARADO):\n\n` +
+        `Vas a depositar ${itemsToSync.length} filas en Supabase en modo SEPARADOS (Detallado).\n\n` +
+        `• Los accesorios base y jumpers se guardarán en líneas independientes.\n\n` +
+        `¿Deseas proceder y enviar los ${itemsToSync.length} ítems a la base de datos?`;
+
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
     setIsSyncing(true);
 
-    const result = await syncItemsToSupabase(items, packages);
+    const result = await syncItemsToSupabase(itemsToSync, packages);
     setIsSyncing(false);
 
     if (result.success) {
-      showToast(`¡${result.count} ítems guardados en Supabase con éxito!`, 'success');
+      showToast(`¡${result.count} ítems (${modeLabel}) guardados en Supabase con éxito!`, 'success');
     } else {
       showToast(result.error || 'Error al guardar en el servidor', 'warn');
     }
