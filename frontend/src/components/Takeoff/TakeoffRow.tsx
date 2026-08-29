@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TakeoffItem, MaterialType } from '../../types/takeoff';
 import { useTakeoff } from '../../context/TakeoffContext';
 import { isCountable, generateTagUnico } from '../../utils/calculations';
@@ -19,7 +19,8 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   onStartEdit,
   onCancelEdit
 }) => {
-  const { updateItem, deleteItem, section, activeArea } = useTakeoff();
+  const { updateItem, deleteItem, section, activeArea, highlightedTag } = useTakeoff();
+  const rowRef = useRef<HTMLTableRowElement>(null);
 
   // Edit form state
   const [material, setMaterial] = useState<MaterialType>(item.material || 'P');
@@ -32,6 +33,15 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   const [metradoOt, setMetradoOt] = useState(item.metradoOt || '');
   const [unit, setUnit] = useState(item.unit || '');
   const [notes, setNotes] = useState(item.notes || '');
+
+  // Auto-scroll anchor into view when this tag is highlighted
+  useEffect(() => {
+    if (highlightedTag && item.tagPlano === highlightedTag) {
+      if (item.material === 'P' || item.desc.toUpperCase().includes('CABLE')) {
+        rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [highlightedTag, item.tagPlano, item.material, item.desc]);
 
   // Reset form when item changes or enters edit mode
   useEffect(() => {
@@ -78,10 +88,11 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   };
 
   const countable = isCountable(item.desc, section);
+  const isHighlighted = Boolean(highlightedTag && item.tagPlano === highlightedTag);
 
   if (isEditing) {
     return (
-      <tr className="tr-edit">
+      <tr ref={rowRef} className={`tr-edit ${isHighlighted ? 'tr-amber-pulse' : ''}`}>
         <td className="td-u" style={{ color: 'var(--am)', fontWeight: 700 }}>
           {item.partida || 'NA'}
         </td>
@@ -252,7 +263,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   }
 
   return (
-    <tr className="tr-row">
+    <tr ref={rowRef} className={`tr-row ${isHighlighted ? 'tr-amber-pulse' : ''}`}>
       <td className="td-u" style={{ color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
         {item.partida || 'NA'}
       </td>

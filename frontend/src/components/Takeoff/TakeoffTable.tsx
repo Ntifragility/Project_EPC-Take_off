@@ -18,16 +18,30 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     setSearchQuery,
     clearFilters,
     editingItemId,
-    setEditingItemId
+    setEditingItemId,
+    highlightedTag
   } = useTakeoff();
 
   const [pageSize, setPageSize] = useState<number>(100);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
-  // Reset page to 1 whenever total items, filters, or page size changes
+  // Auto-navigate to page containing highlightedTag if paginated
   useEffect(() => {
-    setCurrentPage(1);
-  }, [items.length, pageSize, filterPlano, filterDetalle]);
+    if (highlightedTag) {
+      const itemIndex = items.findIndex(it => it.tagPlano === highlightedTag);
+      if (itemIndex !== -1 && pageSize > 0) {
+        const targetPage = Math.floor(itemIndex / pageSize) + 1;
+        setCurrentPage(targetPage);
+      }
+    }
+  }, [highlightedTag, items, pageSize]);
+
+  // Reset page to 1 only when user changes filters or page size
+  useEffect(() => {
+    if (!highlightedTag) {
+      setCurrentPage(1);
+    }
+  }, [pageSize, filterPlano, filterDetalle]);
 
   // Extract unique plano values for filter
   const availablePlanos = Array.from(

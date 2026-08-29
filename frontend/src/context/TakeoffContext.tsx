@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import {
   TakeoffItem,
   TakeoffRule,
@@ -73,6 +73,7 @@ interface TakeoffContextType {
   isPartidasModalOpen: boolean;
   editingItemId: string | null;
   accessoryViewMode: AccessoryViewMode;
+  highlightedTag: string | null;
   toast: ToastState | null;
 
   // Actions
@@ -84,6 +85,7 @@ interface TakeoffContextType {
   setAddMode: (mode: AddModeType) => void;
   setAccessoryViewMode: (mode: AccessoryViewMode) => void;
   toggleAccessoryViewMode: () => void;
+  setHighlightedTag: (tag: string | null) => void;
   setSearchQuery: (query: string) => void;
   setFilterPlano: (plano: string) => void;
   setFilterDetalle: (detalle: string) => void;
@@ -187,6 +189,22 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const toggleAccessoryViewMode = () => {
     setAccessoryViewMode(accessoryViewMode === 'separated' ? 'join' : 'separated');
+  };
+
+  const [highlightedTag, setHighlightedTagState] = useState<string | null>(null);
+  const highlightTimeoutRef = useRef<any>(null);
+
+  const setHighlightedTag = (tag: string | null) => {
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current);
+      highlightTimeoutRef.current = null;
+    }
+    setHighlightedTagState(tag);
+    if (tag) {
+      highlightTimeoutRef.current = setTimeout(() => {
+        setHighlightedTagState(null);
+      }, 1800);
+    }
   };
 
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -481,6 +499,11 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
           }
           return sib;
         });
+      }
+
+      const targetTag = newTagPlano || oldTagPlano;
+      if (targetTag) {
+        setHighlightedTag(targetTag);
       }
 
       return assignTagUnicoSuffixes(updated);
@@ -882,6 +905,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         isPartidasModalOpen,
         editingItemId,
         accessoryViewMode,
+        highlightedTag,
         toast,
 
         setSection,
@@ -892,6 +916,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         setAddMode,
         setAccessoryViewMode,
         toggleAccessoryViewMode,
+        setHighlightedTag,
         setSearchQuery,
         setFilterPlano,
         setFilterDetalle,
