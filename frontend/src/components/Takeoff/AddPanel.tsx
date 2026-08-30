@@ -89,13 +89,15 @@ export const AddPanel: React.FC = () => {
     const upTrigger = rule.trigger.toUpperCase();
     const isCableRule =
       upTrigger.includes('CABLE DESNUDO 4/0 AWG') || upTrigger.includes('CABLE DESNUDO 2/0 AWG');
-
-    if (
+    const isBarraRule = upTrigger.includes('BARRA');
+    const isMultiInstanceRule =
       upTrigger.includes('SOLDADURA') ||
       upTrigger.includes('POZO') ||
       isCableRule ||
-      section === 'canalizado'
-    ) {
+      isBarraRule ||
+      section === 'canalizado';
+
+    if (isMultiInstanceRule) {
       const countInput = window.prompt(
         `¿Cuántas veces deseas agregar la regla:\n"${rule.trigger}"?`,
         '1'
@@ -111,13 +113,7 @@ export const AddPanel: React.FC = () => {
     let baseTagPlano = '';
     const suggestedTag = autoPrefix ? `${autoPrefix}01` : 'M04';
 
-    if (
-      numInstances > 1 &&
-      (upTrigger.includes('SOLDADURA') ||
-        upTrigger.includes('POZO') ||
-        isCableRule ||
-        section === 'canalizado')
-    ) {
+    if (numInstances > 1 && isMultiInstanceRule) {
       const promptText = `Ingresa el TAG EN PLANO BASE (ej: ${suggestedTag}) para ${numInstances} instancias de:\n"${rule.trigger}"\n\nSe crearán secuencialmente: ${getSequentialTagsExample(
         suggestedTag,
         numInstances

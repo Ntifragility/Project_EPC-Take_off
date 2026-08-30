@@ -444,7 +444,10 @@ export function applyBarraPotDetalleVariant(
 
   const currentItems = [...items];
   const siblings = currentItems.filter(
-    it => (it.ruleId === 'r8' || it.ruleId === 'r9') && it.tagPlano === tagPlano && it.pkgId === pkgId
+    it =>
+      (it.ruleId === 'r8' || it.ruleId === 'r9' || (it.desc && it.desc.toUpperCase().includes('BARRA'))) &&
+      it.tagPlano === tagPlano &&
+      it.pkgId === pkgId
   );
   if (siblings.length === 0) return currentItems;
 

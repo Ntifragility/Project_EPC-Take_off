@@ -662,7 +662,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
     }
 
-    if ((rule.id === 'r8' || rule.id === 'r9') && (activeArea === 'AREA HUMEDA' || detalleCode.startsWith('010/17'))) {
+    if ((rule.id === 'r8' || rule.id === 'r9' || upTrigger.includes('BARRA')) && (activeArea === 'AREA HUMEDA' || detalleCode.startsWith('010/17'))) {
       const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
       uniqueTags.forEach(tag => {
         combined = applyBarraPotDetalleVariant(combined, tag, pkgId, detalleCode, numSoportes);
