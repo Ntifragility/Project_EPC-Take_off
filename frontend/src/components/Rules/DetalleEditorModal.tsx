@@ -537,7 +537,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                 cursor: isSaving ? 'not-allowed' : 'pointer'
               }}
             >
-              {isSaving ? 'GUARDANDO EN SUPABASE...' : '💾 GUARDAR EN BASE DE DATOS'}
+              {isSaving ? 'GUARDANDO EN SUPABASE...' : 'GUARDAR EN BASE DE DATOS'}
             </button>
           </div>
         </div>

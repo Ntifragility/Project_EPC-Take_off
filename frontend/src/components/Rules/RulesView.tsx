@@ -132,10 +132,10 @@ export const RulesView: React.FC = () => {
           <button
             className="btn-secondary"
             onClick={handleOpenDirectDetalle}
-            style={{ fontSize: '11px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ fontSize: '11px', padding: '6px 14px' }}
             title="Abrir editor para cualquier detalle constructivo de esta área"
           >
-            <span>✏️</span> EDITAR DETALLES
+            EDITAR DETALLES
           </button>
           <button className="btn-primary" onClick={handleOpenNew}>
             + NUEVA REGLA
@@ -374,7 +374,7 @@ export const RulesView: React.FC = () => {
                                           }}
                                           title={`Editar materiales de ${detalleCode}`}
                                         >
-                                          ✏️ Editar
+                                          EDITAR
                                         </button>
                                       </td>
                                     )}
@@ -679,7 +679,7 @@ export const RulesView: React.FC = () => {
                                         }}
                                         title={`Editar materiales de ${detCode}`}
                                       >
-                                        ✏️ Editar
+                                        EDITAR
                                       </button>
                                     </td>
                                   )}
@@ -940,7 +940,7 @@ export const RulesView: React.FC = () => {
                                         }}
                                         title={`Editar materiales de ${detCode}`}
                                       >
-                                        ✏️ Editar
+                                        EDITAR
                                       </button>
                                     </td>
                                   )}
