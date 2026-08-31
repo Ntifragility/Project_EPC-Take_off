@@ -32,67 +32,26 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+import ts from 'typescript';
+
 // 2. Helper to transpile TS files to temp JS
 function transpileTsToJs(srcFile, tempFile, exportsStr) {
   const tsPath = path.resolve(__dirname, '../src/data', srcFile);
   let content = fs.readFileSync(tsPath, 'utf8');
 
-  // Slice out functions from detalleVariants.ts
-  if (srcFile === 'detalleVariants.ts') {
-    // 1. Remove helper functions
-    const startIndex = content.indexOf('export function detalleEntriesByArea');
-    const endIndex = content.indexOf('export interface BarraPotVariantItem');
-    if (startIndex !== -1 && endIndex !== -1) {
-      content = content.substring(0, startIndex) + content.substring(endIndex);
+  // Strip imports from other local data files that might not be transpiled yet
+  content = content.replace(/import\s+[^;]+;/g, '');
+
+  const result = ts.transpileModule(content, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+      removeComments: false
     }
-    // 2. Remove updateDynamicVariants which is appended at the end
-    const updateIndex = content.indexOf('export function updateDynamicVariants');
-    if (updateIndex !== -1) {
-      content = content.substring(0, updateIndex);
-    }
-  }
-
-  const lines = content.split(/\r?\n/);
-  const processedLines = [];
-  let inInterface = false;
-
-  for (let line of lines) {
-    const trimmed = line.trim();
-
-    // Skip import lines
-    if (trimmed.startsWith('import ')) {
-      continue;
-    }
-
-    // Skip interface declarations
-    if (trimmed.startsWith('export interface ') || trimmed.startsWith('interface ')) {
-      inInterface = true;
-      continue;
-    }
-
-    if (inInterface) {
-      if (trimmed === '}' || trimmed.startsWith('}')) {
-        inInterface = false;
-      }
-      continue;
-    }
-
-    // Process type annotations on declaration lines: e.g. "export const NAME: TYPE = VALUE"
-    const constMatch = line.match(/^export\s+const\s+([A-Za-z0-9_]+)\s*:\s*([^=]+)\s*=\s*(.*)$/);
-    if (constMatch) {
-      processedLines.push(`const ${constMatch[1]} = ${constMatch[3]}`);
-    } else {
-      const cleanLine = line.replace(/export\s+const/g, 'const');
-      processedLines.push(cleanLine);
-    }
-  }
-
-  let finalJsContent = processedLines.join('\n');
-  // Append standard ES Module exports at the end
-  finalJsContent += `\nexport { ${exportsStr} };`;
+  });
 
   const tempPath = path.resolve(__dirname, tempFile);
-  fs.writeFileSync(tempPath, finalJsContent, 'utf8');
+  fs.writeFileSync(tempPath, result.outputText, 'utf8');
   return tempPath;
 }
 

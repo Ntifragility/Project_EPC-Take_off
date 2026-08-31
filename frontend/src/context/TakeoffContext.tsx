@@ -27,6 +27,7 @@ import {
   deleteTakeoffRuleFromSupabase,
   fetchDetalleVariantsFromSupabase,
   saveDetalleVariantToSupabase,
+  SupabaseDetalleVariantRecord,
   syncPartidasToSupabase,
   fetchPartidasFromSupabase
 } from '../lib/supabase';
@@ -40,7 +41,12 @@ import {
   assignTagUnicoSuffixes,
   consolidateAccessories
 } from '../utils/calculations';
-import { getCalculatedVariantItems, updateDynamicVariants } from '../data/detalleVariants';
+import {
+  getCalculatedVariantItems,
+  updateDynamicVariants,
+  updateSingleDynamicVariant,
+  type DetalleVariantItem
+} from '../data/detalleVariants';
 import { parseTakeoffCsv } from '../utils/csvParser';
 import { correlateItemsWithPartidas, findMatchingPartidaItem } from '../utils/partidaMatcher';
 import { getDefaultTagPrefixByRule, getDefaultDetalleByRule } from '../data/seedRules';
@@ -122,6 +128,14 @@ interface TakeoffContextType {
   saveRule: (rule: TakeoffRule, isNew: boolean) => void;
   deleteRule: (id: string) => void;
 
+  saveDetalleVariant: (
+    area: string,
+    detalleCode: string,
+    items: DetalleVariantItem[],
+    category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
+  ) => Promise<boolean>;
+  detalleVariantsVersion: number;
+
   uploadPartidasList: (newPartidas: PartidaRecord[]) => Promise<void>;
   correlateAllItems: () => void;
 
@@ -156,6 +170,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
   });
   const [packages, setPackages] = useState<PackageGroup[]>(() => loadStoredPackages(section));
   const [rules, setRules] = useState<TakeoffRule[]>(() => loadStoredRules(section));
+  const [detalleVariantsVersion, setDetalleVariantsVersion] = useState<number>(0);
 
   const [selPkg, setSelPkg] = useState<string | null>(() => packages[0]?.id || null);
   const [addMode, setAddMode] = useState<AddModeType>('rule');
@@ -898,6 +913,45 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     showToast('Regla eliminada', 'warn');
   };
 
+  const saveDetalleVariant = async (
+    area: string,
+    detalleCode: string,
+    itemsToSave: DetalleVariantItem[],
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+  ): Promise<boolean> => {
+    try {
+      const dbArea = area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
+      const recordId = category === 'BARRA_POT'
+        ? `HUMEDA_POT_${detalleCode.replace(/\//g, '_')}`
+        : category === 'BARRA_INST'
+        ? `HUMEDA_INST_${detalleCode.replace(/\//g, '_')}`
+        : `${dbArea.replace(/\s+/g, '_')}_${detalleCode.replace(/\//g, '_')}`;
+
+      const record: SupabaseDetalleVariantRecord = {
+        id: recordId,
+        area: dbArea,
+        category,
+        detalle_code: detalleCode,
+        items: itemsToSave
+      };
+
+      const { success, error } = await saveDetalleVariantToSupabase(record);
+      if (!success) {
+        showToast(`Error al guardar en Supabase: ${error || 'desconocido'}`, 'warn');
+        return false;
+      }
+
+      updateSingleDynamicVariant(dbArea, detalleCode, itemsToSave, category);
+      setDetalleVariantsVersion(v => v + 1);
+      showToast(`Detalle ${detalleCode} guardado exitosamente en Supabase`, 'success');
+      return true;
+    } catch (err: any) {
+      console.error('Error al guardar variante de detalle:', err);
+      showToast(`Error al guardar detalle: ${err?.message || ''}`, 'warn');
+      return false;
+    }
+  };
+
   const correlateAllItems = () => {
     setItems(prev => {
       const updated = correlateItemsWithPartidas(prev, partidas, activeArea);
@@ -989,6 +1043,8 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
 
         saveRule,
         deleteRule,
+        saveDetalleVariant,
+        detalleVariantsVersion,
 
         uploadPartidasList,
         correlateAllItems,

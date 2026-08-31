@@ -1,4 +1,5 @@
 import { DetalleVariantItem } from '../types/takeoff';
+export type { DetalleVariantItem };
 
 export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVariantItem[]>> = {
   'AREA SECA': {
@@ -344,7 +345,7 @@ export const BARRA_POT_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = 
       metradoOt: '1'
     },
     {
-      desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN',
+      desc: 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE',
       qty: 4,
       unit: 'u / cjto',
       material: 'C',
@@ -403,7 +404,7 @@ export const BARRA_INST_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> =
       metradoOt: '1'
     },
     {
-      desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN',
+      desc: 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE',
       qty: 4,
       unit: 'u / cjto',
       material: 'C',
@@ -446,8 +447,8 @@ export const R2_SWAPPABLE: string[] = [
   'PERNO MAQUINADO 1/4" X 1/4" ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA DE CERRADURA',
   'TACO DE EXPANSION METALICO, TIPO ACERO 1/4"',
   'CONECTOR TIPO BURNDY',
+  'PLATINA METÁLICA 2"x2-1/2"x3/8"esp. CON AGUJERO DE 13 mm',
   'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV',
-  'PERNO 1/2"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
   'PERNO 3/8"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
   'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR',
   'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
@@ -460,6 +461,8 @@ export const R2_SWAPPABLE: string[] = [
   'CABLE AISLADO 2/0 AWG THHN (JUMPER)',
   'CABLE AISLADO 2/0 AWG THHN'
 ];
+
+export const AVAILABLE_CUSTOM_ITEMS: string[] = R2_SWAPPABLE;
 
 // Dynamic references initialized with the static ones as seed defaults
 export const DYNAMIC_DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVariantItem[]>> = JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_AREA));
@@ -529,4 +532,40 @@ export function updateDynamicVariants(dbRecords: any[]) {
 
   Object.keys(DYNAMIC_BARRA_INST_VARIANTS).forEach(key => delete DYNAMIC_BARRA_INST_VARIANTS[key]);
   Object.assign(DYNAMIC_BARRA_INST_VARIANTS, newInst);
+}
+
+export function updateSingleDynamicVariant(
+  area: string,
+  detalleCode: string,
+  items: DetalleVariantItem[],
+  category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+) {
+  const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
+  const areaKey = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
+
+  if (category === 'CABLE_2_0') {
+    if (!DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey]) {
+      DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey] = {};
+    }
+    DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey][detalleCode] = items;
+    DYNAMIC_DETALLE_VARIANTS[detalleCode] = items;
+    if (detalleCode === '008/05') DYNAMIC_DETALLE_VARIANTS['008/5'] = items;
+    if (detalleCode === 'ND') DYNAMIC_DETALLE_VARIANTS['N/D'] = items;
+  } else if (category === 'BARRA_POT') {
+    DYNAMIC_BARRA_POT_VARIANTS[detalleCode] = items.map((it: any) => ({
+      desc: it.desc,
+      qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
+      unit: it.unit,
+      material: it.material || 'C',
+      metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+    }));
+  } else if (category === 'BARRA_INST') {
+    DYNAMIC_BARRA_INST_VARIANTS[detalleCode] = items.map((it: any) => ({
+      desc: it.desc,
+      qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
+      unit: it.unit,
+      material: it.material || 'C',
+      metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+    }));
+  }
 }

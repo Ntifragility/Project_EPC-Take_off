@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useTakeoff } from '../../context/TakeoffContext';
 import { TakeoffRule } from '../../types/takeoff';
 import { RuleEditorModal } from './RuleEditorModal';
+import { DetalleEditorModal } from './DetalleEditorModal';
 import {
   getDetallesForArea,
   shouldAutoManageTuberia,
-  BARRA_POT_VARIANTS_HUMEDA,
-  BARRA_INST_VARIANTS_HUMEDA
+  DYNAMIC_BARRA_POT_VARIANTS,
+  DYNAMIC_BARRA_INST_VARIANTS,
+  type DetalleVariantItem
 } from '../../data/detalleVariants';
 
 export const RulesView: React.FC = () => {
@@ -15,13 +17,37 @@ export const RulesView: React.FC = () => {
     activeArea,
     setActiveArea,
     saveRule,
-    deleteRule
+    deleteRule,
+    saveDetalleVariant,
+    detalleVariantsVersion
   } = useTakeoff();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TakeoffRule | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
+
+  const [detalleModalOpen, setDetalleModalOpen] = useState(false);
+  const [editingDetalle, setEditingDetalle] = useState<{
+    code: string;
+    area: string;
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST';
+    items: DetalleVariantItem[];
+  } | null>(null);
+
+  const handleOpenDetalleEdit = (
+    code: string,
+    items: DetalleVariantItem[],
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+  ) => {
+    setEditingDetalle({
+      code,
+      area: activeArea,
+      category,
+      items
+    });
+    setDetalleModalOpen(true);
+  };
 
   const handleOpenNew = () => {
     setEditingRule(null);
@@ -300,6 +326,25 @@ export const RulesView: React.FC = () => {
                                         >
                                           {detalleCode}
                                         </span>
+                                        <button
+                                          type="button"
+                                          className="btn-ghost"
+                                          onClick={() => handleOpenDetalleEdit(detalleCode, itemsList, 'CABLE_2_0')}
+                                          style={{
+                                            fontSize: '10px',
+                                            padding: '3px 8px',
+                                            marginTop: '6px',
+                                            display: 'block',
+                                            margin: '6px auto 0 auto',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            border: '1px solid var(--b1)',
+                                            background: 'var(--s1)'
+                                          }}
+                                          title={`Editar materiales de ${detalleCode}`}
+                                        >
+                                          ✏️ Editar
+                                        </button>
                                       </td>
                                     )}
                                     <td
@@ -414,7 +459,7 @@ export const RulesView: React.FC = () => {
 
           // Special card for BARRA POT (r8) with dynamic variants for ÁREA HÚMEDA
           if (r.id === 'r8' && activeArea === 'AREA HUMEDA') {
-            const potEntries = Object.entries(BARRA_POT_VARIANTS_HUMEDA);
+            const potEntries = Object.entries(DYNAMIC_BARRA_POT_VARIANTS);
             const totalItemsCount = potEntries.reduce((acc, [_, list]) => acc + list.length, 0);
 
             return (
@@ -586,6 +631,25 @@ export const RulesView: React.FC = () => {
                                       >
                                         {detCode}
                                       </span>
+                                      <button
+                                        type="button"
+                                        className="btn-ghost"
+                                        onClick={() => handleOpenDetalleEdit(detCode, vItems as any, 'BARRA_POT')}
+                                        style={{
+                                          fontSize: '10px',
+                                          padding: '3px 8px',
+                                          marginTop: '6px',
+                                          display: 'block',
+                                          margin: '6px auto 0 auto',
+                                          cursor: 'pointer',
+                                          borderRadius: '4px',
+                                          border: '1px solid var(--b1)',
+                                          background: 'var(--s1)'
+                                        }}
+                                        title={`Editar materiales de ${detCode}`}
+                                      >
+                                        ✏️ Editar
+                                      </button>
                                     </td>
                                   )}
                                   <td
@@ -656,7 +720,7 @@ export const RulesView: React.FC = () => {
 
           // Special card for BARRA INST (r9) with dynamic variants for ÁREA HÚMEDA
           if (r.id === 'r9' && activeArea === 'AREA HUMEDA') {
-            const instEntries = Object.entries(BARRA_INST_VARIANTS_HUMEDA);
+            const instEntries = Object.entries(DYNAMIC_BARRA_INST_VARIANTS);
             const totalInstItemsCount = instEntries.reduce((acc, [_, list]) => acc + list.length, 0);
 
             return (
@@ -828,6 +892,25 @@ export const RulesView: React.FC = () => {
                                       >
                                         {detCode}
                                       </span>
+                                      <button
+                                        type="button"
+                                        className="btn-ghost"
+                                        onClick={() => handleOpenDetalleEdit(detCode, vItems as any, 'BARRA_INST')}
+                                        style={{
+                                          fontSize: '10px',
+                                          padding: '3px 8px',
+                                          marginTop: '6px',
+                                          display: 'block',
+                                          margin: '6px auto 0 auto',
+                                          cursor: 'pointer',
+                                          borderRadius: '4px',
+                                          border: '1px solid var(--b1)',
+                                          background: 'var(--s1)'
+                                        }}
+                                        title={`Editar materiales de ${detCode}`}
+                                      >
+                                        ✏️ Editar
+                                      </button>
                                     </td>
                                   )}
                                   <td
@@ -1126,6 +1209,18 @@ export const RulesView: React.FC = () => {
         onClose={() => setModalOpen(false)}
         onSave={saveRule}
       />
+
+      {editingDetalle && (
+        <DetalleEditorModal
+          isOpen={detalleModalOpen}
+          area={editingDetalle.area}
+          detalleCode={editingDetalle.code}
+          category={editingDetalle.category}
+          initialItems={editingDetalle.items}
+          onClose={() => setDetalleModalOpen(false)}
+          onSave={saveDetalleVariant}
+        />
+      )}
     </div>
   );
 };

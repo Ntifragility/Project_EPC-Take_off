@@ -202,7 +202,7 @@ export const AddPanel: React.FC = () => {
     } else if (upTrigger.includes('BARRA POT')) {
       if (activeArea === 'AREA HUMEDA') {
         const detInput = window.prompt(
-          `SELECCIONAR DETALLE PARA BARRA POT (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17A (Barra + 4 Pernos + 2 Soportes)\n- 010/17B (Barra + 2 Soportes)`,
+          `SELECCIONAR DETALLE PARA BARRA POT (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17A (Barra + 4 Anclajes HDI + 2 Soportes)\n- 010/17B (Barra + 2 Soportes)`,
           '010/17A'
         );
         if (detInput === null) return;
@@ -221,7 +221,7 @@ export const AddPanel: React.FC = () => {
     } else if (upTrigger.includes('BARRA INST')) {
       if (activeArea === 'AREA HUMEDA') {
         const detInput = window.prompt(
-          `SELECCIONAR DETALLE PARA BARRA INST (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17C (Barra CON AISLADORES + 2 Soportes)\n- 010/17D (Barra CON AISLADORES + 4 Pernos + 2 Soportes)`,
+          `SELECCIONAR DETALLE PARA BARRA INST (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 010/17C (Barra CON AISLADORES + 2 Soportes)\n- 010/17D (Barra CON AISLADORES + 4 Anclajes HDI + 2 Soportes)`,
           '010/17C'
         );
         if (detInput === null) return;
