@@ -25,7 +25,7 @@ export const RulesView: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TakeoffRule | null>(null);
   const [isNew, setIsNew] = useState(false);
-  const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set(['r2', 'r8', 'r9']));
+  const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
 
   const [detalleModalOpen, setDetalleModalOpen] = useState(false);
   const [editingDetalle, setEditingDetalle] = useState<{
@@ -126,7 +126,7 @@ export const RulesView: React.FC = () => {
               onClick={toggleAllExpand}
               style={{ fontSize: '11px', padding: '6px 12px' }}
             >
-              {allExpanded ? '▲ COLAPSAR TODAS' : '▼ EXPANDIR TODAS'}
+              {allExpanded ? 'COLAPSAR TODAS' : 'EXPANDIR TODAS'}
             </button>
           )}
           <button
