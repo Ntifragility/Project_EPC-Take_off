@@ -25,7 +25,7 @@ export const RulesView: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TakeoffRule | null>(null);
   const [isNew, setIsNew] = useState(false);
-  const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
+  const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set(['r2', 'r8', 'r9']));
 
   const [detalleModalOpen, setDetalleModalOpen] = useState(false);
   const [editingDetalle, setEditingDetalle] = useState<{
@@ -34,6 +34,23 @@ export const RulesView: React.FC = () => {
     category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST';
     items: DetalleVariantItem[];
   } | null>(null);
+
+  const areaDetalles = getDetallesForArea(activeArea);
+  const currentAreaCodes: string[] = areaDetalles.map(([c]) => c);
+
+  const getDetalleItemsForCode = (
+    code: string,
+    cat: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+  ): DetalleVariantItem[] => {
+    if (cat === 'BARRA_POT') {
+      return (DYNAMIC_BARRA_POT_VARIANTS[code] || []) as any;
+    }
+    if (cat === 'BARRA_INST') {
+      return (DYNAMIC_BARRA_INST_VARIANTS[code] || []) as any;
+    }
+    const found = areaDetalles.find(([c]) => c === code);
+    return found ? found[1] : [];
+  };
 
   const handleOpenDetalleEdit = (
     code: string,
@@ -44,9 +61,15 @@ export const RulesView: React.FC = () => {
       code,
       area: activeArea,
       category,
-      items
+      items: items && items.length > 0 ? items : getDetalleItemsForCode(code, category)
     });
     setDetalleModalOpen(true);
+  };
+
+  const handleOpenDirectDetalle = () => {
+    const firstCode = currentAreaCodes[0] || 'ND';
+    const items = getDetalleItemsForCode(firstCode, 'CABLE_2_0');
+    handleOpenDetalleEdit(firstCode, items, 'CABLE_2_0');
   };
 
   const handleOpenNew = () => {
@@ -106,6 +129,14 @@ export const RulesView: React.FC = () => {
               {allExpanded ? '▲ COLAPSAR TODAS' : '▼ EXPANDIR TODAS'}
             </button>
           )}
+          <button
+            className="btn-secondary"
+            onClick={handleOpenDirectDetalle}
+            style={{ fontSize: '11px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Abrir editor para cualquier detalle constructivo de esta área"
+          >
+            <span>✏️</span> EDITAR DETALLES
+          </button>
           <button className="btn-primary" onClick={handleOpenNew}>
             + NUEVA REGLA
           </button>
@@ -1217,6 +1248,16 @@ export const RulesView: React.FC = () => {
           detalleCode={editingDetalle.code}
           category={editingDetalle.category}
           initialItems={editingDetalle.items}
+          availableCodes={currentAreaCodes}
+          onSelectDetalle={(newCode: string) => {
+            const itemsForCode = getDetalleItemsForCode(newCode, editingDetalle.category);
+            setEditingDetalle({
+              code: newCode,
+              area: activeArea,
+              category: editingDetalle.category,
+              items: itemsForCode
+            });
+          }}
           onClose={() => setDetalleModalOpen(false)}
           onSave={saveDetalleVariant}
         />
