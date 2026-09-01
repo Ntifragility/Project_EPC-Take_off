@@ -126,6 +126,7 @@ export const RulesView: React.FC = () => {
               onClick={toggleAllExpand}
               style={{ fontSize: '11px', padding: '6px 12px' }}
             >
+              {allExpanded ? '▲ COLAPSAR TODAS' : '▼ EXPANDIR TODAS'}
               {allExpanded ? 'COLAPSAR TODAS' : 'EXPANDIR TODAS'}
             </button>
           )}

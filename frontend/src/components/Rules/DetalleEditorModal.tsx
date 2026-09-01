@@ -54,6 +54,16 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   const [customNewCode, setCustomNewCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  const suggestedMaterials = React.useMemo(() => {
+    const set = new Set<string>(AVAILABLE_CUSTOM_ITEMS);
+    items.forEach(it => {
+      if (it.desc && it.desc.trim()) {
+        set.add(it.desc.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
   useEffect(() => {
     if (isOpen) {
       setActiveCode(initialCode);
@@ -305,20 +315,21 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
             style={{
               background: 'none',
               border: 'none',
-              fontSize: '22px',
+              fontSize: '18px',
               cursor: 'pointer',
               color: 'var(--tx2)',
-              padding: '2px 8px'
+              padding: '2px 8px',
+              fontWeight: 'bold'
             }}
           >
-            ✕
+            X
           </button>
         </div>
 
         {/* Body */}
         <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '18px 22px' }}>
           <datalist id="detalle-materials-list">
-            {AVAILABLE_CUSTOM_ITEMS.map((mat: string, i: number) => (
+            {suggestedMaterials.map((mat: string, i: number) => (
               <option key={i} value={mat} />
             ))}
           </datalist>
@@ -467,7 +478,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                         borderRadius: '4px'
                       }}
                     >
-                      ✕
+                      X
                     </button>
                   </td>
                 </tr>
