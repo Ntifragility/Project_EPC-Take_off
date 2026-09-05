@@ -840,7 +840,7 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
       )
     ) {
       setItems([]);
-      showToast('Pantalla restablecida', 'info');
+      showToast('Datos de pantalla limpiados', 'info');
     }
   };
 

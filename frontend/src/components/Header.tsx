@@ -156,18 +156,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSummaryModal, onOpenAreaMo
         <button
           className="btn-ghost"
           style={{
-            padding: '5px 12px',
+            padding: '5px 10px',
             fontSize: '11px',
-            width: '100px',
-            minWidth: '100px',
-            maxWidth: '100px',
+            width: '115px',
+            minWidth: '115px',
+            maxWidth: '115px',
             textAlign: 'center',
             flexShrink: 0
           }}
           onClick={clearCache}
-          title="Restablecer Datos Locales"
+          title="Limpiar Datos Locales de la Pantalla"
         >
-          RESTABLECER
+          LIMPIAR DATA
         </button>
 
         <button
