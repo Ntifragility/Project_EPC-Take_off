@@ -927,6 +927,10 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         ? `HUMEDA_INST_${detalleCode.replace(/\//g, '_')}`
         : `${dbArea.replace(/\s+/g, '_')}_${detalleCode.replace(/\//g, '_')}`;
 
+      // 1. Always update local state & runtime memory
+      updateSingleDynamicVariant(dbArea, detalleCode, itemsToSave, category);
+      setDetalleVariantsVersion(v => v + 1);
+
       const record: SupabaseDetalleVariantRecord = {
         id: recordId,
         area: dbArea,
@@ -935,20 +939,20 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         items: itemsToSave
       };
 
+      // 2. Attempt to sync with Supabase cloud
       const { success, error } = await saveDetalleVariantToSupabase(record);
       if (!success) {
-        showToast(`Error al guardar en Supabase: ${error || 'desconocido'}`, 'warn');
-        return false;
+        console.warn(`[Supabase] Error al guardar variante en la nube (${error}). Guardado localmente.`);
+        showToast(`Detalle ${detalleCode} guardado localmente (ejecuta el script SQL en Supabase para sincronizar en la nube)`, 'info');
+      } else {
+        showToast(`Detalle ${detalleCode} guardado exitosamente en Supabase`, 'success');
       }
 
-      updateSingleDynamicVariant(dbArea, detalleCode, itemsToSave, category);
-      setDetalleVariantsVersion(v => v + 1);
-      showToast(`Detalle ${detalleCode} guardado exitosamente en Supabase`, 'success');
       return true;
     } catch (err: any) {
       console.error('Error al guardar variante de detalle:', err);
-      showToast(`Error al guardar detalle: ${err?.message || ''}`, 'warn');
-      return false;
+      showToast(`Detalle guardado localmente: ${err?.message || ''}`, 'info');
+      return true;
     }
   };
 
