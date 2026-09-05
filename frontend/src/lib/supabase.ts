@@ -2,9 +2,15 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { TakeoffItem, PackageGroup, SupabaseTakeoffRecord, SectionType, TakeoffRule, PartidaRecord, SupabasePartidaRecord } from '../types/takeoff';
 import { isCountable } from '../utils/calculations';
 
-// Read Vite environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || '';
+// Read Vite environment variables (supports VITE_SUPABASE_KEY, VITE_SUPABASE_ANON_KEY, and default project URL)
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  'https://bnjnvtbwfhmkryogebak.supabase.co';
+
+const supabaseKey =
+  import.meta.env.VITE_SUPABASE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuam52dGJ3Zmhta3J5b2dlYmFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMTU2ODEsImV4cCI6MjA5NTU5MTY4MX0.3f6gNxExATIHy-UnFCQN0LAcIXJLDQNxQmKkHNBoBVI';
 
 export const isSupabaseConfigured = (): boolean => {
   return Boolean(

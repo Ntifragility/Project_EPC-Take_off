@@ -24,24 +24,121 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
 
   const [pageSize, setPageSize] = useState<number>(100);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isMergedView, setIsMergedView] = useState<boolean>(false);
+
+  // Group and merge similar items from each DETALLE list when isMergedView is true
+  const displayedItems = React.useMemo(() => {
+    if (!isMergedView) {
+      return items;
+    }
+
+    const map = new Map<
+      string,
+      {
+        representative: TakeoffItem;
+        count: number;
+        totalQty: number;
+        totalOt: number;
+        hasNumericOt: boolean;
+        allOts: string[];
+        tags: Set<string>;
+        uniquePlanos: Set<string>;
+      }
+    >();
+
+    items.forEach(it => {
+      // Group key: Detalle + trimmed Uppercase description + material + unit
+      const detalleKey = (it.detalle || 'SIN_DETALLE').trim().toUpperCase();
+      const descKey = (it.desc || '').trim().toUpperCase();
+      const matKey = (it.material || '').trim().toUpperCase();
+      const unitKey = (it.unit || '').trim().toUpperCase();
+      const key = `${detalleKey}____${descKey}____${matKey}____${unitKey}`;
+
+      const otNum = parseFloat(it.metradoOt);
+      const isOtNum = !isNaN(otNum) && isFinite(otNum);
+      const qtyNum = typeof it.qty === 'number' ? it.qty : (parseFloat(String(it.qty)) || 1);
+
+      if (!map.has(key)) {
+        map.set(key, {
+          representative: { ...it },
+          count: 1,
+          totalQty: qtyNum,
+          totalOt: isOtNum ? otNum : 0,
+          hasNumericOt: isOtNum,
+          allOts: it.metradoOt ? [it.metradoOt] : [],
+          tags: new Set(it.tagPlano ? [it.tagPlano] : []),
+          uniquePlanos: new Set(it.plano ? [it.plano] : [])
+        });
+      } else {
+        const entry = map.get(key)!;
+        entry.count += 1;
+        entry.totalQty += qtyNum;
+        if (isOtNum) {
+          entry.totalOt += otNum;
+          entry.hasNumericOt = true;
+        }
+        if (it.metradoOt) {
+          entry.allOts.push(it.metradoOt);
+        }
+        if (it.tagPlano) {
+          entry.tags.add(it.tagPlano);
+        }
+        if (it.plano) {
+          entry.uniquePlanos.add(it.plano);
+        }
+      }
+    });
+
+    const mergedList: TakeoffItem[] = [];
+    map.forEach((entry, key) => {
+      const rep = entry.representative;
+      const tagList = Array.from(entry.tags).filter(Boolean);
+      let tagPlanoDisplay = rep.tagPlano;
+      if (entry.count > 1) {
+        if (tagList.length > 0) {
+          tagPlanoDisplay = tagList.length <= 3 ? tagList.join(', ') : `${tagList.slice(0, 2).join(', ')}... (+${tagList.length - 2})`;
+        } else {
+          tagPlanoDisplay = `(${entry.count} ítems)`;
+        }
+      }
+
+      let metradoOtDisplay = rep.metradoOt;
+      if (entry.hasNumericOt) {
+        metradoOtDisplay = String(parseFloat(entry.totalOt.toFixed(4)));
+      } else if (entry.allOts.length > 0) {
+        metradoOtDisplay = entry.allOts[0];
+      }
+
+      mergedList.push({
+        ...rep,
+        id: `merged_${key}`,
+        qty: parseFloat(entry.totalQty.toFixed(4)),
+        metradoOt: metradoOtDisplay,
+        tagPlano: tagPlanoDisplay,
+        tagUnico: entry.count > 1 ? (entry.uniquePlanos.size > 1 ? 'Varios' : rep.tagUnico) : rep.tagUnico
+      });
+    });
+
+    return mergedList;
+  }, [items, isMergedView]);
 
   // Auto-navigate to page containing highlightedTag if paginated
   useEffect(() => {
     if (highlightedTag) {
-      const itemIndex = items.findIndex(it => it.tagPlano === highlightedTag);
+      const itemIndex = displayedItems.findIndex(it => it.tagPlano === highlightedTag);
       if (itemIndex !== -1 && pageSize > 0) {
         const targetPage = Math.floor(itemIndex / pageSize) + 1;
         setCurrentPage(targetPage);
       }
     }
-  }, [highlightedTag, items, pageSize]);
+  }, [highlightedTag, displayedItems, pageSize]);
 
-  // Reset page to 1 only when user changes filters or page size
+  // Reset page to 1 only when user changes filters, page size, or view mode
   useEffect(() => {
     if (!highlightedTag) {
       setCurrentPage(1);
     }
-  }, [pageSize, filterPlano, filterDetalle]);
+  }, [pageSize, filterPlano, filterDetalle, isMergedView]);
 
   // Extract unique plano values for filter
   const availablePlanos = Array.from(
@@ -53,131 +150,215 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     new Set(allItems.map(i => i.detalle).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
-  const totalItems = items.length;
+  const totalItems = displayedItems.length;
   const isPaginated = pageSize > 0 && totalItems > pageSize;
   const totalPages = isPaginated ? Math.ceil(totalItems / pageSize) : 1;
   const safePage = Math.min(Math.max(currentPage, 1), totalPages);
 
   const startIndex = isPaginated ? (safePage - 1) * pageSize : 0;
   const endIndex = isPaginated ? Math.min(startIndex + pageSize, totalItems) : totalItems;
-  const visibleItems = items.slice(startIndex, endIndex);
+  const visibleItems = displayedItems.slice(startIndex, endIndex);
   const hasActiveFilters = Boolean(filterPlano || filterDetalle || searchQuery);
 
   return (
     <div className="takeoff-table-wrapper">
-      {(totalItems > 50 || hasActiveFilters) && (
-        <div
-          className="table-pagination-bar"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '6px 12px',
-            background: 'var(--s2)',
-            border: '1px solid var(--b1)',
-            borderRadius: '4px 4px 0 0',
-            fontSize: '12px',
-            fontFamily: 'var(--mo, monospace)',
-            color: 'var(--tx)',
-            marginBottom: '4px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>Mostrar:</span>
-            <select
-              value={pageSize}
-              onChange={e => setPageSize(Number(e.target.value))}
+      <div
+        className="table-pagination-bar"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '6px 12px',
+          background: 'var(--s2)',
+          border: '1px solid var(--b1)',
+          borderRadius: '4px 4px 0 0',
+          fontSize: '12px',
+          fontFamily: 'var(--mo, monospace)',
+          color: 'var(--tx)',
+          marginBottom: '4px',
+          flexWrap: 'wrap',
+          gap: '8px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Toggle buttons for Merged vs Separated */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: 'var(--s1)',
+              borderRadius: '4px',
+              border: '1px solid var(--b1)',
+              padding: '2px',
+              gap: '2px'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setIsMergedView(false)}
               style={{
-                background: 'var(--s1)',
-                color: 'var(--tx)',
-                border: '1px solid var(--b1)',
+                background: !isMergedView ? 'var(--am, #2563eb)' : 'transparent',
+                color: !isMergedView ? '#ffffff' : 'var(--mu)',
+                border: 'none',
                 borderRadius: '3px',
-                padding: '2px 6px',
-                cursor: 'pointer'
+                padding: '3px 8px',
+                fontSize: '11px',
+                fontWeight: !isMergedView ? 700 : 400,
+                fontFamily: 'var(--mo, monospace)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.15s ease'
               }}
+              title="Mantener ítems separados (Vista detallada actual)"
             >
-              <option value={50} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>50 filas/pág</option>
-              <option value={100} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>100 filas/pág</option>
-              <option value={250} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>250 filas/pág</option>
-              <option value={500} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>500 filas/pág</option>
-              <option value={0} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>Mostrar Todas ({totalItems.toLocaleString()})</option>
-            </select>
-            <span style={{ color: 'var(--mu)' }}>
-              Mostrando {startIndex + 1}-{endIndex} de {totalItems.toLocaleString()} ítems
-            </span>
-
-            {filterPlano && (
-              <button
-                onClick={() => setFilterPlano('')}
-                style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: '4px',
-                  padding: '2px 6px',
-                  cursor: 'pointer',
-                  fontSize: '10.5px',
-                  fontFamily: 'var(--mo)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  marginLeft: '6px'
-                }}
-                title={`Quitar filtro de Plano (${filterPlano})`}
-              >
-                <span>PLANO: {filterPlano}</span>
-                <span style={{ fontWeight: 'bold' }}>✕</span>
-              </button>
-            )}
-
-            {filterDetalle && (
-              <button
-                onClick={() => setFilterDetalle('')}
-                style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: '4px',
-                  padding: '2px 6px',
-                  cursor: 'pointer',
-                  fontSize: '10.5px',
-                  fontFamily: 'var(--mo)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  marginLeft: '6px'
-                }}
-                title={`Quitar filtro de Detalle (${filterDetalle})`}
-              >
-                <span>DETALLE: {filterDetalle}</span>
-                <span style={{ fontWeight: 'bold' }}>✕</span>
-              </button>
-            )}
-
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: '4px',
-                  padding: '2px 6px',
-                  cursor: 'pointer',
-                  fontSize: '10.5px',
-                  fontFamily: 'var(--mo)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  marginLeft: '6px'
-                }}
-                title={`Quitar búsqueda ("${searchQuery}")`}
-              >
-                <span>BÚSQUEDA: "{searchQuery}"</span>
-                <span style={{ fontWeight: 'bold' }}>✕</span>
-              </button>
-            )}
+              <span>📋 Separado</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsMergedView(true)}
+              style={{
+                background: isMergedView ? 'var(--am, #2563eb)' : 'transparent',
+                color: isMergedView ? '#ffffff' : 'var(--mu)',
+                border: 'none',
+                borderRadius: '3px',
+                padding: '3px 8px',
+                fontSize: '11px',
+                fontWeight: isMergedView ? 700 : 400,
+                fontFamily: 'var(--mo, monospace)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.15s ease'
+              }}
+              title="Fusionar ítems similares de cada DETALLE en una sola fila consolidada"
+            >
+              <span>📑 Consolidado por Detalle</span>
+            </button>
           </div>
+
+          <div style={{ width: '1px', height: '18px', background: 'var(--b1)', margin: '0 4px' }} />
+          <span>Mostrar:</span>
+          <select
+            value={pageSize}
+            onChange={e => setPageSize(Number(e.target.value))}
+            style={{
+              background: 'var(--s1)',
+              color: 'var(--tx)',
+              border: '1px solid var(--b1)',
+              borderRadius: '3px',
+              padding: '2px 6px',
+              cursor: 'pointer'
+            }}
+          >
+            <option value={50} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>50 filas/pág</option>
+            <option value={100} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>100 filas/pág</option>
+            <option value={250} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>250 filas/pág</option>
+            <option value={500} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>500 filas/pág</option>
+            <option value={0} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>Mostrar Todas ({totalItems.toLocaleString()})</option>
+          </select>
+          <span style={{ color: 'var(--mu)' }}>
+            {isMergedView ? `✨ ${totalItems} ítems consolidados` : `Mostrando ${startIndex + 1}-${endIndex} de ${totalItems.toLocaleString()} ítems`}
+          </span>
+
+          {filterPlano && (
+            <button
+              onClick={() => setFilterPlano('')}
+              style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                fontSize: '10.5px',
+                fontFamily: 'var(--mo)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginLeft: '6px'
+              }}
+              title={`Quitar filtro de Plano (${filterPlano})`}
+            >
+              <span>PLANO: {filterPlano}</span>
+              <span style={{ fontWeight: 'bold' }}>✕</span>
+            </button>
+          )}
+
+          {filterDetalle && (
+            <button
+              onClick={() => setFilterDetalle('')}
+              style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                fontSize: '10.5px',
+                fontFamily: 'var(--mo)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginLeft: '6px'
+              }}
+              title={`Quitar filtro de Detalle (${filterDetalle})`}
+            >
+              <span>DETALLE: {filterDetalle}</span>
+              <span style={{ fontWeight: 'bold' }}>✕</span>
+            </button>
+          )}
+
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                fontSize: '10.5px',
+                fontFamily: 'var(--mo)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginLeft: '6px'
+              }}
+              title={`Quitar búsqueda ("${searchQuery}")`}
+            >
+              <span>BÚSQUEDA: "{searchQuery}"</span>
+              <span style={{ fontWeight: 'bold' }}>✕</span>
+            </button>
+          )}
+
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontFamily: 'var(--mo)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginLeft: '8px',
+                fontWeight: 600
+              }}
+              title="Limpiar todos los filtros"
+            >
+              <span>✕ Limpiar data</span>
+            </button>
+          )}
+        </div>
 
           {isPaginated && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
