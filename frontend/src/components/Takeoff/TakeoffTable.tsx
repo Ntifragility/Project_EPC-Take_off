@@ -428,7 +428,6 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             </div>
           )}
         </div>
-      )}
 
       <table>
         <colgroup>
