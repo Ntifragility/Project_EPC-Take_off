@@ -162,7 +162,7 @@ export const AddPanel: React.FC = () => {
     } else if (upTrigger.includes('CABLE DESNUDO 4/0')) {
       if (activeArea === 'AREA HUMEDA') {
         const detInput = window.prompt(
-          `SELECCIONAR DETALLE PARA CABLE DESNUDO 4/0 AWG (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 008/3A (Estándar)\n\nIngresa el código de DETALLE:`,
+          `SELECCIONAR DETALLE PARA CABLE DESNUDO 4/0 AWG (ÁREA HÚMEDA):\n\nOpciones válidas:\n- 008/3A (sin CEMENTO GEM)\n- 008/3B (con CEMENTO GEM)\n\nIngresa el código de DETALLE:`,
           '008/3A'
         );
         if (detInput === null) return;

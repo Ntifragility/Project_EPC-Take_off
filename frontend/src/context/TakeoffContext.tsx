@@ -495,6 +495,30 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         const tOt = tItem ? tItem.metradoOt : '';
         const cOt = cItem ? cItem.metradoOt : '';
         updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, target.detalle, nSop, nJmp, tOt, cOt);
+
+        if (target.ruleId === 'r1') {
+          const isDetalle3B = target.detalle.toUpperCase() === '008/3B';
+          const siblings = updated.filter(i => i.tagPlano === target.tagPlano && i.pkgId === target.pkgId && i.ruleId === 'r1');
+          const cemento = siblings.find(i => i.desc.toUpperCase().includes('CEMENTO GEM'));
+
+          if (isDetalle3B && !cemento) {
+            const cable = siblings.find(i => i.desc.toUpperCase().includes('CABLE DESNUDO 4/0 AWG'));
+            const cableVal = parseFloat(cable?.metradoOt || '') || 0;
+            const ref = cable || target;
+            updated.push({
+              ...ref,
+              id: uid(),
+              desc: 'CEMENTO GEM (11.3 Kg x bls)',
+              qty: 'length x 11.3 / 2',
+              unit: 'kg',
+              material: 'C',
+              tagUnico: '',
+              metradoOt: String(parseFloat((cableVal * 11.3 / 2).toFixed(4)))
+            });
+          } else if (!isDetalle3B && cemento) {
+            updated = updated.filter(i => i.id !== cemento.id);
+          }
+        }
       }
 
       // Check CABLE DESNUDO 4/0 AWG changes (update CINTA AMARILLA and TIERRA DE CULTIVO)
@@ -504,7 +528,8 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
         updates.metradoOt !== undefined
       ) {
         const cableVal = parseFloat(updates.metradoOt) || 0;
-        const tierraVal = (0.375 * 0.5 * cableVal).toFixed(2);
+        const tierraVal = String(parseFloat((0.375 * 0.5 * cableVal).toFixed(4)));
+        const cementoVal = String(parseFloat((cableVal * 11.3 / 2).toFixed(4)));
 
         updated = updated.map(sib => {
           if (
@@ -516,6 +541,9 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
             }
             if (sib.desc.toUpperCase().includes('TIERRA DE CULTIVO')) {
               return { ...sib, metradoOt: tierraVal };
+            }
+            if (sib.desc.toUpperCase().includes('CEMENTO GEM')) {
+              return { ...sib, metradoOt: cementoVal };
             }
           }
           return sib;
@@ -616,7 +644,9 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
           });
         });
       } else {
-        rule.subitems.forEach(s => {
+        rule.subitems
+          .filter(s => !(rule.id === 'r1' && s.desc.toUpperCase().includes('CEMENTO GEM') && detalleCode.toUpperCase() !== '008/3B'))
+          .forEach(s => {
           const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
           let metradoOt = '';
           const descUp = s.desc.toUpperCase();
@@ -660,6 +690,29 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
             metradoOt
           });
         });
+
+        if (
+          rule.id === 'r1' &&
+          detalleCode.toUpperCase() === '008/3B' &&
+          !newItems.some(it => it.tagPlano === currentTagPlano && it.desc.toUpperCase().includes('CEMENTO GEM'))
+        ) {
+          newItems.push({
+            id: uid(),
+            pkgId,
+            desc: 'CEMENTO GEM (11.3 Kg x bls)',
+            qty: 'length x 11.3 / 2',
+            unit: 'kg',
+            notes: '',
+            ruleId: rule.id,
+            material: 'C',
+            plano: planoVal,
+            rev: revVal,
+            tagUnico: '',
+            tagPlano: currentTagPlano,
+            detalle: detalleCode,
+            metradoOt: ''
+          });
+        }
       }
     }
 

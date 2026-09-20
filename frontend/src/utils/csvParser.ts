@@ -382,7 +382,18 @@ export function parseTakeoffCsv(
       continue;
     }
 
-    const batch: TakeoffItem[] = rule.subitems.map(s => {
+    const rowDetalle = (detalleRaw || (
+      tagRaw.startsWith('TT') ? (activeArea === 'AREA HUMEDA' ? '008/4T2' : '167/X2') :
+      tagRaw.startsWith('T') ? (activeArea === 'AREA HUMEDA' ? '008/4T1' : '167/X1') :
+      tagRaw.startsWith('C') ? (activeArea === 'AREA HUMEDA' ? '008/3A' : '167/G1') :
+      (tagRaw.startsWith('M') ? 'ND' :
+      (tagRaw.startsWith('BP') ? (activeArea === 'AREA HUMEDA' ? '010/17A' : '166A') :
+      (tagRaw.startsWith('BI') ? (activeArea === 'AREA HUMEDA' ? '010/17C' : '166C') : '')))
+    )).toUpperCase();
+
+    const batch: TakeoffItem[] = rule.subitems
+      .filter(s => !(rule.id === 'r1' && s.desc.toUpperCase().includes('CEMENTO GEM') && rowDetalle !== '008/3B'))
+      .map(s => {
       const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
       let metradoOt = '';
       const descUp = s.desc.toUpperCase();
@@ -393,7 +404,9 @@ export function parseTakeoffCsv(
       } else if (isPozoRule && descUp.includes('CEMENTO GEM')) {
         metradoOt = '22.6';
       } else if (descUp.includes('TIERRA DE CULTIVO')) {
-        metradoOt = String(Math.ceil(0.375 * 0.5 * lengthRaw * 10) / 10);
+        metradoOt = String(parseFloat((0.375 * 0.5 * lengthRaw).toFixed(4)));
+      } else if (rule.id === 'r1' && descUp.includes('CEMENTO GEM')) {
+        metradoOt = String(parseFloat((lengthRaw * 11.3 / 2).toFixed(4)));
       } else if (descUp.includes('MOLDE')) {
         metradoOt = '0.0167';
       } else if (descUp.includes('TUBERIA') || descUp.includes('TUBERÍA')) {
@@ -408,15 +421,6 @@ export function parseTakeoffCsv(
       } else {
         metradoOt = String(lengthRaw);
       }
-
-      const rowDetalle = detalleRaw || (
-        tagRaw.startsWith('TT') ? (activeArea === 'AREA HUMEDA' ? '008/4T2' : '167/X2') :
-        tagRaw.startsWith('T') ? (activeArea === 'AREA HUMEDA' ? '008/4T1' : '167/X1') :
-        tagRaw.startsWith('C') ? (activeArea === 'AREA HUMEDA' ? '008/3A' : '167/G1') :
-        (tagRaw.startsWith('M') ? 'ND' :
-        (tagRaw.startsWith('BP') ? (activeArea === 'AREA HUMEDA' ? '010/17A' : '166A') :
-        (tagRaw.startsWith('BI') ? (activeArea === 'AREA HUMEDA' ? '010/17C' : '166C') : '')))
-      );
 
       return {
         id: uid(),
@@ -435,6 +439,25 @@ export function parseTakeoffCsv(
         metradoOt
       };
     });
+
+    if (rule.id === 'r1' && rowDetalle === '008/3B' && !batch.some(it => it.desc.toUpperCase().includes('CEMENTO GEM'))) {
+      batch.push({
+        id: uid(),
+        pkgId,
+        desc: 'CEMENTO GEM (11.3 Kg x bls)',
+        qty: 'length x 11.3 / 2',
+        unit: 'kg',
+        notes: '',
+        ruleId: rule.id,
+        material: 'C',
+        plano: effectivePlano,
+        rev: revVal,
+        tagUnico: '',
+        tagPlano: tagRaw,
+        detalle: rowDetalle,
+        metradoOt: String(parseFloat((lengthRaw * 11.3 / 2).toFixed(4)))
+      });
+    }
 
     let processedBatch: TakeoffItem[] = batch;
 

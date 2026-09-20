@@ -55,6 +55,24 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
             tagPrefix: 'T'
           };
         }
+        if (up === 'CABLE DESNUDO 4/0 AWG') {
+          const hasCementoGem = r.subitems.some(s => s.desc.toUpperCase().includes('CEMENTO GEM'));
+          const normalizedSubitems = r.subitems.map(s => {
+            const desc = s.desc.toUpperCase();
+            if (desc.includes('TIERRA DE CULTIVO')) return { ...s, qty: 'length x 0.375 x 0.5' };
+            if (desc.includes('CEMENTO GEM')) return { ...s, qty: 'length x 11.3 / 2' };
+            return { ...s, qty: 'Var.' };
+          });
+          return {
+            ...r,
+            subitems: hasCementoGem
+              ? normalizedSubitems
+              : [
+                  ...normalizedSubitems,
+                  { id: 's3b', desc: 'CEMENTO GEM (11.3 Kg x bls)', qty: 'length x 11.3 / 2', unit: 'kg' }
+                ]
+          };
+        }
         return r;
       });
     }

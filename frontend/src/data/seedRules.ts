@@ -7,9 +7,10 @@ export const SEED_RULES: TakeoffRule[] = [
     detalle: '167/G1',
     tagPrefix: 'C',
     subitems: [
-      { id: 's1', desc: 'CABLE DESNUDO 4/0 AWG', qty: 1, unit: 'm' },
-      { id: 's2', desc: 'CINTA AMARILLA', qty: 1, unit: 'm' },
+      { id: 's1', desc: 'CABLE DESNUDO 4/0 AWG', qty: 'Var.', unit: 'm' },
+      { id: 's2', desc: 'CINTA AMARILLA', qty: 'Var.', unit: 'm' },
       { id: 's3', desc: 'TIERRA DE CULTIVO', qty: 'length x 0.375 x 0.5', unit: 'm3' },
+      { id: 's3b', desc: 'CEMENTO GEM (11.3 Kg x bls)', qty: 'length x 11.3 / 2', unit: 'kg' },
     ]
   },
   {
