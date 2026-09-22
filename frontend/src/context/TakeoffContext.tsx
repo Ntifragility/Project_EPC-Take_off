@@ -185,8 +185,8 @@ export const TakeoffProvider: React.FC<{ children: ReactNode }> = ({ children })
     setFilterDetalle('');
     setSearchQuery('');
   };
-  const [customPlano, setCustomPlano] = useState<string>(() => localStorage.getItem('epc-plano') || '');
-  const [customRev, setCustomRev] = useState<string>(() => localStorage.getItem('epc-rev') || '');
+  const [customPlano, setCustomPlano] = useState<string>(() => localStorage.getItem('epc-plano') || 'P22-DA-2151-07-GL-001');
+  const [customRev, setCustomRev] = useState<string>(() => localStorage.getItem('epc-rev') || '0');
 
   const [collapsedPkgs, setCollapsedPkgs] = useState<Set<string>>(new Set());
   const [collapsedRuleAreas, setCollapsedRuleAreas] = useState<Set<string>>(

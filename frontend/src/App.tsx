@@ -10,7 +10,7 @@ import { AreaSelectModal } from './components/Modals/AreaSelectModal';
 import { TagSummaryModal } from './components/Modals/TagSummaryModal';
 
 const AppContent: React.FC = () => {
-  const { tab, customPlano, setCustomPlano } = useTakeoff();
+  const { tab } = useTakeoff();
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [areaModalOpen, setAreaModalOpen] = useState(false);
   const [tagSummaryModalOpen, setTagSummaryModalOpen] = useState(false);
@@ -19,36 +19,6 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (!localStorage.getItem('epc-active-area')) {
       setAreaModalOpen(true);
-    }
-  }, []);
-
-  // Initial Plano prompt for first-time session
-  useEffect(() => {
-    if (!localStorage.getItem('epc-plano') && !customPlano) {
-      let plano = '';
-      while (true) {
-        plano = (
-          window.prompt(
-            'BIENVENIDO A EPC TAKEOFF\n\n' +
-              'Ingresa el PLANO del proyecto.\n' +
-              'Formato requerido (6 partes separadas por guión):\n\n' +
-              '  P22-DA-2151-07-GL-001\n\n' +
-              'Este valor se usará para generar el TAG ÚNICO automáticamente.'
-          ) || ''
-        )
-          .trim()
-          .toUpperCase();
-
-        if (plano && plano.split('-').length >= 6) {
-          break;
-        }
-        window.alert(
-          'PLANO inválido.\n\n' +
-            'Debe tener al menos 6 partes separadas por guión.\n' +
-            'Ejemplo: P22-DA-2151-07-GL-001'
-        );
-      }
-      setCustomPlano(plano);
     }
   }, []);
 
