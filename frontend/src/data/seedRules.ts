@@ -100,6 +100,18 @@ export const SEED_RULES: TakeoffRule[] = [
       { id: 'sbi1', desc: 'BARRA INST', qty: 1, unit: 'und' },
       { id: 'sbi2', desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und' }
     ]
+  },
+  {
+    id: 'r-001-2b-x1',
+    trigger: 'DET.001/2B-X1',
+    detalle: '001/2B-X1',
+    tagPrefix: 'SE',
+    subitems: [
+      { id: 's-001-2b-1', desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316', qty: '0.76 (según ancho)', unit: 'm' },
+      { id: 's-001-2b-2', desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316', qty: 2, unit: 'und' },
+      { id: 's-001-2b-3', desc: 'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316', qty: 2, unit: 'und' },
+      { id: 's-001-2b-4', desc: 'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316', qty: 2, unit: 'und' }
+    ]
   }
 ];
 
@@ -137,6 +149,9 @@ export function getDefaultTagPrefixByRule(trigger: string): string {
   if (up.includes('BARRA INST')) {
     return 'BI';
   }
+  if (up.includes('001/2B-X1') || up.includes('001/2B')) {
+    return 'SE';
+  }
   return '';
 }
 
@@ -166,6 +181,9 @@ export function getDefaultDetalleByRule(trigger: string, activeArea = 'AREA SECA
   }
   if (up.includes('BARRA INST')) {
     return isHumeda ? '010/17C' : '166C';
+  }
+  if (up.includes('001/2B-X1') || up.includes('001/2B')) {
+    return '001/2B-X1';
   }
   return '';
 }
@@ -232,6 +250,17 @@ export const SEED_CANALIZADO_RULES: TakeoffRule[] = [
       { id: 'can-s037', desc: 'MORDAZA DE FIJACIÓN ESCALERILLA, REF. 9G-1208 DE B-LINE O SIMILAR, ACERO INOXIDABLE 316.', qty: 2, unit: 'und' },
       { id: 'can-s038', desc: 'PERNO MAQUINADO 1/2"Ø x 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESIÓN), ACERO INOXIDABLE 316.', qty: 2, unit: 'und' }
     ]
+  },
+  {
+    id: 'r-001-2b-x1-can',
+    trigger: 'DET.001/2B-X1',
+    detalle: '001/2B-X1',
+    tagPrefix: 'SE',
+    subitems: [
+      { id: 'can-s-001-2b-1', desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316', qty: '0.76 (según ancho)', unit: 'm' },
+      { id: 'can-s-001-2b-2', desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316', qty: 2, unit: 'und' },
+      { id: 'can-s-001-2b-3', desc: 'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316', qty: 2, unit: 'und' },
+      { id: 'can-s-001-2b-4', desc: 'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316', qty: 2, unit: 'und' }
+    ]
   }
 ];
-

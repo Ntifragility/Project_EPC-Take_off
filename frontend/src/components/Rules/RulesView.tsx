@@ -1105,6 +1105,357 @@ export const RulesView: React.FC = () => {
             );
           }
 
+          // Special card for DET.001/2B-X1 (Cable Tray Support - ÁREA HÚMEDA)
+          if (
+            r.id === 'r-001-2b-x1' ||
+            r.id === 'r-001-2b-x1-can' ||
+            r.trigger.includes('001/2B-X1') ||
+            (r.detalle && r.detalle.includes('001/2B-X1'))
+          ) {
+            const cableTrayRows = [
+              {
+                desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316',
+                unit: 'm',
+                w900: '1.20',
+                w600: '0.76',
+                w450: '0.61',
+                w300: '0.46'
+              },
+              {
+                desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316',
+                unit: 'und',
+                w900: '2',
+                w600: '2',
+                w450: '2',
+                w300: '2'
+              },
+              {
+                desc: 'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316',
+                unit: 'und',
+                w900: '2',
+                w600: '2',
+                w450: '2',
+                w300: '2'
+              },
+              {
+                desc: 'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316',
+                unit: 'und',
+                w900: '2',
+                w600: '2',
+                w450: '2',
+                w300: '2'
+              }
+            ];
+
+            return (
+              <div className="rule-card" key={r.id}>
+                <div className="rule-card-row">
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '6px'
+                      }}
+                    >
+                      <div className="rule-trigger">{r.trigger}</div>
+                      <span
+                        style={{
+                          background: 'var(--s2)',
+                          border: '1px solid var(--b1)',
+                          color: 'var(--tx)',
+                          fontSize: '11px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          fontFamily: 'var(--mo)',
+                          marginRight: '90px'
+                        }}
+                      >
+                        4 anchos de bandeja
+                      </span>
+                    </div>
+
+                    <div
+                      onClick={() => toggleRuleExpand(r.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 12px',
+                        background: 'var(--s2)',
+                        border: '1px solid var(--b1)',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        fontSize: '11px',
+                        fontFamily: 'var(--mo)',
+                        color: 'var(--tx)',
+                        margin: '8px 14px',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Haga clic para mostrar u ocultar"
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                        <span>{isExpanded ? '▼' : '▶'}</span>
+                        <span>{isExpanded ? 'Ocultar matriz de anchos' : 'Mostrar matriz de anchos (900/600/450/300 mm)'}</span>
+                      </span>
+                    </div>
+
+                    {isExpanded && (
+                      <div
+                        style={{
+                          margin: '12px 14px',
+                          overflowX: 'auto',
+                          WebkitOverflowScrolling: 'touch',
+                          border: '1px solid var(--b1)',
+                          borderRadius: '6px',
+                          background: 'var(--s2)'
+                        }}
+                      >
+                        <table
+                          style={{
+                            width: '100%',
+                            minWidth: '700px',
+                            borderCollapse: 'collapse',
+                            fontFamily: 'var(--mo)',
+                            fontSize: '11px'
+                          }}
+                        >
+                          <colgroup>
+                            <col style={{ width: '110px' }} />
+                            <col style={{ width: 'auto' }} />
+                            <col style={{ width: '70px' }} />
+                            <col style={{ width: '85px' }} />
+                            <col style={{ width: '85px' }} />
+                            <col style={{ width: '85px' }} />
+                            <col style={{ width: '85px' }} />
+                          </colgroup>
+                          <thead>
+                            <tr style={{ background: 'var(--s1)' }}>
+                              <th
+                                rowSpan={2}
+                                style={{
+                                  borderRight: '1px solid var(--b1)',
+                                  borderBottom: '1px solid var(--b1)',
+                                  padding: '8px',
+                                  textAlign: 'center',
+                                  color: 'var(--tx)',
+                                  fontWeight: 'bold',
+                                  verticalAlign: 'middle'
+                                }}
+                              >
+                                DETALLE
+                              </th>
+                              <th
+                                rowSpan={2}
+                                style={{
+                                  borderRight: '1px solid var(--b1)',
+                                  borderBottom: '1px solid var(--b1)',
+                                  padding: '8px',
+                                  textAlign: 'left',
+                                  color: 'var(--tx)',
+                                  fontWeight: 'bold',
+                                  verticalAlign: 'middle'
+                                }}
+                              >
+                                DESCRIPCIÓN
+                              </th>
+                              <th
+                                rowSpan={2}
+                                style={{
+                                  borderRight: '1px solid var(--b1)',
+                                  borderBottom: '1px solid var(--b1)',
+                                  padding: '8px',
+                                  textAlign: 'center',
+                                  color: 'var(--tx)',
+                                  fontWeight: 'bold',
+                                  verticalAlign: 'middle'
+                                }}
+                              >
+                                UNIDAD
+                              </th>
+                              <th
+                                colSpan={4}
+                                style={{
+                                  borderBottom: '1px solid var(--b1)',
+                                  padding: '6px 8px',
+                                  textAlign: 'center',
+                                  color: 'var(--tx)',
+                                  fontWeight: 'bold',
+                                  background: 'var(--ad)',
+                                  letterSpacing: '0.5px'
+                                }}
+                              >
+                                CABLE TRAY WIDTH (ANCHO DE BANDEJA)
+                              </th>
+                            </tr>
+                            <tr style={{ background: 'var(--s1)' }}>
+                              {['900 mm', '600 mm', '450 mm', '300 mm'].map(w => (
+                                <th
+                                  key={w}
+                                  style={{
+                                    borderRight: '1px solid var(--b1)',
+                                    borderBottom: '1px solid var(--b1)',
+                                    padding: '6px 8px',
+                                    textAlign: 'center',
+                                    color: 'var(--tx)',
+                                    fontWeight: 'bold',
+                                    fontSize: '10.5px'
+                                  }}
+                                >
+                                  {w}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {cableTrayRows.map((item, idx) => {
+                              const isLast = idx === cableTrayRows.length - 1;
+                              const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
+                              const bg = idx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent';
+
+                              return (
+                                <tr key={item.desc} style={{ borderBottom: bb, background: bg }}>
+                                  {idx === 0 && (
+                                    <td
+                                      rowSpan={cableTrayRows.length}
+                                      style={{
+                                        borderBottom: '2px solid var(--b1)',
+                                        borderRight: '1px solid var(--b1)',
+                                        padding: '8px 10px',
+                                        verticalAlign: 'middle',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          background: 'var(--ad)',
+                                          border: '1px solid var(--b1)',
+                                          borderRadius: '4px',
+                                          padding: '4px 8px',
+                                          display: 'inline-block',
+                                          fontFamily: 'var(--mo)',
+                                          fontSize: '11px',
+                                          color: 'var(--tx)',
+                                          fontWeight: 'bold'
+                                        }}
+                                      >
+                                        DET.001/2B-X1
+                                      </span>
+                                    </td>
+                                  )}
+                                  <td
+                                    style={{
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11.5px',
+                                      color: 'var(--tx)',
+                                      verticalAlign: 'middle',
+                                      lineHeight: 1.4
+                                    }}
+                                  >
+                                    {item.desc}
+                                  </td>
+                                  <td
+                                    style={{
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: 'var(--tx)',
+                                      fontWeight: 600,
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {item.unit}
+                                  </td>
+                                  <td
+                                    style={{
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: idx === 0 ? 'var(--tx)' : 'var(--mu)',
+                                      fontWeight: 'bold',
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    {item.w900}
+                                  </td>
+                                  <td
+                                    style={{
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: idx === 0 ? 'var(--tx)' : 'var(--mu)',
+                                      fontWeight: 'bold',
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center',
+                                      background: idx === 0 ? 'rgba(245, 158, 11, 0.08)' : undefined
+                                    }}
+                                    title={idx === 0 ? 'Estándar 600 mm: 0.76 m' : undefined}
+                                  >
+                                    {item.w600}
+                                  </td>
+                                  <td
+                                    style={{
+                                      borderRight: '1px solid var(--b1)',
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: idx === 0 ? 'var(--tx)' : 'var(--mu)',
+                                      fontWeight: 'bold',
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    {item.w450}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '8px 10px',
+                                      fontFamily: 'var(--mo)',
+                                      fontSize: '11px',
+                                      color: idx === 0 ? 'var(--tx)' : 'var(--mu)',
+                                      fontWeight: 'bold',
+                                      verticalAlign: 'middle',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    {item.w300}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rule-card-acts">
+                    <button className="btn-ghost btn-sm" onClick={() => handleOpenEdit(r)}>
+                      EDITAR
+                    </button>
+                    <button
+                      className="btn-ghost btn-sm btn-danger"
+                      onClick={() => deleteRule(r.id)}
+                    >
+                      ELIMINAR
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
           // Standard rule card (POZO CON CAJA REGISTRO, POZO SIN CAJA REGISTRO, CABLE DESNUDO 4/0, SOLDADURAS, CANALIZADO, etc.)
           return (
             <div className="rule-card" key={r.id}>

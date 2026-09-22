@@ -28,7 +28,7 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
     const raw = localStorage.getItem(getStorageKey('rules', section));
     if (raw) {
       const parsed: TakeoffRule[] = JSON.parse(raw);
-      return parsed.map(r => {
+      const mapped = parsed.map(r => {
         const up = r.trigger.toUpperCase().trim();
         if (
           up === 'SOLDADURA T 4/0 - 2/0' ||
@@ -75,6 +75,14 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
         }
         return r;
       });
+
+      const has0012BX1 = mapped.some(r => r.trigger.toUpperCase().includes('001/2B-X1') || (r.detalle && r.detalle.toUpperCase().includes('001/2B-X1')));
+      if (!has0012BX1) {
+        const seed001 = (section === 'canalizado' ? SEED_CANALIZADO_RULES : SEED_RULES).find(r => r.trigger.includes('001/2B-X1'));
+        if (seed001) mapped.push(seed001);
+      }
+
+      return mapped;
     }
   } catch (err) {
     console.error('Error loading rules from localStorage:', err);
@@ -125,4 +133,3 @@ export function saveStoredPartidas(partidas: PartidaRecord[]): void {
     console.error('Error saving partidas to localStorage:', err);
   }
 }
-

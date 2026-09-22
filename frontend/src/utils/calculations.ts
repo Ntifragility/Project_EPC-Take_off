@@ -49,7 +49,8 @@ export function isPrimaryMaterial(desc: string): boolean {
     'SOLDADURA VS',
     'SOLDADURA X 4/0',
     'TERMINAL DE COBRE 5/8"X48" MODELO',
-    'VARILLA COPPERWELD 3/4"X2.4M'
+    'VARILLA COPPERWELD 3/4"X2.4M',
+    'RIEL PREFORMADO STRUT'
   ];
   if (up.includes('TUBERIA') || up.includes('TUBERÍA')) return true;
   if (up.startsWith('CABLE DESNUDO') || up.startsWith('CABLE AISLADO')) return true;
@@ -68,6 +69,7 @@ export function getPItemPriority(desc: string): number {
   if (up.includes('JUMPER') || up.includes('AISLADO')) return 3;
   if (up.includes('CABLE')) return 1;
   if (up.includes('BARRA')) return 4;
+  if (up.includes('RIEL') || up.includes('STRUT')) return 5;
   return 10;
 }
 

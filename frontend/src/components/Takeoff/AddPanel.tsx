@@ -51,13 +51,15 @@ export const AddPanel: React.FC = () => {
   const [qty, setQty] = useState<number>(1);
   const [unit, setUnit] = useState('UND');
 
-
   const filteredRules = triggerQuery.trim()
     ? rules.filter(r => r.trigger.toLowerCase().includes(triggerQuery.toLowerCase()))
     : rules;
 
   const getRuleSubtitle = (r: TakeoffRule): string => {
     const up = r.trigger.toUpperCase();
+    if (up.includes('001/2B-X1') || up.includes('001/2B')) {
+      return 'Riel Strut variable según ancho (900/600/450/300 mm) + 3 accesorios';
+    }
     if (activeArea === 'AREA HUMEDA') {
       if (up.includes('BARRA POT')) {
         return '2 a 3 ítems según detalle (010/17A o 010/17B)';
@@ -90,11 +92,16 @@ export const AddPanel: React.FC = () => {
     const isCableRule =
       upTrigger.includes('CABLE DESNUDO 4/0 AWG') || upTrigger.includes('CABLE DESNUDO 2/0 AWG');
     const isBarraRule = upTrigger.includes('BARRA');
+    const isCableTrayRule =
+      rule.id === 'r-001-2b-x1' ||
+      rule.id === 'r-001-2b-x1-can' ||
+      upTrigger.includes('001/2B-X1');
     const isMultiInstanceRule =
       upTrigger.includes('SOLDADURA') ||
       upTrigger.includes('POZO') ||
       isCableRule ||
       isBarraRule ||
+      isCableTrayRule ||
       section === 'canalizado';
 
     if (isMultiInstanceRule) {
@@ -134,8 +141,27 @@ export const AddPanel: React.FC = () => {
     let numSoportes = 1;
     let numJumpers = 1;
     let jumperPrompted = false;
+    let cableTrayWidth = '600 mm';
 
-    if (section === 'canalizado') {
+    if (
+      rule.id === 'r-001-2b-x1' ||
+      rule.id === 'r-001-2b-x1-can' ||
+      upTrigger.includes('001/2B-X1') ||
+      (detalle && detalle.toUpperCase().includes('001/2B-X1'))
+    ) {
+      const widthInput = window.prompt(
+        `SELECCIONAR ANCHO DE BANDEJA / CABLE TRAY WIDTH (${rule.trigger}):\n\n` +
+        `Opciones disponibles:\n` +
+        `1. 900 mm  -> Riel Strut: 1.20 m\n` +
+        `2. 600 mm  -> Riel Strut: 0.76 m (Estándar)\n` +
+        `3. 450 mm  -> Riel Strut: 0.61 m\n` +
+        `4. 300 mm  -> Riel Strut: 0.46 m\n\n` +
+        `Ingresa el ancho (900, 600, 450, 300 o 1, 2, 3, 4):`,
+        '600 mm'
+      );
+      if (widthInput === null) return;
+      cableTrayWidth = widthInput.trim() || '600 mm';
+    } else if (section === 'canalizado') {
       detalle = rule.trigger.replace(/^DETALLE\s+/i, '').trim();
     } else if (upTrigger.includes('SOLDADURA T 4/0 -2/0') || upTrigger.includes('SOLDADURA T 4/0-2/0')) {
       if (activeArea === 'AREA HUMEDA') {
@@ -264,7 +290,7 @@ export const AddPanel: React.FC = () => {
       if (isNaN(numJumpers) || numJumpers < 1) numJumpers = 1;
     }
 
-    applyTriggerRule(ruleId, numInstances, baseTagPlano, detalle, numSoportes, numJumpers);
+    applyTriggerRule(ruleId, numInstances, baseTagPlano, detalle, numSoportes, numJumpers, cableTrayWidth);
     setTriggerQuery('');
     setDropdownOpen(false);
   };

@@ -425,6 +425,56 @@ export const ALL_BARRA_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = 
   ...BARRA_INST_VARIANTS_HUMEDA
 };
 
+export const CABLE_TRAY_WIDTHS = ['900 mm', '600 mm', '450 mm', '300 mm'] as const;
+
+export const DETALLE_001_2B_X1_ITEMS = [
+  {
+    desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316',
+    unit: 'm',
+    material: 'P' as const,
+    lengths: {
+      '900 mm': 1.20,
+      '600 mm': 0.76,
+      '450 mm': 0.61,
+      '300 mm': 0.46
+    }
+  },
+  {
+    desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316',
+    unit: 'und',
+    material: 'C' as const,
+    qty: 2
+  },
+  {
+    desc: 'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316',
+    unit: 'und',
+    material: 'C' as const,
+    qty: 2
+  },
+  {
+    desc: 'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316',
+    unit: 'und',
+    material: 'C' as const,
+    qty: 2
+  }
+];
+
+export function getCableTrayStrutLength(width: string): number {
+  const clean = (width || '').toString().toLowerCase().replace('mm', '').trim();
+  if (clean === '900' || clean === '1') return 1.20;
+  if (clean === '600' || clean === '2') return 0.76;
+  if (clean === '450' || clean === '3') return 0.61;
+  if (clean === '300' || clean === '4') return 0.46;
+  const num = parseFloat(clean);
+  if (!isNaN(num)) {
+    if (num >= 900) return 1.20;
+    if (num >= 600) return 0.76;
+    if (num >= 450) return 0.61;
+    return 0.46;
+  }
+  return 0.76;
+}
+
 export const R2_SWAPPABLE: string[] = [
   'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV',
   'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
@@ -460,7 +510,11 @@ export const R2_SWAPPABLE: string[] = [
   'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN',
   'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT',
   'CABLE AISLADO 2/0 AWG THHN (JUMPER)',
-  'CABLE AISLADO 2/0 AWG THHN'
+  'CABLE AISLADO 2/0 AWG THHN',
+  'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316',
+  'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316',
+  'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316',
+  'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316'
 ];
 
 export const AVAILABLE_CUSTOM_ITEMS: string[] = R2_SWAPPABLE;
