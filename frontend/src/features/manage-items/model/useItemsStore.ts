@@ -411,8 +411,10 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
           return upd;
         }
 
-        // Synchronize companion sibling items in the same rule group
+        // A change on the principal rewrites the shared fields of its components.
+        // A direct edit of a consumable (PLANO fill) stays on that row.
         if (
+          target.material === 'P' &&
           it.ruleId &&
           it.ruleId === target.ruleId &&
           it.pkgId === target.pkgId &&

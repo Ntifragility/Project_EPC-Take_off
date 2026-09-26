@@ -167,11 +167,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
   position: sticky;
   top: 0;
   z-index: 100;
   height: 48px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+  flex-wrap: nowrap;
+  height: 48px;
 }
 
 .logo {
@@ -408,11 +418,21 @@ button {
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
+  position: relative;
+}
+
+.takeoff-layout.is-sidebar-collapsed {
+  grid-template-columns: 0px minmax(0, 1fr);
+  gap: 0;
 }
 
 @media (max-width: 1100px) {
   .takeoff-layout {
     grid-template-columns: 1fr;
+  }
+
+  .takeoff-layout.is-sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -596,8 +616,18 @@ body:not(.light-theme):not(.light-mode) .pkg-header {
 }
 
 .pkg-body {
+  overflow: visible;
+}
+
+.takeoff-table-wrapper {
+  width: 100%;
+  min-width: 0;
+}
+
+.takeoff-table-scroll-container {
+  width: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
 }
 
 table.takeoff-table {
@@ -621,19 +651,40 @@ col.c-q { width: 75px; }
 col.c-mo { width: 80px; }
 col.c-u { width: 90px; }
 
-/* Sticky Freeze Panes */
-.takeoff-table th:nth-child(1), .takeoff-table td:nth-child(1) { position: sticky; left: 0; z-index: 10; background: inherit; }
-.takeoff-table th:nth-child(2), .takeoff-table td:nth-child(2) { position: sticky; left: 90px; z-index: 10; background: inherit; }
-.takeoff-table th:nth-child(3), .takeoff-table td:nth-child(3) { position: sticky; left: 132px; z-index: 10; background: inherit; }
-.takeoff-table th:nth-child(4), .takeoff-table td:nth-child(4) { position: sticky; left: 172px; z-index: 10; background: inherit; }
-.takeoff-table th:nth-child(5), .takeoff-table td:nth-child(5) { position: sticky; left: 372px; z-index: 10; background: inherit; }
-.takeoff-table th:nth-child(6), .takeoff-table td:nth-child(6) { position: sticky; left: 416px; z-index: 10; background: inherit; }
-.takeoff-table th:nth-child(7), .takeoff-table td:nth-child(7) { 
-  position: sticky; 
-  left: 556px; 
-  z-index: 10; 
-  background: inherit; 
-  border-right: 2px solid #107c41 !important; /* Excel Freeze Line indicator */
+/* Sticky freeze panes. Offsets follow the live column widths. */
+.takeoff-table th:nth-child(1), .takeoff-table td:nth-child(1) { position: sticky; left: var(--freeze-1, 0px); z-index: 10; background: var(--s1); }
+.takeoff-table th:nth-child(2), .takeoff-table td:nth-child(2) { position: sticky; left: var(--freeze-2, 85px); z-index: 10; background: var(--s1); }
+.takeoff-table th:nth-child(3), .takeoff-table td:nth-child(3) { position: sticky; left: var(--freeze-3, 125px); z-index: 10; background: var(--s1); }
+.takeoff-table th:nth-child(4), .takeoff-table td:nth-child(4) { position: sticky; left: var(--freeze-4, 173px); z-index: 10; background: var(--s1); }
+.takeoff-table th:nth-child(5), .takeoff-table td:nth-child(5) { position: sticky; left: var(--freeze-5, 313px); z-index: 10; background: var(--s1); }
+.takeoff-table th:nth-child(6), .takeoff-table td:nth-child(6) { position: sticky; left: var(--freeze-6, 363px); z-index: 10; background: var(--s1); }
+.takeoff-table th:nth-child(7), .takeoff-table td:nth-child(7) {
+  position: sticky;
+  left: var(--freeze-7, 513px);
+  z-index: 10;
+  background: var(--s1);
+  border-right: 2px solid #107c41 !important;
+}
+
+.takeoff-table.is-narrow th:nth-child(n+4),
+.takeoff-table.is-narrow td:nth-child(n+4) {
+  position: static;
+  left: auto;
+  z-index: auto;
+}
+
+.takeoff-table.is-narrow tbody td.excel-cell:nth-child(n+4) {
+  position: relative;
+}
+
+.takeoff-table.is-narrow th:nth-child(7),
+.takeoff-table.is-narrow td:nth-child(7) {
+  border-right: 1px solid var(--b1) !important;
+}
+
+.takeoff-table.is-narrow th:nth-child(3),
+.takeoff-table.is-narrow td:nth-child(3) {
+  border-right: 2px solid #107c41 !important;
 }
 
 .takeoff-table thead th:nth-child(-n+7) {
@@ -1014,24 +1065,36 @@ tr.tr-edit td {
   background-color: var(--accent-subtle, rgba(16, 124, 65, 0.05));
 }
 
-.excel-cell.is-selected {
+.takeoff-table tbody td.excel-cell.is-selected {
   outline: 2px solid var(--excel-green, #107c41);
   outline-offset: -1px;
   background-color: var(--accent-dim, rgba(16, 124, 65, 0.08)) !important;
-  z-index: 5;
+  z-index: 15;
 }
 
 .excel-fill-handle {
   position: absolute;
-  bottom: -3px;
-  right: -3px;
-  width: 7px;
-  height: 7px;
+  bottom: -5px;
+  right: -5px;
+  width: 9px;
+  height: 9px;
   background-color: var(--excel-green, #107c41);
   border: 1px solid #ffffff;
   cursor: crosshair !important;
-  z-index: 12;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+  touch-action: none;
+}
+
+.excel-fill-handle::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+body.is-fill-dragging,
+body.is-fill-dragging * {
+  cursor: crosshair !important;
+  user-select: none !important;
 }
 
 .excel-cell-fill-target {
@@ -1066,14 +1129,6 @@ tr.tr-edit td {
    Collapsible Floating Metadatos / Sidebar Drawer
    ========================================================================== */
 
-.takeoff-layout {
-  display: flex;
-  gap: 12px;
-  position: relative;
-  align-items: flex-start;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 .takeoff-sidebar-drawer {
   width: 320px;
   min-width: 320px;
@@ -1085,10 +1140,21 @@ tr.tr-edit td {
 .takeoff-sidebar-drawer.is-collapsed {
   width: 0px;
   min-width: 0px;
+  height: 0;
+  min-height: 0;
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
-  margin-right: -12px;
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .takeoff-sidebar-drawer:not(.is-collapsed) {
+    width: 100%;
+    min-width: 0;
+    max-height: 40vh;
+    overflow: auto;
+  }
 }
 
 .takeoff-content-expanded {

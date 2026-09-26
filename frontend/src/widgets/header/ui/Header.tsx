@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      <div className="header-left">
         <div className="logo">
           EPC TAKEOFF
         </div>

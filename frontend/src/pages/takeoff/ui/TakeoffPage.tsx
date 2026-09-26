@@ -73,7 +73,7 @@ export const TakeoffPage: React.FC = () => {
   }
 
   return (
-    <div className="takeoff-layout">
+    <div className={`takeoff-layout${isSidebarCollapsed ? ' is-sidebar-collapsed' : ''}`}>
       {/* Collapsible Sidebar Drawer */}
       <aside className={`takeoff-sidebar-drawer ${isSidebarCollapsed ? 'is-collapsed' : ''}`}>
         <AddPanel onCollapseSidebar={toggleSidebar} />

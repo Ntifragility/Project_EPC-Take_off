@@ -329,6 +329,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   }
 
   const isMainItem = item.material === 'P';
+  const canInteract = (colKey: string) => isMainItem || colKey === 'plano';
 
   // Excel-like Cell Renderer
   const renderCell = (
@@ -338,14 +339,17 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
     customStyle: React.CSSProperties = {}
   ) => {
     const isSelected = selectedColKey === colKey;
-    const isEditingThisCell = isMainItem && editingColKey === colKey;
-    const isTarget = isFillTarget;
+    const editable = canInteract(colKey);
+    const isEditingThisCell = editable && editingColKey === colKey;
+    const isTarget = isFillTarget && (isMainItem || colKey === 'plano');
+    const dragValue = colKey === 'plano' ? (item.plano || '') : value;
 
-    // Consumables are read-only and derived from the main item
-    const cellTitle = !isMainItem
-      ? 'Consumible derivado: Calculado automáticamente por el ítem principal y su detalle constructivo'
+    const cellTitle = !editable
+      ? 'Consumible derivado: se actualiza desde el ítem principal'
+      : !isMainItem
+      ? 'PLANO se puede editar y arrastrar. El resto del consumible sigue al ítem principal'
       : isSelected
-      ? 'Doble clic para editar directamente o arrastra la esquina inferior derecha'
+      ? 'Doble clic para editar, o arrastra la esquina para copiar hacia abajo'
       : 'Clic para seleccionar, doble clic para editar';
 
     return (
@@ -357,17 +361,17 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
         data-material={item.material}
         title={cellTitle}
         onClick={() => {
-          if (isMainItem) {
-            onSelectCell?.(colKey, value);
+          if (editable) {
+            onSelectCell?.(colKey, dragValue);
           }
         }}
         onDoubleClick={() => {
-          if (isMainItem) {
+          if (editable) {
             onStartInlineEdit?.(colKey);
           }
         }}
         onMouseEnter={() => {
-          if (isMainItem) {
+          if (editable || isFillTarget) {
             onCellMouseEnter?.(colKey);
           }
         }}
@@ -390,14 +394,25 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
           <span>{value || (colKey === 'plano' ? '—' : '')}</span>
         )}
 
-        {isMainItem && isSelected && !isEditingThisCell && onStartFillDrag && (
+        {editable && isSelected && !isEditingThisCell && onStartFillDrag && (
           <div
             className="excel-fill-handle"
-            title="Arrastra esta esquina hacia abajo para copiar el valor a los demás ítems principales"
+            role="button"
+            aria-label={
+              colKey === 'plano'
+                ? 'Arrastrar plano hacia otras filas'
+                : 'Arrastrar valor hacia ítems principales'
+            }
+            title={
+              colKey === 'plano'
+                ? 'Arrastra para copiar el plano hacia abajo, incluyendo consumibles'
+                : 'Arrastra para copiar el valor a los ítems principales de abajo'
+            }
+            onDragStart={e => e.preventDefault()}
             onMouseDown={e => {
               e.preventDefault();
               e.stopPropagation();
-              onStartFillDrag(colKey, value, e);
+              onStartFillDrag(colKey, dragValue, e);
             }}
           />
         )}
@@ -449,7 +464,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
           if (isMainItem) onStartInlineEdit?.('unit');
         }}
         onMouseEnter={() => {
-          if (isMainItem) onCellMouseEnter?.('unit');
+          if (isMainItem || isFillTarget) onCellMouseEnter?.('unit');
         }}
       >
         {isMainItem && editingColKey === 'unit' ? (
@@ -473,7 +488,10 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
         {isMainItem && selectedColKey === 'unit' && editingColKey !== 'unit' && onStartFillDrag && (
           <div
             className="excel-fill-handle"
+            role="button"
+            aria-label="Arrastrar unidad hacia ítems principales"
             title="Arrastra para copiar hacia abajo"
+            onDragStart={e => e.preventDefault()}
             onMouseDown={e => {
               e.preventDefault();
               e.stopPropagation();

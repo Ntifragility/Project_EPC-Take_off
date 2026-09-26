@@ -25,6 +25,35 @@ const DEFAULT_COL_WIDTHS: Record<string, number> = {
   unit: 75
 };
 
+const FREEZE_KEYS = ['partida', 'num', 'mat', 'plano', 'rev', 'tagUnico', 'tagPlano'] as const;
+
+function idsInFillRange(
+  rows: TakeoffItem[],
+  sourceId: string,
+  targetId: string,
+  colKey: string
+): string[] {
+  const sourceIdx = rows.findIndex(i => i.id === sourceId);
+  const targetIdx = rows.findIndex(i => i.id === targetId);
+  if (sourceIdx === -1 || targetIdx === -1 || targetIdx === sourceIdx) return [];
+  const start = Math.min(sourceIdx, targetIdx);
+  const end = Math.max(sourceIdx, targetIdx);
+  const slice = rows.slice(start, end + 1).filter(it => it.id !== sourceId);
+  if (colKey === 'plano') return slice.map(i => i.id);
+  return slice.filter(it => it.material === 'P').map(i => i.id);
+}
+
+function rowInSourceColumn(clientY: number, colKey: string): string | null {
+  const cells = document.querySelectorAll(`td[data-col-key="${colKey}"]`);
+  for (const td of cells) {
+    const rect = td.getBoundingClientRect();
+    if (clientY >= rect.top && clientY <= rect.bottom) {
+      return td.getAttribute('data-item-id');
+    }
+  }
+  return null;
+}
+
 export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   const {
     items: allItems,
@@ -57,6 +86,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   });
 
   const resizingRef = useRef<{ colKey: string; startX: number; startWidth: number } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [narrowFreeze, setNarrowFreeze] = useState(false);
 
   const handleStartResize = (colKey: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -159,87 +190,115 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   const endIndex = isPaginated ? Math.min(startIndex + pageSize, totalItems) : totalItems;
   const visibleItems = displayedItems.slice(startIndex, endIndex);
 
+  const fillSessionRef = useRef(dragFill);
+  const visibleItemsRef = useRef(visibleItems);
+  visibleItemsRef.current = visibleItems;
+  const batchUpdateRef = useRef(batchUpdateField);
+  const showToastRef = useRef(showToast);
+  const sectionRef = useRef(section);
+  batchUpdateRef.current = batchUpdateField;
+  showToastRef.current = showToast;
+  sectionRef.current = section;
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => dragCleanupRef.current?.(), []);
+
+  const sameIds = (a: string[], b: string[]) => a.length === b.length && a.every((id, i) => id === b[i]);
+
+  const applyFillHover = (itemId: string, colKey: string) => {
+    const session = fillSessionRef.current;
+    if (!session.isDragging || session.colKey !== colKey) return;
+    const targetIds = idsInFillRange(visibleItemsRef.current, session.sourceItemId, itemId, session.colKey);
+    if (sameIds(session.targetItemIds, targetIds)) return;
+    const next = { ...session, targetItemIds: targetIds };
+    fillSessionRef.current = next;
+    setDragFill(next);
+  };
+
+  const finishFillDrag = () => {
+    dragCleanupRef.current?.();
+    dragCleanupRef.current = null;
+    document.body.classList.remove('is-fill-dragging');
+    const session = fillSessionRef.current;
+    if (session.isDragging && session.targetItemIds.length > 0) {
+      batchUpdateRef.current(
+        session.targetItemIds,
+        session.colKey as keyof TakeoffItem,
+        session.sourceValue,
+        sectionRef.current
+      );
+      const noun = session.colKey === 'plano' ? 'fila(s)' : 'ítem(s) principal(es)';
+      showToastRef.current(
+        `Copiado "${session.sourceValue ?? ''}" a ${session.targetItemIds.length} ${noun}`,
+        'info'
+      );
+    }
+    const cleared = {
+      isDragging: false,
+      sourceItemId: '',
+      colKey: '',
+      sourceValue: null,
+      targetItemIds: [] as string[]
+    };
+    fillSessionRef.current = cleared;
+    setDragFill(cleared);
+  };
+
   const handleStartFillDrag = (itemId: string, colKey: string, sourceValue: any, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragFill({
+    dragCleanupRef.current?.();
+
+    const next = {
       isDragging: true,
       sourceItemId: itemId,
       colKey,
       sourceValue,
-      targetItemIds: []
-    });
+      targetItemIds: [] as string[]
+    };
+    fillSessionRef.current = next;
+    setDragFill(next);
+    document.body.classList.add('is-fill-dragging');
+
+    const onMove = (ev: MouseEvent) => {
+      const session = fillSessionRef.current;
+      if (!session.isDragging) return;
+      const hoveredItemId = rowInSourceColumn(ev.clientY, session.colKey);
+      if (!hoveredItemId) return;
+      applyFillHover(hoveredItemId, session.colKey);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', finishFillDrag);
+    dragCleanupRef.current = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', finishFillDrag);
+    };
   };
 
   const handleCellMouseEnter = (itemId: string, colKey: string) => {
-    if (!dragFill.isDragging || dragFill.colKey !== colKey) return;
-    const sourceIdx = visibleItems.findIndex(i => i.id === dragFill.sourceItemId);
-    const targetIdx = visibleItems.findIndex(i => i.id === itemId);
-    if (sourceIdx === -1 || targetIdx === -1) return;
-
-    if (targetIdx > sourceIdx) {
-      const targetSlice = visibleItems.slice(sourceIdx + 1, targetIdx + 1);
-      const targetIds = targetSlice.filter(it => it.material === 'P').map(i => i.id);
-      setDragFill(prev => ({ ...prev, targetItemIds: targetIds }));
-    } else {
-      setDragFill(prev => ({ ...prev, targetItemIds: [] }));
-    }
+    applyFillHover(itemId, colKey);
   };
 
   useEffect(() => {
-    if (!dragFill.isDragging) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setNarrowFreeze(el.clientWidth < 1100);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      if (!el) return;
-      const td = el.closest('td[data-item-id]');
-      if (!td) return;
-
-      const hoveredItemId = td.getAttribute('data-item-id');
-      if (!hoveredItemId) return;
-
-      const sourceIdx = visibleItems.findIndex(i => i.id === dragFill.sourceItemId);
-      const targetIdx = visibleItems.findIndex(i => i.id === hoveredItemId);
-      if (sourceIdx === -1 || targetIdx === -1) return;
-
-      if (targetIdx > sourceIdx) {
-        const targetSlice = visibleItems.slice(sourceIdx + 1, targetIdx + 1);
-        const targetIds = targetSlice.filter(it => it.material === 'P').map(i => i.id);
-        setDragFill(prev => ({ ...prev, targetItemIds: targetIds }));
-      } else {
-        setDragFill(prev => ({ ...prev, targetItemIds: [] }));
-      }
-    };
-
-    const handleGlobalMouseUp = () => {
-      if (dragFill.targetItemIds.length > 0) {
-        batchUpdateField(
-          dragFill.targetItemIds,
-          dragFill.colKey as keyof TakeoffItem,
-          dragFill.sourceValue,
-          section
-        );
-        showToast(
-          `Copiado "${dragFill.sourceValue ?? ''}" a ${dragFill.targetItemIds.length} ítem(s) principal(es) y actualizados sus consumibles`,
-          'info'
-        );
-      }
-      setDragFill({
-        isDragging: false,
-        sourceItemId: '',
-        colKey: '',
-        sourceValue: null,
-        targetItemIds: []
-      });
-    };
-
-    window.addEventListener('mousemove', handleGlobalMouseMove);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleGlobalMouseMove);
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, [dragFill.isDragging, dragFill.sourceItemId, dragFill.colKey, dragFill.sourceValue, dragFill.targetItemIds, visibleItems, batchUpdateField, section, showToast]);
+  const freezeVars = useMemo(() => {
+    let offset = 0;
+    const vars: Record<string, string> = {};
+    FREEZE_KEYS.forEach((key, index) => {
+      vars[`--freeze-${index + 1}`] = `${offset}px`;
+      offset += colWidths[key] || DEFAULT_COL_WIDTHS[key];
+    });
+    return vars;
+  }, [colWidths]);
 
   const handleSaveInlineCell = (itemId: string, colKey: string, newValue: any) => {
     setEditingCell(null);
@@ -502,8 +561,11 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         )}
       </div>
 
-      <div className="takeoff-table-scroll-container">
-        <table className="takeoff-table">
+      <div className="takeoff-table-scroll-container" ref={scrollRef}>
+        <table
+          className={`takeoff-table${narrowFreeze ? ' is-narrow' : ''}`}
+          style={freezeVars as React.CSSProperties}
+        >
           <TakeoffTableHeader
             filterPlano={filterPlano}
             setFilterPlano={setFilterPlano}
