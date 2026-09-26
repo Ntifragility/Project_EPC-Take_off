@@ -8,6 +8,7 @@ export interface RuleEditorModalProps {
   isNew: boolean;
   onClose: () => void;
   onSave: (rule: TakeoffRule, isNew: boolean) => void;
+  onDelete?: (id: string) => void;
 }
 
 export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
@@ -15,7 +16,8 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   initialRule,
   isNew,
   onClose,
-  onSave
+  onSave,
+  onDelete
 }) => {
   const [trigger, setTrigger] = useState('');
   const [subitems, setSubitems] = useState<RuleSubitem[]>([]);
@@ -59,6 +61,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
     const cleanTrigger = trigger.trim().toUpperCase();
     if (!cleanTrigger) return;
     const rule: TakeoffRule = {
+      ...initialRule,
       id: initialRule?.id || uid(),
       trigger: cleanTrigger,
       subitems
@@ -158,13 +161,42 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
           </div>
         </div>
 
-        <div className="modal-ft">
-          <button className="btn-ghost" onClick={onClose}>
-            CANCELAR
-          </button>
-          <button className="btn-primary" id="modal-save" onClick={handleSave}>
-            GUARDAR REGLA
-          </button>
+        <div className="modal-ft" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {!isNew && initialRule && onDelete ? (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                if (window.confirm(`¿Estás seguro de que deseas eliminar completamente la regla "${initialRule.trigger}"?`)) {
+                  onDelete(initialRule.id);
+                  onClose();
+                }
+              }}
+              style={{
+                fontSize: '11px',
+                padding: '6px 14px',
+                fontWeight: 700,
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderColor: '#ef4444',
+                color: '#ef4444',
+                cursor: 'pointer'
+              }}
+              title="Elimina esta regla completa del catálogo y de la base de datos"
+            >
+              🗑️ ELIMINAR ESTA REGLA COMPLETA
+            </button>
+          ) : (
+            <div />
+          )}
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn-ghost" onClick={onClose} style={{ fontSize: '11px', padding: '6px 16px' }}>
+              CANCELAR
+            </button>
+            <button className="btn-primary" id="modal-save" onClick={handleSave} style={{ fontSize: '11px', padding: '6px 20px', fontWeight: 700 }}>
+              GUARDAR REGLA
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -64,38 +64,25 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Active Area Selector Badge */}
         <button
           onClick={onOpenAreaModal}
+          className="btn-ghost"
           title="Haga clic para alternar entre Área Seca y Área Húmeda"
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '5px 12px',
-            fontSize: '11px',
-            fontFamily: 'var(--mo)',
+            gap: '6px',
+            padding: '4px 10px',
+            fontSize: '11.5px',
             fontWeight: 600,
-            borderRadius: '6px',
-            border: '1px solid var(--b1)',
-            background: 'var(--s2)',
-            color: 'var(--tx)',
-            cursor: 'pointer',
-            letterSpacing: '0.5px',
-            transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-            width: '140px',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx)';
-            (e.currentTarget as HTMLElement).style.background = 'var(--s3)';
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--b1)';
-            (e.currentTarget as HTMLElement).style.background = 'var(--s2)';
+            background: 'rgba(255, 255, 255, 0.15)',
+            color: '#ffffff',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '2px',
+            cursor: 'pointer'
           }}
         >
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--tx)', display: 'inline-block' }} />
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ffffff', display: 'inline-block' }} />
           <span>{activeArea === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'}</span>
-          <span style={{ fontSize: '9px', opacity: 0.6 }}>▼</span>
+          <span style={{ fontSize: '8px', opacity: 0.8, marginLeft: '2px' }}>▼</span>
         </button>
 
         <nav className="nav">
@@ -119,14 +106,12 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             className="nav-tab"
-            style={{ color: 'var(--mu)', fontStyle: 'normal' }}
             onClick={onOpenSummaryModal}
           >
             RESUMEN MAT
           </button>
           <button
             className="nav-tab"
-            style={{ color: 'var(--am, #eab308)', fontStyle: 'normal', fontWeight: 600 }}
             onClick={onOpenTagSummaryModal}
             title="Ver tabla resumen 6 columnas (TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES)"
           >
@@ -138,53 +123,29 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="header-right">
         <button
           className="btn-icon"
-          style={{
-            fontSize: '11px',
-            fontWeight: 600,
-            padding: '5px 10px',
-            fontFamily: 'var(--mo)',
-            width: '56px',
-            minWidth: '56px',
-            maxWidth: '56px',
-            textAlign: 'center',
-            flexShrink: 0
-          }}
           onClick={toggleTheme}
           id="theme-btn"
-          title="Toggle Dark/Light Theme"
+          title="Alternar tema Claro / Oscuro"
         >
-          {theme === 'light' ? 'DARK' : 'LIGHT'}
+          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
         </button>
 
         <button
           className="btn-ghost"
-          style={{
-            padding: '5px 10px',
-            fontSize: '11px',
-            width: '115px',
-            minWidth: '115px',
-            maxWidth: '115px',
-            textAlign: 'center',
-            flexShrink: 0
-          }}
           onClick={handleClear}
           title="Limpiar Datos Locales de la Pantalla"
         >
-          LIMPIAR DATA
+          Limpiar Data
         </button>
 
         <button
           className="btn-primary"
           style={{
-            padding: '5px 12px',
-            fontSize: '11px',
+            background: '#ffffff',
+            color: '#107c41',
+            fontWeight: 700,
             opacity: isSyncing ? 0.7 : 1,
-            cursor: isSyncing ? 'wait' : 'pointer',
-            width: '135px',
-            minWidth: '135px',
-            maxWidth: '135px',
-            textAlign: 'center',
-            flexShrink: 0
+            cursor: isSyncing ? 'wait' : 'pointer'
           }}
           onClick={() => executeSyncToDatabase()}
           disabled={isSyncing}
@@ -194,25 +155,20 @@ export const Header: React.FC<HeaderProps> = ({
               : 'Configura VITE_SUPABASE_URL en .env para guardar directamente en BD'
           }
         >
-          {isSyncing ? 'SINCRONIZANDO...' : 'GUARDAR EN BD'}
+          {isSyncing ? 'Sincronizando...' : '💾 Guardar en BD'}
         </button>
 
         <span
           style={{
             fontSize: '11px',
             fontFamily: 'var(--mo)',
-            color: 'var(--mu)',
-            background: 'var(--s2)',
-            border: '1px solid var(--b1)',
-            padding: '3px 8px',
-            borderRadius: '4px',
-            whiteSpace: 'nowrap',
-            display: 'inline-block',
-            width: '110px',
-            minWidth: '110px',
-            maxWidth: '110px',
-            textAlign: 'center',
-            flexShrink: 0
+            color: '#ffffff',
+            background: 'rgba(0, 0, 0, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            padding: '4px 8px',
+            borderRadius: '2px',
+            fontWeight: 600,
+            whiteSpace: 'nowrap'
           }}
           id="item-count"
         >
@@ -221,35 +177,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           className="btn-export"
-          style={{
-            width: '125px',
-            minWidth: '125px',
-            maxWidth: '125px',
-            textAlign: 'center',
-            flexShrink: 0
-          }}
           onClick={handleExport}
           title="Exportar la tabla completa de metrado a Excel"
         >
-          EXPORTAR EXCEL
+          📥 Exportar Excel
         </button>
 
         <button
           className="btn-export"
-          style={{
-            width: '125px',
-            minWidth: '125px',
-            maxWidth: '125px',
-            textAlign: 'center',
-            flexShrink: 0,
-            background: 'var(--s3)',
-            border: '1px solid var(--b1)',
-            color: 'var(--am, #eab308)'
-          }}
           onClick={() => exportTagSummaryExcel(items)}
           title="Exportar tabla resumen 6 columnas (TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES) a Excel"
         >
-          RESUMEN EXCEL
+          📊 Resumen Excel
         </button>
       </div>
     </header>

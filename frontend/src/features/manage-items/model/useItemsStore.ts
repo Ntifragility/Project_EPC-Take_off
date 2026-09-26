@@ -6,7 +6,7 @@ import { loadStoredItems, saveStoredItems, loadStoredPartidas } from '../../../s
 import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico, assignTagUnicoSuffixes } from '../../../entities/takeoff-item/model/tagGenerator';
 import { isPrimaryMaterial } from '../../../entities/takeoff-item/model/materialClassifier';
-import { applyDetalleVariant } from '../../../entities/takeoff-rule/model/ruleExpander';
+import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../../entities/takeoff-rule/model/ruleExpander';
 import { findMatchingPartidaItem, correlateItemsWithPartidas } from '../../../entities/partida/model/partidaMatcher';
 import { DEFAULT_PLANO, DEFAULT_REV, STORAGE_KEYS } from '../../../shared/config/constants';
 
@@ -36,6 +36,12 @@ export interface ItemsActions {
   updateItem: (
     id: string,
     updates: Partial<TakeoffItem> & { numSoportes?: number; numJumpers?: number },
+    section: SectionType
+  ) => void;
+  batchUpdateField: (
+    itemIds: string[],
+    field: keyof TakeoffItem,
+    value: any,
     section: SectionType
   ) => void;
   deleteItem: (id: string, section: SectionType) => void;
@@ -169,7 +175,11 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
         oldItem.ruleId === 'r6' ||
         oldItem.ruleId === 'r7' ||
         oldItem.ruleId === 'r8' ||
-        oldItem.ruleId === 'r9');
+        oldItem.ruleId === 'r9' ||
+        oldItem.ruleId === 'r-001-2b-x1' ||
+        oldItem.ruleId === 'r-001-2b-x1-can' ||
+        oldItem.ruleId.includes('001-2b') ||
+        oldItem.ruleId.includes('001/2b'));
 
     let updated = items.map(it => {
       if (it.id === id) {
@@ -178,14 +188,26 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
         const appliedRev = updates.rev !== undefined ? updates.rev : it.rev;
         const appliedDetalle = updates.detalle !== undefined ? updates.detalle : it.detalle;
         const appliedMaterial = updates.material !== undefined ? updates.material : it.material;
+        const appliedMetradoOt = updates.metradoOt !== undefined ? updates.metradoOt : it.metradoOt;
         const appliedTagUnico =
           appliedMaterial === 'P'
             ? generateTagUnico(appliedPlano, appliedTagPlano, 'P')
             : '';
 
+        let finalQty = updates.qty !== undefined ? updates.qty : it.qty;
+        // Keep qty in sync with metradoOt if it's a strut or primary material in cable tray
+        if (updates.metradoOt !== undefined && (it.desc.toUpperCase().includes('RIEL') || it.desc.toUpperCase().includes('STRUT'))) {
+          const parsed = parseFloat(String(appliedMetradoOt).replace(',', '.'));
+          if (!isNaN(parsed)) {
+            finalQty = parsed;
+          }
+        }
+
         return {
           ...it,
           ...updates,
+          qty: finalQty,
+          metradoOt: appliedMetradoOt,
           tagPlano: appliedTagPlano,
           plano: appliedPlano,
           rev: appliedRev,
@@ -314,6 +336,20 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       });
     }
 
+    // Check DETALLE modification on BARRA (r8 / r9 / BARRA)
+    if (
+      updates.detalle !== undefined &&
+      (target.ruleId === 'r8' || target.ruleId === 'r9' || target.desc.toUpperCase().includes('BARRA'))
+    ) {
+      updated = applyBarraPotDetalleVariant(
+        updated,
+        target.tagPlano,
+        target.pkgId,
+        target.detalle,
+        updates.numSoportes || 1
+      );
+    }
+
     const targetTag = newTagPlano || oldTagPlano;
     if (targetTag) {
       setHighlightedTag(targetTag);
@@ -322,6 +358,127 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     const result = assignTagUnicoSuffixes(updated);
     saveStoredItems(section, result);
     set({ items: result, editingItemId: null });
+  },
+
+  batchUpdateField: (
+    itemIds: string[],
+    field: keyof TakeoffItem,
+    value: any,
+    section: SectionType
+  ) => {
+    if (!itemIds || itemIds.length === 0) return;
+    const { items, saveUndoSnapshot } = get();
+    saveUndoSnapshot();
+    const idSet = new Set(itemIds);
+
+    let currentItems = [...items];
+
+    // Process each target item
+    for (const targetId of itemIds) {
+      const target = currentItems.find(i => i.id === targetId);
+      if (!target) continue;
+
+      const oldTagPlano = (target.tagPlano || '').trim();
+      const oldPlano = (target.plano || '').trim();
+      const oldRev = (target.rev || '').trim();
+      const oldDetalle = (target.detalle || '').trim();
+
+      let newPlano = oldPlano;
+      let newRev = oldRev;
+      let newTagPlano = oldTagPlano;
+      let newDetalle = oldDetalle;
+
+      if (field === 'plano') newPlano = String(value).toUpperCase().trim();
+      if (field === 'rev') newRev = String(value).toUpperCase().trim();
+      if (field === 'tagPlano') newTagPlano = String(value).trim();
+      if (field === 'detalle') newDetalle = String(value).toUpperCase().trim();
+
+      const planoChanged = field === 'plano' && newPlano !== oldPlano;
+      const tagChanged = field === 'tagPlano' && newTagPlano !== oldTagPlano;
+      const detalleChanged = field === 'detalle' && newDetalle !== oldDetalle;
+
+      currentItems = currentItems.map(it => {
+        if (it.id === targetId) {
+          const upd: any = { ...it, [field]: value };
+          if (field === 'plano') upd.plano = newPlano;
+          if (field === 'rev') upd.rev = newRev;
+          if (field === 'tagPlano') upd.tagPlano = newTagPlano;
+          if (field === 'detalle') upd.detalle = newDetalle;
+          if (field === 'material') upd.material = value as MaterialType;
+          if (field === 'metradoOt') upd.metradoOt = value;
+
+          upd.tagUnico = upd.material === 'P' ? generateTagUnico(upd.plano, upd.tagPlano, 'P') : '';
+          return upd;
+        }
+
+        // Synchronize companion sibling items in the same rule group
+        if (
+          it.ruleId &&
+          it.ruleId === target.ruleId &&
+          it.pkgId === target.pkgId &&
+          (it.tagPlano || '').trim() === oldTagPlano
+        ) {
+          const companionPlano = planoChanged ? newPlano : it.plano;
+          const companionTagPlano = tagChanged ? newTagPlano : it.tagPlano;
+          const companionRev = newRev;
+          const companionDetalle = detalleChanged ? newDetalle : it.detalle;
+          const companionTagUnico =
+            it.material === 'P'
+              ? generateTagUnico(companionPlano, companionTagPlano, 'P')
+              : '';
+
+          return {
+            ...it,
+            plano: companionPlano,
+            tagPlano: companionTagPlano,
+            rev: companionRev,
+            detalle: companionDetalle,
+            tagUnico: companionTagUnico
+          };
+        }
+
+        return it;
+      });
+
+      // If DETALLE changed on CABLE 2/0 (r1 / r2), expand dynamic variants
+      if (field === 'detalle' && (target.ruleId === 'r1' || target.ruleId === 'r2')) {
+        const sibs = currentItems.filter(i => i.tagPlano === target.tagPlano && i.pkgId === target.pkgId);
+        const tItem = sibs.find(i => i.desc.toUpperCase().includes('TUBERIA') || i.desc.toUpperCase().includes('TUBERÍA'));
+        const cItem = sibs.find(i => i.desc.toUpperCase().includes('CABLE') && !i.desc.toUpperCase().includes('JUMPER'));
+        const tOt = tItem ? tItem.metradoOt : '';
+        const cOt = cItem ? cItem.metradoOt : '';
+        currentItems = applyDetalleVariant(
+          currentItems,
+          target.tagPlano,
+          target.pkgId,
+          newDetalle,
+          (target as any).numSoportes || 1,
+          (target as any).numJumpers || 1,
+          tOt,
+          cOt,
+          true
+        );
+      }
+
+      // If DETALLE changed on BARRA, expand dynamic variants
+      if (
+        field === 'detalle' &&
+        (target.ruleId === 'r8' || target.ruleId === 'r9' || target.desc.toUpperCase().includes('BARRA'))
+      ) {
+        currentItems = applyBarraPotDetalleVariant(
+          currentItems,
+          target.tagPlano,
+          target.pkgId,
+          newDetalle,
+          (target as any).numSoportes || 1,
+          true
+        );
+      }
+    }
+
+    const result = assignTagUnicoSuffixes(currentItems);
+    saveStoredItems(section, result);
+    set({ items: result });
   },
 
   deleteItem: (id: string, section: SectionType) => {

@@ -4,13 +4,14 @@ import { AreaType, SectionType } from '../../../shared/types/common';
 import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico, getSequentialTag, assignTagUnicoSuffixes } from '../../../entities/takeoff-item/model/tagGenerator';
 import { isPrimaryMaterial } from '../../../entities/takeoff-item/model/materialClassifier';
-import { getCableTrayStrutLength } from '../../../entities/takeoff-rule/model/cableTrayRules';
+import { DEFAULT_CABLE_TRAY_MATRIX, getCableTrayMatrixValue } from '../../../entities/takeoff-rule/model/cableTrayRules';
 import { getCalculatedVariantItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../../entities/takeoff-rule/model/ruleExpander';
 import { correlateItemsWithPartidas } from '../../../entities/partida/model/partidaMatcher';
 import { useItemsStore } from '../../manage-items/model/useItemsStore';
 import { usePackagesStore } from '../../manage-packages/model/usePackagesStore';
 import { usePartidasStore } from '../../manage-partidas/model/usePartidasStore';
+import { useRulesStore } from '../../manage-rules/model/useRulesStore';
 import { useAppStore } from '../../app-config/model/useAppStore';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 
@@ -36,54 +37,45 @@ export function executeApplyRule(
   const { activeArea, section } = useAppStore.getState();
   const { showToast } = useUIStore.getState();
 
+  // Fetch freshest rule from store if available to avoid stale closures
+  const currentRule = useRulesStore.getState().rules.find(r => r.id === rule.id) || rule;
+
   saveUndoSnapshot();
 
   const planoVal = (customPlano || '').toUpperCase();
   const revVal = (customRev || '').toUpperCase();
   const pkgId = selPkg || packages[0]?.id || 'p1';
-  const upTrigger = rule.trigger.toUpperCase();
+  const upTrigger = currentRule.trigger.toUpperCase();
   const isSoldaduraPozo = upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO');
   const isPozoTrigger = upTrigger.includes('POZO');
   const isCableTrayRule =
-    rule.id === 'r-001-2b-x1' ||
-    rule.id === 'r-001-2b-x1-can' ||
+    Boolean(currentRule.cableTrayMatrix && currentRule.cableTrayMatrix.length > 0) ||
+    currentRule.id === 'r-001-2b-x1' ||
+    currentRule.id === 'r-001-2b-x1-can' ||
     upTrigger.includes('001/2B-X1') ||
-    (detalleCode && detalleCode.toUpperCase().includes('001/2B-X1'));
+    (detalleCode && detalleCode.toUpperCase().includes('001/2B-X1')) ||
+    Boolean(currentRule.detalle && currentRule.detalle.toUpperCase().includes('001/2B-X1'));
 
   const newItems: TakeoffItem[] = [];
 
   if (isCableTrayRule) {
-    const strutLen = getCableTrayStrutLength(cableTrayWidth);
-    const itemsConfig = [
-      {
-        desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316',
-        qty: strutLen,
-        unit: 'm',
-        material: 'P' as MaterialType,
-        metradoOt: String(strutLen)
-      },
-      {
-        desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316',
-        qty: 2,
-        unit: 'und',
-        material: 'C' as MaterialType,
-        metradoOt: '2'
-      },
-      {
-        desc: 'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316',
-        qty: 2,
-        unit: 'und',
-        material: 'C' as MaterialType,
-        metradoOt: '2'
-      },
-      {
-        desc: 'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316',
-        qty: 2,
-        unit: 'und',
-        material: 'C' as MaterialType,
-        metradoOt: '2'
-      }
-    ];
+    const matrix =
+      currentRule.cableTrayMatrix && currentRule.cableTrayMatrix.length > 0
+        ? currentRule.cableTrayMatrix
+        : DEFAULT_CABLE_TRAY_MATRIX;
+
+    const itemsConfig = matrix.map(it => {
+      const val = getCableTrayMatrixValue(it, cableTrayWidth);
+      const numVal = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.')) || 0;
+      const isP = it.material === 'P' || it.unit === 'm' || it.desc.toUpperCase().includes('RIEL') || it.desc.toUpperCase().includes('ESTRUCT');
+      return {
+        desc: it.desc,
+        qty: numVal,
+        unit: it.unit,
+        material: (it.material || (isP ? 'P' : 'C')) as MaterialType,
+        metradoOt: String(val)
+      };
+    });
 
     for (let i = 0; i < count; i++) {
       const currentTagPlano = count > 1 && baseTag ? getSequentialTag(baseTag, i) : baseTag;
@@ -95,13 +87,13 @@ export function executeApplyRule(
           qty: it.qty,
           unit: it.unit,
           notes: '',
-          ruleId: rule.id,
+          ruleId: currentRule.id,
           material: it.material,
           plano: planoVal,
           rev: revVal,
           tagUnico: generateTagUnico(planoVal, currentTagPlano, it.material),
           tagPlano: currentTagPlano,
-          detalle: detalleCode || '001/2B-X1',
+          detalle: detalleCode || currentRule.detalle || '001/2B-X1',
           metradoOt: it.metradoOt
         });
       });
@@ -110,7 +102,7 @@ export function executeApplyRule(
     for (let i = 0; i < count; i++) {
       const currentTagPlano = count > 1 && baseTag ? getSequentialTag(baseTag, i) : baseTag;
 
-      if (rule.id === 'r2' && activeArea === 'AREA HUMEDA') {
+      if (currentRule.id === 'r2' && activeArea === 'AREA HUMEDA') {
         const variantItems = getCalculatedVariantItems(
           detalleCode,
           'AREA HUMEDA',
@@ -130,7 +122,7 @@ export function executeApplyRule(
             qty: finalQty,
             unit: v.unit,
             notes: '',
-            ruleId: rule.id,
+            ruleId: currentRule.id,
             material: mat,
             plano: planoVal,
             rev: revVal,
@@ -141,8 +133,8 @@ export function executeApplyRule(
           });
         });
       } else {
-        rule.subitems
-          .filter(s => !(rule.id === 'r1' && s.desc.toUpperCase().includes('CEMENTO GEM') && detalleCode.toUpperCase() !== '008/3B'))
+        currentRule.subitems
+          .filter(s => !(currentRule.id === 'r1' && s.desc.toUpperCase().includes('CEMENTO GEM') && detalleCode.toUpperCase() !== '008/3B'))
           .forEach(s => {
           const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
           let metradoOt = '';
@@ -177,7 +169,7 @@ export function executeApplyRule(
             qty: s.qty,
             unit: s.unit,
             notes: '',
-            ruleId: rule.id,
+            ruleId: currentRule.id,
             material: mat,
             plano: planoVal,
             rev: revVal,
@@ -189,7 +181,7 @@ export function executeApplyRule(
         });
 
         if (
-          rule.id === 'r1' &&
+          currentRule.id === 'r1' &&
           detalleCode.toUpperCase() === '008/3B' &&
           !newItems.some(it => it.tagPlano === currentTagPlano && it.desc.toUpperCase().includes('CEMENTO GEM'))
         ) {
@@ -200,7 +192,7 @@ export function executeApplyRule(
             qty: 'length x 11.3 / 2',
             unit: 'kg',
             notes: '',
-            ruleId: rule.id,
+            ruleId: currentRule.id,
             material: 'C',
             plano: planoVal,
             rev: revVal,
@@ -216,7 +208,7 @@ export function executeApplyRule(
 
   let combined = [...items, ...newItems];
 
-  if (rule.id === 'r1' || rule.id === 'r2') {
+  if (currentRule.id === 'r1' || currentRule.id === 'r2') {
     const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
     uniqueTags.forEach(tag => {
       const sibs = combined.filter(i => i.tagPlano === tag && i.pkgId === pkgId);
@@ -228,7 +220,7 @@ export function executeApplyRule(
     });
   }
 
-  if ((rule.id === 'r8' || rule.id === 'r9' || upTrigger.includes('BARRA')) && (activeArea === 'AREA HUMEDA' || detalleCode.startsWith('010/17'))) {
+  if ((currentRule.id === 'r8' || currentRule.id === 'r9' || upTrigger.includes('BARRA')) && (activeArea === 'AREA HUMEDA' || detalleCode.startsWith('010/17'))) {
     const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
     uniqueTags.forEach(tag => {
       combined = applyBarraPotDetalleVariant(combined, tag, pkgId, detalleCode, numSoportes);

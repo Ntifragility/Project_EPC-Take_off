@@ -22,7 +22,12 @@ export function resolveRuleRequirements(rule: TakeoffRule, activeArea: AreaType)
   const triggerUp = rule.trigger.toUpperCase().trim();
   const ruleId = rule.id || '';
 
-  const isCableTray = ruleId.includes('001-2b-x1') || triggerUp.includes('001/2B-X1') || triggerUp.includes('001/2B');
+  const isCableTray =
+    Boolean(rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0) ||
+    ruleId.includes('001-2b-x1') ||
+    triggerUp.includes('001/2B-X1') ||
+    triggerUp.includes('001/2B') ||
+    Boolean(rule.detalle && rule.detalle.toUpperCase().includes('001/2B-X1'));
   const isSoldadura40_20 = triggerUp.includes('SOLDADURA T 4/0 -2/0') || triggerUp.includes('SOLDADURA T 4/0-2/0') || triggerUp.includes('SOLDADURA T 4/0  - 2/0');
   const isSoldadura40 = !isSoldadura40_20 && (triggerUp === 'SOLDADURA T 4/0' || triggerUp.startsWith('SOLDADURA T 4/0'));
   const isCable40 = triggerUp.includes('CABLE DESNUDO 4/0');

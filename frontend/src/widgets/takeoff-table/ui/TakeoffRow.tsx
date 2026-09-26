@@ -10,16 +10,36 @@ export interface TakeoffRowProps {
   item: TakeoffItem;
   index: number;
   isEditing: boolean;
+  availablePlanos?: string[];
   onStartEdit: () => void;
   onCancelEdit: () => void;
+  selectedColKey?: string | null;
+  editingColKey?: string | null;
+  isFillTarget?: boolean;
+  onSelectCell?: (colKey: string, value: any) => void;
+  onStartInlineEdit?: (colKey: string) => void;
+  onSaveInlineEdit?: (colKey: string, value: any) => void;
+  onCancelInlineEdit?: () => void;
+  onStartFillDrag?: (colKey: string, value: any, e: React.MouseEvent) => void;
+  onCellMouseEnter?: (colKey: string) => void;
 }
 
 export const TakeoffRow = React.memo<TakeoffRowProps>(({
   item,
   index,
   isEditing,
+  availablePlanos = [],
   onStartEdit,
-  onCancelEdit
+  onCancelEdit,
+  selectedColKey = null,
+  editingColKey = null,
+  isFillTarget = false,
+  onSelectCell,
+  onStartInlineEdit,
+  onSaveInlineEdit,
+  onCancelInlineEdit,
+  onStartFillDrag,
+  onCellMouseEnter
 }) => {
   const { updateItem, deleteItem, highlightedTag } = useItemsStore();
   const { section, activeArea } = useAppStore();
@@ -119,22 +139,60 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
             onKeyDown={handleKeyDown}
           />
         </td>
-        <td>
-          <input
-            className="edit-input edit-input-mono"
-            id="edit-plano"
-            type="text"
-            value={plano}
-            style={{ textTransform: 'uppercase' }}
-            onChange={e => {
-              const newPlano = e.target.value.toUpperCase();
-              setPlano(newPlano);
-              if (material === 'P') {
-                setTagUnico(generateTagUnico(newPlano, tagPlano, 'P'));
-              }
-            }}
-            onKeyDown={handleKeyDown}
-          />
+        <td style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <input
+              className="edit-input edit-input-mono"
+              id="edit-plano"
+              type="text"
+              list="available-planos-list"
+              value={plano}
+              style={{ textTransform: 'uppercase', flex: 1, minWidth: '70px' }}
+              onChange={e => {
+                const newPlano = e.target.value.toUpperCase();
+                setPlano(newPlano);
+                if (material === 'P') {
+                  setTagUnico(generateTagUnico(newPlano, tagPlano, 'P'));
+                }
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="PLANO..."
+            />
+            {availablePlanos && availablePlanos.length > 0 && (
+              <select
+                value=""
+                onChange={e => {
+                  if (e.target.value) {
+                    const newPlano = e.target.value.toUpperCase();
+                    setPlano(newPlano);
+                    if (material === 'P') {
+                      setTagUnico(generateTagUnico(newPlano, tagPlano, 'P'));
+                    }
+                  }
+                }}
+                style={{
+                  width: '16px',
+                  height: '22px',
+                  padding: 0,
+                  background: 'var(--s2)',
+                  border: '1px solid var(--b1)',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  color: 'var(--tx)',
+                  fontSize: '9px',
+                  textAlign: 'center'
+                }}
+                title="Seleccionar plano existente"
+              >
+                <option value="" disabled>▼</option>
+                {availablePlanos.map(p => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </td>
         <td>
           <input
@@ -270,29 +328,177 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
     );
   }
 
+  const isMainItem = item.material === 'P';
+
+  // Excel-like Cell Renderer
+  const renderCell = (
+    colKey: string,
+    value: any,
+    className: string = 'td-u',
+    customStyle: React.CSSProperties = {}
+  ) => {
+    const isSelected = selectedColKey === colKey;
+    const isEditingThisCell = isMainItem && editingColKey === colKey;
+    const isTarget = isFillTarget;
+
+    // Consumables are read-only and derived from the main item
+    const cellTitle = !isMainItem
+      ? 'Consumible derivado: Calculado automáticamente por el ítem principal y su detalle constructivo'
+      : isSelected
+      ? 'Doble clic para editar directamente o arrastra la esquina inferior derecha'
+      : 'Clic para seleccionar, doble clic para editar';
+
+    return (
+      <td
+        className={`${className} excel-cell ${isSelected ? 'is-selected' : ''} ${isTarget ? 'excel-cell-fill-target' : ''} ${!isMainItem ? 'excel-cell-consumable' : ''}`}
+        style={customStyle}
+        data-item-id={item.id}
+        data-col-key={colKey}
+        data-material={item.material}
+        title={cellTitle}
+        onClick={() => {
+          if (isMainItem) {
+            onSelectCell?.(colKey, value);
+          }
+        }}
+        onDoubleClick={() => {
+          if (isMainItem) {
+            onStartInlineEdit?.(colKey);
+          }
+        }}
+        onMouseEnter={() => {
+          if (isMainItem) {
+            onCellMouseEnter?.(colKey);
+          }
+        }}
+      >
+        {isEditingThisCell ? (
+          <input
+            className="excel-inline-input"
+            defaultValue={value ?? ''}
+            autoFocus
+            onBlur={e => onSaveInlineEdit?.(colKey, e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                onSaveInlineEdit?.(colKey, (e.target as HTMLInputElement).value);
+              } else if (e.key === 'Escape') {
+                onCancelInlineEdit?.();
+              }
+            }}
+          />
+        ) : (
+          <span>{value || (colKey === 'plano' ? '—' : '')}</span>
+        )}
+
+        {isMainItem && isSelected && !isEditingThisCell && onStartFillDrag && (
+          <div
+            className="excel-fill-handle"
+            title="Arrastra esta esquina hacia abajo para copiar el valor a los demás ítems principales"
+            onMouseDown={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStartFillDrag(colKey, value, e);
+            }}
+          />
+        )}
+      </td>
+    );
+  };
+
   return (
-    <tr ref={rowRef} className={`tr-row ${isHighlighted ? 'tr-amber-pulse' : ''}`}>
-      <td className="td-u" style={{ color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
-        {item.partida || 'NA'}
-      </td>
-      <td className="td-n">{index}</td>
-      <td className="td-u" style={{ color: 'var(--tx)', fontWeight: 'bold' }}>
-        {item.material || ''}
-      </td>
-      <td className="td-u">{item.plano || ''}</td>
-      <td className="td-u">{item.rev || ''}</td>
-      <td className="td-u">{item.tagUnico || ''}</td>
-      <td className="td-u">{item.tagPlano || ''}</td>
-      <td className="td-u">{item.detalle || ''}</td>
-      <td className="td-d">{item.desc}</td>
-      <td className="td-u">{item.metradoOt || ''}</td>
-      <td className="td-u" style={{ position: 'relative' }}>
-        {item.unit}
+    <tr
+      ref={rowRef}
+      className={`tr-row ${isHighlighted ? 'tr-amber-pulse' : ''} ${!isMainItem ? 'tr-consumable-row' : ''}`}
+      data-item-id={item.id}
+      data-material={item.material}
+    >
+      {renderCell('partida', item.partida || 'NA', 'td-u', {
+        color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)',
+        fontWeight: 700
+      })}
+
+      <td className="td-n" data-item-id={item.id}>{index}</td>
+
+      {renderCell('material', item.material || '', 'td-u', {
+        color: isMainItem ? 'var(--excel-green, #107c41)' : 'var(--tx)',
+        fontWeight: 'bold'
+      })}
+
+      {/* PLANO Column */}
+      {renderCell('plano', item.plano || '—', 'td-u', {
+        fontWeight: 600
+      })}
+
+      {renderCell('rev', item.rev || '', 'td-u')}
+      {renderCell('tagUnico', item.tagUnico || '', 'td-u')}
+      {renderCell('tagPlano', item.tagPlano || '', 'td-u')}
+      {renderCell('detalle', item.detalle || '', 'td-u')}
+      {renderCell('desc', item.desc, 'td-d')}
+      {renderCell('metradoOt', item.metradoOt || '', 'td-u')}
+
+      <td
+        className={`td-u excel-cell ${selectedColKey === 'unit' ? 'is-selected' : ''} ${isFillTarget && selectedColKey === 'unit' ? 'excel-cell-fill-target' : ''}`}
+        style={{ position: 'relative' }}
+        data-item-id={item.id}
+        data-col-key="unit"
+        data-material={item.material}
+        onClick={() => {
+          if (isMainItem) onSelectCell?.('unit', item.unit);
+        }}
+        onDoubleClick={() => {
+          if (isMainItem) onStartInlineEdit?.('unit');
+        }}
+        onMouseEnter={() => {
+          if (isMainItem) onCellMouseEnter?.('unit');
+        }}
+      >
+        {isMainItem && editingColKey === 'unit' ? (
+          <input
+            className="excel-inline-input"
+            defaultValue={item.unit ?? ''}
+            autoFocus
+            onBlur={e => onSaveInlineEdit?.('unit', e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                onSaveInlineEdit?.('unit', (e.target as HTMLInputElement).value);
+              } else if (e.key === 'Escape') {
+                onCancelInlineEdit?.();
+              }
+            }}
+          />
+        ) : (
+          <span>{item.unit}</span>
+        )}
+
+        {isMainItem && selectedColKey === 'unit' && editingColKey !== 'unit' && onStartFillDrag && (
+          <div
+            className="excel-fill-handle"
+            title="Arrastra para copiar hacia abajo"
+            onMouseDown={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStartFillDrag('unit', item.unit, e);
+            }}
+          />
+        )}
+
         <div className="act-row-floating">
-          <button className="btn-icon" onClick={onStartEdit} title="Editar fila" style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}>
-            EDIT
-          </button>
-          <button className="btn-icon btn-danger" onClick={() => deleteItem(item.id, section)} title="Eliminar fila" style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}>
+          {isMainItem && (
+            <button
+              className="btn-icon"
+              onClick={onStartEdit}
+              title="Editar fila completa"
+              style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}
+            >
+              EDIT
+            </button>
+          )}
+          <button
+            className="btn-icon btn-danger"
+            onClick={() => deleteItem(item.id, section)}
+            title="Eliminar fila"
+            style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}
+          >
             DEL
           </button>
         </div>
@@ -300,3 +506,4 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
     </tr>
   );
 });
+

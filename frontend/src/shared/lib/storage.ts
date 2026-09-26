@@ -3,6 +3,7 @@ import { TakeoffRule } from '../../entities/takeoff-rule/model/types';
 import { SectionType } from '../types/common';
 import { PartidaRecord } from '../../entities/partida/model/types';
 import { SEED_RULES, SEED_CANALIZADO_RULES } from '../../entities/takeoff-rule/model/seedRules';
+import { DEFAULT_CABLE_TRAY_MATRIX } from '../../entities/takeoff-rule/model/cableTrayRules';
 
 export function getStorageKey(name: string, section: SectionType): string {
   return section === 'pat' ? `epc-${name}` : `epc-canalizado-${name}`;
@@ -74,6 +75,17 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
                   ...normalizedSubitems,
                   { id: 's3b', desc: 'CEMENTO GEM (11.3 Kg x bls)', qty: 'length x 11.3 / 2', unit: 'kg' }
                 ]
+          };
+        }
+        const isCT =
+          r.id === 'r-001-2b-x1' ||
+          r.id === 'r-001-2b-x1-can' ||
+          r.trigger.toUpperCase().includes('001/2B-X1') ||
+          Boolean(r.detalle && r.detalle.toUpperCase().includes('001/2B-X1'));
+        if (isCT && (!r.cableTrayMatrix || r.cableTrayMatrix.length === 0)) {
+          return {
+            ...r,
+            cableTrayMatrix: DEFAULT_CABLE_TRAY_MATRIX
           };
         }
         return r;

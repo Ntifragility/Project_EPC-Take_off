@@ -110,6 +110,9 @@ export interface SupabaseRuleRecord {
   trigger: string;
   subitems: any;
   order_index?: number;
+  detalle?: string;
+  tag_prefix?: string;
+  cable_tray_matrix?: any;
 }
 
 export interface SupabaseDetalleVariantRecord {
@@ -134,11 +137,28 @@ export async function fetchTakeoffRulesFromSupabase(
       .order('order_index', { ascending: true });
 
     if (error) throw error;
-    const rules: TakeoffRule[] = (data || []).map(r => ({
-      id: r.id,
-      trigger: r.trigger,
-      subitems: r.subitems
-    }));
+    const rules: TakeoffRule[] = (data || []).map((r: any) => {
+      let subitems = r.subitems;
+      let cableTrayMatrix = r.cable_tray_matrix || r.cableTrayMatrix;
+      let detalle = r.detalle || r.detalle_code;
+      let tagPrefix = r.tag_prefix || r.tagPrefix;
+
+      if (subitems && typeof subitems === 'object' && !Array.isArray(subitems)) {
+        if (subitems.cableTrayMatrix) cableTrayMatrix = subitems.cableTrayMatrix;
+        if (subitems.detalle) detalle = subitems.detalle;
+        if (subitems.tagPrefix) tagPrefix = subitems.tagPrefix;
+        if (Array.isArray(subitems.items)) subitems = subitems.items;
+      }
+
+      return {
+        id: r.id,
+        trigger: r.trigger,
+        subitems: Array.isArray(subitems) ? subitems : [],
+        detalle,
+        tagPrefix,
+        cableTrayMatrix
+      };
+    });
     return { data: rules };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al obtener reglas de Supabase';
@@ -155,15 +175,38 @@ export async function saveTakeoffRuleToSupabase(
     return { success: false, error: 'Supabase no está configurado' };
   }
   try {
-    const payload: SupabaseRuleRecord = {
+    const payload: any = {
       id: rule.id,
       section,
       trigger: rule.trigger,
       subitems: rule.subitems,
-      order_index: orderIndex
+      order_index: orderIndex,
+      detalle: rule.detalle,
+      tag_prefix: rule.tagPrefix,
+      cable_tray_matrix: rule.cableTrayMatrix
     };
     const { error } = await supabase.from('takeoff_rules').upsert(payload);
-    if (error) throw error;
+    if (!error) return { success: true };
+
+    // Fallback if cable_tray_matrix column does not exist on PostgreSQL table
+    const fallbackSubitems = Array.isArray(rule.subitems) ? [...rule.subitems] : [];
+    const subitemsWithMeta = {
+      items: fallbackSubitems,
+      cableTrayMatrix: rule.cableTrayMatrix,
+      detalle: rule.detalle,
+      tagPrefix: rule.tagPrefix
+    };
+
+    const basePayload: any = {
+      id: rule.id,
+      section,
+      trigger: rule.trigger,
+      subitems: rule.cableTrayMatrix ? subitemsWithMeta : rule.subitems,
+      order_index: orderIndex
+    };
+    const { error: fallbackErr } = await supabase.from('takeoff_rules').upsert(basePayload);
+    if (fallbackErr) throw fallbackErr;
+
     return { success: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al guardar regla en Supabase';
@@ -219,6 +262,22 @@ export async function saveDetalleVariantToSupabase(
     return { success: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al guardar variante de detalle en Supabase';
+    return { success: false, error: message };
+  }
+}
+
+export async function deleteDetalleVariantFromSupabase(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado' };
+  }
+  try {
+    const { error } = await supabase.from('detalle_variants').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar variante de detalle en Supabase';
     return { success: false, error: message };
   }
 }

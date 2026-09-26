@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRulesStore } from '../../../features/manage-rules/model/useRulesStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { RuleEditorModal } from '../../../features/manage-rules/ui/RuleEditorModal';
 import { DetalleEditorModal } from '../../../features/manage-rules/ui/DetalleEditorModal';
+import { CableTrayEditorModal } from '../../../features/manage-rules/ui/CableTrayEditorModal';
 import {
   getDetallesForArea,
   DYNAMIC_BARRA_POT_VARIANTS,
@@ -18,11 +19,17 @@ import { GenericRuleCard } from './GenericRuleCard';
 
 export const RulesView: React.FC = () => {
   const rules = useRulesStore(state => state.rules);
+  const loadRules = useRulesStore(state => state.loadRules);
   const saveRule = useRulesStore(state => state.saveRule);
   const deleteRule = useRulesStore(state => state.deleteRule);
   const saveDetalleVariant = useRulesStore(state => state.saveDetalleVariant);
+  const deleteDetalleVariant = useRulesStore(state => state.deleteDetalleVariant);
   const activeArea = useAppStore(state => state.activeArea);
   const section = useAppStore(state => state.section);
+
+  useEffect(() => {
+    loadRules(section);
+  }, [section, loadRules]);
 
   const handleDeleteRule = (id: string) => {
     deleteRule(id, section);
@@ -36,6 +43,10 @@ export const RulesView: React.FC = () => {
   const [editingRule, setEditingRule] = useState<TakeoffRule | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
+
+  // Cable tray matrix modal state
+  const [cableTrayModalOpen, setCableTrayModalOpen] = useState(false);
+  const [editingCableTrayRule, setEditingCableTrayRule] = useState<TakeoffRule | null>(null);
 
   const [detalleModalOpen, setDetalleModalOpen] = useState(false);
   const [editingDetalle, setEditingDetalle] = useState<{
@@ -89,9 +100,25 @@ export const RulesView: React.FC = () => {
   };
 
   const handleOpenEdit = (rule: TakeoffRule) => {
+    if (
+      Boolean(rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0) ||
+      rule.id === 'r-001-2b-x1' ||
+      rule.id === 'r-001-2b-x1-can' ||
+      rule.trigger.includes('001/2B-X1') ||
+      rule.trigger.includes('001/2B') ||
+      Boolean(rule.detalle && rule.detalle.includes('001/2B-X1'))
+    ) {
+      handleOpenCableTrayEdit(rule);
+      return;
+    }
     setEditingRule(rule);
     setIsNew(false);
     setModalOpen(true);
+  };
+
+  const handleOpenCableTrayEdit = (rule: TakeoffRule) => {
+    setEditingCableTrayRule(rule);
+    setCableTrayModalOpen(true);
   };
 
   const toggleRuleExpand = (ruleId: string) => {
@@ -225,12 +252,14 @@ export const RulesView: React.FC = () => {
             );
           }
 
-          // DET.001/2B-X1 (Cable Tray Support)
+          // DET.001/2B-X1 (Cable Tray Support / Width Matrix)
           if (
+            Boolean(r.cableTrayMatrix && r.cableTrayMatrix.length > 0) ||
             r.id === 'r-001-2b-x1' ||
             r.id === 'r-001-2b-x1-can' ||
             r.trigger.includes('001/2B-X1') ||
-            (r.detalle && r.detalle.includes('001/2B-X1'))
+            r.trigger.includes('001/2B') ||
+            Boolean(r.detalle && r.detalle.includes('001/2B-X1'))
           ) {
             return (
               <CableTrayRuleCard
@@ -238,7 +267,7 @@ export const RulesView: React.FC = () => {
                 rule={r}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onEdit={handleOpenEdit}
+                onEdit={handleOpenCableTrayEdit}
                 onDelete={handleDeleteRule}
               />
             );
@@ -264,6 +293,18 @@ export const RulesView: React.FC = () => {
         isNew={isNew}
         onClose={() => setModalOpen(false)}
         onSave={handleSaveRule}
+        onDelete={handleDeleteRule}
+      />
+
+      <CableTrayEditorModal
+        isOpen={cableTrayModalOpen}
+        rule={editingCableTrayRule}
+        onClose={() => setCableTrayModalOpen(false)}
+        onSave={(updatedRule) => {
+          saveRule(updatedRule, false, section);
+          setCableTrayModalOpen(false);
+        }}
+        onDelete={handleDeleteRule}
       />
 
       {editingDetalle && (
@@ -285,6 +326,7 @@ export const RulesView: React.FC = () => {
           }}
           onClose={() => setDetalleModalOpen(false)}
           onSave={saveDetalleVariant}
+          onDelete={deleteDetalleVariant}
         />
       )}
     </div>

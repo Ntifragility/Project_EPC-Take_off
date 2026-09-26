@@ -1,22 +1,41 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { TakeoffItem } from '../../../entities/takeoff-item/model/types';
 import { TakeoffRow } from './TakeoffRow';
 import { TakeoffTableHeader } from './TakeoffTableHeader';
 import { mergeItemsByDetalle } from '../../../entities/takeoff-item/model/itemAggregation';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
+import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 
 export interface TakeoffTableProps {
   items: TakeoffItem[];
 }
 
+const DEFAULT_COL_WIDTHS: Record<string, number> = {
+  partida: 85,
+  num: 40,
+  mat: 48,
+  plano: 140,
+  rev: 50,
+  tagUnico: 150,
+  tagPlano: 130,
+  detalle: 110,
+  desc: 280,
+  metradoOt: 90,
+  unit: 75
+};
+
 export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   const {
     items: allItems,
     editingItemId,
     setEditingItemId,
-    highlightedTag
+    highlightedTag,
+    batchUpdateField
   } = useItemsStore();
+
+  const section = useAppStore(state => state.section);
+  const showToast = useUIStore(state => state.showToast);
 
   const {
     filterPlano,
@@ -27,6 +46,66 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     setSearchQuery,
     clearFilters
   } = useUIStore();
+
+  // Column resizing state
+  const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem('epc-table-col-widths');
+      if (saved) return { ...DEFAULT_COL_WIDTHS, ...JSON.parse(saved) };
+    } catch (e) {}
+    return DEFAULT_COL_WIDTHS;
+  });
+
+  const resizingRef = useRef<{ colKey: string; startX: number; startWidth: number } | null>(null);
+
+  const handleStartResize = (colKey: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startWidth = colWidths[colKey] || DEFAULT_COL_WIDTHS[colKey] || 80;
+    resizingRef.current = { colKey, startX: e.clientX, startWidth };
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const delta = moveEvent.clientX - resizingRef.current.startX;
+      const newWidth = Math.max(35, resizingRef.current.startWidth + delta);
+      setColWidths(prev => ({
+        ...prev,
+        [resizingRef.current!.colKey]: newWidth
+      }));
+    };
+
+    const handleMouseUp = () => {
+      if (resizingRef.current) {
+        setColWidths(latest => {
+          localStorage.setItem('epc-table-col-widths', JSON.stringify(latest));
+          return latest;
+        });
+        resizingRef.current = null;
+      }
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // Excel Cell Selection & Drag-to-Fill State
+  const [selectedCell, setSelectedCell] = useState<{ itemId: string; colKey: string; value: any } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ itemId: string; colKey: string } | null>(null);
+  const [dragFill, setDragFill] = useState<{
+    isDragging: boolean;
+    sourceItemId: string;
+    colKey: string;
+    sourceValue: any;
+    targetItemIds: string[];
+  }>({
+    isDragging: false,
+    sourceItemId: '',
+    colKey: '',
+    sourceValue: null,
+    targetItemIds: []
+  });
 
   const [pageSize, setPageSize] = useState<number>(100);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -79,6 +158,100 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   const startIndex = isPaginated ? (safePage - 1) * pageSize : 0;
   const endIndex = isPaginated ? Math.min(startIndex + pageSize, totalItems) : totalItems;
   const visibleItems = displayedItems.slice(startIndex, endIndex);
+
+  const handleStartFillDrag = (itemId: string, colKey: string, sourceValue: any, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragFill({
+      isDragging: true,
+      sourceItemId: itemId,
+      colKey,
+      sourceValue,
+      targetItemIds: []
+    });
+  };
+
+  const handleCellMouseEnter = (itemId: string, colKey: string) => {
+    if (!dragFill.isDragging || dragFill.colKey !== colKey) return;
+    const sourceIdx = visibleItems.findIndex(i => i.id === dragFill.sourceItemId);
+    const targetIdx = visibleItems.findIndex(i => i.id === itemId);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+
+    if (targetIdx > sourceIdx) {
+      const targetSlice = visibleItems.slice(sourceIdx + 1, targetIdx + 1);
+      const targetIds = targetSlice.filter(it => it.material === 'P').map(i => i.id);
+      setDragFill(prev => ({ ...prev, targetItemIds: targetIds }));
+    } else {
+      setDragFill(prev => ({ ...prev, targetItemIds: [] }));
+    }
+  };
+
+  useEffect(() => {
+    if (!dragFill.isDragging) return;
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (!el) return;
+      const td = el.closest('td[data-item-id]');
+      if (!td) return;
+
+      const hoveredItemId = td.getAttribute('data-item-id');
+      if (!hoveredItemId) return;
+
+      const sourceIdx = visibleItems.findIndex(i => i.id === dragFill.sourceItemId);
+      const targetIdx = visibleItems.findIndex(i => i.id === hoveredItemId);
+      if (sourceIdx === -1 || targetIdx === -1) return;
+
+      if (targetIdx > sourceIdx) {
+        const targetSlice = visibleItems.slice(sourceIdx + 1, targetIdx + 1);
+        const targetIds = targetSlice.filter(it => it.material === 'P').map(i => i.id);
+        setDragFill(prev => ({ ...prev, targetItemIds: targetIds }));
+      } else {
+        setDragFill(prev => ({ ...prev, targetItemIds: [] }));
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      if (dragFill.targetItemIds.length > 0) {
+        batchUpdateField(
+          dragFill.targetItemIds,
+          dragFill.colKey as keyof TakeoffItem,
+          dragFill.sourceValue,
+          section
+        );
+        showToast(
+          `Copiado "${dragFill.sourceValue ?? ''}" a ${dragFill.targetItemIds.length} ítem(s) principal(es) y actualizados sus consumibles`,
+          'info'
+        );
+      }
+      setDragFill({
+        isDragging: false,
+        sourceItemId: '',
+        colKey: '',
+        sourceValue: null,
+        targetItemIds: []
+      });
+    };
+
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [dragFill.isDragging, dragFill.sourceItemId, dragFill.colKey, dragFill.sourceValue, dragFill.targetItemIds, visibleItems, batchUpdateField, section, showToast]);
+
+  const handleSaveInlineCell = (itemId: string, colKey: string, newValue: any) => {
+    setEditingCell(null);
+    let parsedVal = newValue;
+    if (colKey === 'plano' || colKey === 'rev') {
+      parsedVal = String(newValue).toUpperCase().trim();
+    }
+    if (colKey === 'metradoOt') {
+      parsedVal = String(newValue).trim();
+    }
+    batchUpdateField([itemId], colKey as keyof TakeoffItem, parsedVal, section);
+  };
 
   const hasActiveFilters = Boolean(filterPlano || filterDetalle || searchQuery);
 
@@ -338,6 +511,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             filterDetalle={filterDetalle}
             setFilterDetalle={setFilterDetalle}
             availableDetalles={availableDetalles}
+            colWidths={colWidths}
+            onStartResize={handleStartResize}
           />
           <tbody>
             {visibleItems.length === 0 ? (
@@ -349,20 +524,52 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                 </td>
               </tr>
             ) : (
-              visibleItems.map((item, idx) => (
-                <TakeoffRow
-                  key={item.id}
-                  item={item}
-                  index={startIndex + idx + 1}
-                  isEditing={editingItemId === item.id}
-                  onStartEdit={() => setEditingItemId(item.id)}
-                  onCancelEdit={() => setEditingItemId(null)}
-                />
-              ))
+              visibleItems.map((item, idx) => {
+                const isSelectedRow = selectedCell?.itemId === item.id;
+                const isEditingThisRow = editingCell?.itemId === item.id;
+                const isTargetRow = dragFill.isDragging && dragFill.targetItemIds.includes(item.id);
+
+                return (
+                  <TakeoffRow
+                    key={item.id}
+                    item={item}
+                    index={startIndex + idx + 1}
+                    isEditing={editingItemId === item.id}
+                    availablePlanos={availablePlanos}
+                    onStartEdit={() => setEditingItemId(item.id)}
+                    onCancelEdit={() => setEditingItemId(null)}
+                    selectedColKey={isSelectedRow ? selectedCell?.colKey : isTargetRow ? dragFill.colKey : null}
+                    editingColKey={isEditingThisRow ? editingCell?.colKey : null}
+                    isFillTarget={isTargetRow}
+                    onSelectCell={(colKey, val) => {
+                      setSelectedCell({ itemId: item.id, colKey, value: val });
+                    }}
+                    onStartInlineEdit={(colKey) => {
+                      setEditingCell({ itemId: item.id, colKey });
+                    }}
+                    onSaveInlineEdit={(colKey, val) => {
+                      handleSaveInlineCell(item.id, colKey, val);
+                    }}
+                    onCancelInlineEdit={() => setEditingCell(null)}
+                    onStartFillDrag={(colKey, val, e) => {
+                      handleStartFillDrag(item.id, colKey, val, e);
+                    }}
+                    onCellMouseEnter={(colKey) => {
+                      handleCellMouseEnter(item.id, colKey);
+                    }}
+                  />
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      <datalist id="available-planos-list">
+        {availablePlanos.map(p => (
+          <option key={p} value={p} />
+        ))}
+      </datalist>
     </div>
   );
 };

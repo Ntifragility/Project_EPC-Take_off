@@ -2,6 +2,9 @@ import { createStore } from '../../../shared/lib/store';
 import { SectionType, TabType, ThemeType, AreaType } from '../../../shared/types/common';
 import { AccessoryViewMode } from '../../../entities/takeoff-item/model/types';
 import { STORAGE_KEYS, DEFAULT_SECTION, DEFAULT_AREA, DEFAULT_THEME } from '../../../shared/config/constants';
+import { useRulesStore } from '../../manage-rules/model/useRulesStore';
+import { useItemsStore } from '../../manage-items/model/useItemsStore';
+import { usePackagesStore } from '../../manage-packages/model/usePackagesStore';
 
 export interface AppState {
   section: SectionType;
@@ -30,9 +33,9 @@ const initialAccessoryMode = (localStorage.getItem(STORAGE_KEYS.ACCESSORY_VIEW_M
 // Apply initial theme to document body
 if (typeof document !== 'undefined') {
   if (initialTheme === 'light') {
-    document.body.classList.add('light-mode');
+    document.body.classList.add('light-mode', 'light-theme');
   } else {
-    document.body.classList.remove('light-mode');
+    document.body.classList.remove('light-mode', 'light-theme');
   }
 }
 
@@ -45,7 +48,10 @@ export const useAppStore = createStore<AppStore>((set, get) => ({
 
   setSection: (section: SectionType) => {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_SECTION, section);
-    set({ section, tab: 'takeoff' });
+    useRulesStore.getState().loadRules(section);
+    useItemsStore.getState().loadItems(section, get().activeArea);
+    usePackagesStore.getState().loadPackages(section);
+    set({ section });
   },
 
   setTab: (tab: TabType) => set({ tab }),
@@ -55,9 +61,9 @@ export const useAppStore = createStore<AppStore>((set, get) => ({
     localStorage.setItem(STORAGE_KEYS.THEME, nextTheme);
     if (typeof document !== 'undefined') {
       if (nextTheme === 'light') {
-        document.body.classList.add('light-mode');
+        document.body.classList.add('light-mode', 'light-theme');
       } else {
-        document.body.classList.remove('light-mode');
+        document.body.classList.remove('light-mode', 'light-theme');
       }
     }
     set({ theme: nextTheme });

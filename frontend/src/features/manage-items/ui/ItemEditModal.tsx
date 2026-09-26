@@ -12,8 +12,13 @@ export interface ItemEditModalProps {
 }
 
 export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onClose }) => {
-  const { updateItem } = useItemsStore();
+  const { updateItem, items: allItems } = useItemsStore();
   const { activeArea, section } = useAppStore();
+
+  const availablePlanos = React.useMemo(
+    () => Array.from(new Set(allItems.map(i => i.plano).filter(Boolean))).sort(),
+    [allItems]
+  );
 
   const [plano, setPlano] = useState('');
   const [rev, setRev] = useState('');
@@ -96,11 +101,18 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
               <input
                 type="text"
                 className="input"
-                style={{ width: '100%' }}
+                list="item-edit-planos-list"
+                style={{ width: '100%', textTransform: 'uppercase' }}
                 value={plano}
-                onChange={e => setPlano(e.target.value)}
+                onChange={e => setPlano(e.target.value.toUpperCase())}
+                placeholder="P22-DA-2151..."
                 required
               />
+              <datalist id="item-edit-planos-list">
+                {availablePlanos.map(p => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.8rem', fontWeight: 600 }}>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
+import { TakeoffRule, CableTrayMatrixItem } from '../../../entities/takeoff-rule/model/types';
+import { DEFAULT_CABLE_TRAY_MATRIX } from '../../../entities/takeoff-rule/model/cableTrayRules';
 
 interface CableTrayRuleCardProps {
   rule: TakeoffRule;
@@ -16,40 +17,12 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
   onEdit,
   onDelete
 }) => {
-  const cableTrayRows = [
-    {
-      desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316',
-      unit: 'm',
-      w900: '1.20',
-      w600: '0.76',
-      w450: '0.61',
-      w300: '0.46'
-    },
-    {
-      desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316',
-      unit: 'und',
-      w900: '2',
-      w600: '2',
-      w450: '2',
-      w300: '2'
-    },
-    {
-      desc: 'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316',
-      unit: 'und',
-      w900: '2',
-      w600: '2',
-      w450: '2',
-      w300: '2'
-    },
-    {
-      desc: 'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316',
-      unit: 'und',
-      w900: '2',
-      w600: '2',
-      w450: '2',
-      w300: '2'
-    }
-  ];
+  const cableTrayRows: CableTrayMatrixItem[] =
+    rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0
+      ? rule.cableTrayMatrix
+      : DEFAULT_CABLE_TRAY_MATRIX;
+
+  const detalleCode = rule.detalle || '001/2B-X1';
 
   return (
     <div className="rule-card" key={rule.id}>
@@ -77,7 +50,7 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                 marginRight: '90px'
               }}
             >
-              4 anchos de bandeja
+              {cableTrayRows.length} {cableTrayRows.length === 1 ? 'material' : 'materiales'} &bull; 4 anchos
             </span>
           </div>
 
@@ -221,7 +194,7 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                     const bg = idx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent';
 
                     return (
-                      <tr key={item.desc} style={{ borderBottom: bb, background: bg }}>
+                      <tr key={item.id || `${item.desc}-${idx}`} style={{ borderBottom: bb, background: bg }}>
                         {idx === 0 && (
                           <td
                             rowSpan={cableTrayRows.length}
@@ -246,8 +219,27 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                                 fontWeight: 'bold'
                               }}
                             >
-                              DET.001/2B-X1
+                              {detalleCode}
                             </span>
+                            <button
+                              type="button"
+                              className="btn-ghost"
+                              onClick={() => onEdit(rule)}
+                              style={{
+                                fontSize: '10px',
+                                padding: '3px 8px',
+                                marginTop: '6px',
+                                display: 'block',
+                                margin: '6px auto 0 auto',
+                                cursor: 'pointer',
+                                borderRadius: '4px',
+                                border: '1px solid var(--b1)',
+                                background: 'var(--s1)'
+                              }}
+                              title="Editar matriz de anchos"
+                            >
+                              EDITAR
+                            </button>
                           </td>
                         )}
                         <td

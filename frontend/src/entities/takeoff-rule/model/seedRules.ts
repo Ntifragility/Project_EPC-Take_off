@@ -1,4 +1,5 @@
 import { TakeoffRule } from './types';
+import { DEFAULT_CABLE_TRAY_MATRIX } from './cableTrayRules';
 
 export const SEED_RULES: TakeoffRule[] = [
   {
@@ -106,6 +107,7 @@ export const SEED_RULES: TakeoffRule[] = [
     trigger: 'DET.001/2B-X1',
     detalle: '001/2B-X1',
     tagPrefix: 'SE',
+    cableTrayMatrix: DEFAULT_CABLE_TRAY_MATRIX,
     subitems: [
       { id: 's-001-2b-1', desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316', qty: '0.76 (según ancho)', unit: 'm' },
       { id: 's-001-2b-2', desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316', qty: 2, unit: 'und' },
@@ -256,6 +258,7 @@ export const SEED_CANALIZADO_RULES: TakeoffRule[] = [
     trigger: 'DET.001/2B-X1',
     detalle: '001/2B-X1',
     tagPrefix: 'SE',
+    cableTrayMatrix: DEFAULT_CABLE_TRAY_MATRIX,
     subitems: [
       { id: 'can-s-001-2b-1', desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316', qty: '0.76 (según ancho)', unit: 'm' },
       { id: 'can-s-001-2b-2', desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316', qty: 2, unit: 'und' },

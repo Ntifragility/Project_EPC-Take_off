@@ -570,3 +570,23 @@ export function updateSingleDynamicVariant(
     }));
   }
 }
+
+export function deleteSingleDynamicVariant(
+  area: string,
+  detalleCode: string,
+  category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+) {
+  const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
+  const areaKey = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
+
+  if (category === 'CABLE_2_0') {
+    if (DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey]) {
+      delete DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey][detalleCode];
+    }
+    delete DYNAMIC_DETALLE_VARIANTS[detalleCode];
+  } else if (category === 'BARRA_POT') {
+    delete DYNAMIC_BARRA_POT_VARIANTS[detalleCode];
+  } else if (category === 'BARRA_INST') {
+    delete DYNAMIC_BARRA_INST_VARIANTS[detalleCode];
+  }
+}

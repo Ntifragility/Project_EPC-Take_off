@@ -1,5 +1,18 @@
 import React from 'react';
 
+export type ColumnKey =
+  | 'partida'
+  | 'num'
+  | 'mat'
+  | 'plano'
+  | 'rev'
+  | 'tagUnico'
+  | 'tagPlano'
+  | 'detalle'
+  | 'desc'
+  | 'metradoOt'
+  | 'unit';
+
 export interface TakeoffTableHeaderProps {
   filterPlano: string;
   setFilterPlano: (plano: string) => void;
@@ -7,6 +20,8 @@ export interface TakeoffTableHeaderProps {
   filterDetalle: string;
   setFilterDetalle: (detalle: string) => void;
   availableDetalles: string[];
+  colWidths?: Record<string, number>;
+  onStartResize?: (colKey: string, e: React.MouseEvent) => void;
 }
 
 export const TakeoffTableHeader: React.FC<TakeoffTableHeaderProps> = ({
@@ -15,19 +30,43 @@ export const TakeoffTableHeader: React.FC<TakeoffTableHeaderProps> = ({
   availablePlanos,
   filterDetalle,
   setFilterDetalle,
-  availableDetalles
+  availableDetalles,
+  colWidths = {},
+  onStartResize
 }) => {
   return (
     <thead>
       <tr>
-        <th className="th-u" style={{ color: 'var(--am)' }}>
-          PARTIDA
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.partida || 85, color: 'var(--am)' }}
+        >
+          <span>PARTIDA</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('partida', e)} />}
         </th>
-        <th className="th-n">N°</th>
-        <th className="th-u">MAT</th>
-        <th className="th-u" style={{ padding: '0 4px', verticalAlign: 'middle' }}>
+
+        <th
+          className="th-n th-resizable"
+          style={{ width: colWidths.num || 40 }}
+        >
+          <span>N°</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('num', e)} />}
+        </th>
+
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.mat || 48 }}
+        >
+          <span>MAT</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('mat', e)} />}
+        </th>
+
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.plano || 140, padding: '0 4px', verticalAlign: 'middle' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-            <span>PLANO</span>
+            <span style={{ fontWeight: 'bold' }}>PLANO</span>
             {availablePlanos.length > 1 && (
               <select
                 value={filterPlano}
@@ -54,11 +93,37 @@ export const TakeoffTableHeader: React.FC<TakeoffTableHeaderProps> = ({
               </select>
             )}
           </div>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('plano', e)} />}
         </th>
-        <th className="th-u">REV</th>
-        <th className="th-u">TAG UNICO</th>
-        <th className="th-u">TAG EN PLANO</th>
-        <th className="th-u" style={{ padding: '0 4px', verticalAlign: 'middle' }}>
+
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.rev || 50 }}
+        >
+          <span>REV</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('rev', e)} />}
+        </th>
+
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.tagUnico || 150 }}
+        >
+          <span>TAG UNICO</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('tagUnico', e)} />}
+        </th>
+
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.tagPlano || 130 }}
+        >
+          <span>TAG EN PLANO</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('tagPlano', e)} />}
+        </th>
+
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.detalle || 110, padding: '0 4px', verticalAlign: 'middle' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
             <span>DETALLE</span>
             {availableDetalles.length > 1 && (
@@ -87,11 +152,34 @@ export const TakeoffTableHeader: React.FC<TakeoffTableHeaderProps> = ({
               </select>
             )}
           </div>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('detalle', e)} />}
         </th>
-        <th className="th-d">DESCRIPCION</th>
-        <th className="th-u">METRADO OT</th>
-        <th className="th-u">UND</th>
+
+        <th
+          className="th-d th-resizable"
+          style={{ width: colWidths.desc || 280 }}
+        >
+          <span>DESCRIPCION</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('desc', e)} />}
+        </th>
+
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.metradoOt || 90 }}
+        >
+          <span>METRADO OT</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('metradoOt', e)} />}
+        </th>
+
+        <th
+          className="th-u th-resizable"
+          style={{ width: colWidths.unit || 75 }}
+        >
+          <span>UND</span>
+          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('unit', e)} />}
+        </th>
       </tr>
     </thead>
   );
 };
+

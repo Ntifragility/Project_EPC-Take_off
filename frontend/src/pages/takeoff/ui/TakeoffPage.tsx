@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { usePackagesStore } from '../../../features/manage-packages/model/usePackagesStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
@@ -8,6 +8,18 @@ import { PackageGroupView } from '../../../widgets/takeoff-table/ui/PackageGroup
 import { consolidateAccessories } from '../../../entities/takeoff-item/model/itemAggregation';
 
 export const TakeoffPage: React.FC = () => {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('epc-sidebar-collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('epc-sidebar-collapsed', String(next));
+      return next;
+    });
+  };
+
   const items = useItemsStore(state => state.items);
   const packages = usePackagesStore(state => state.packages);
   const accessoryViewMode = useAppStore(state => state.accessoryViewMode);
@@ -61,80 +73,83 @@ export const TakeoffPage: React.FC = () => {
   }
 
   return (
-    <div>
-      <AddPanel />
+    <div className="takeoff-layout">
+      {/* Collapsible Sidebar Drawer */}
+      <aside className={`takeoff-sidebar-drawer ${isSidebarCollapsed ? 'is-collapsed' : ''}`}>
+        <AddPanel onCollapseSidebar={toggleSidebar} />
+      </aside>
 
-      {items.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '12px',
-            padding: '7px 14px',
-            background: 'var(--s2)',
-            border: '1px solid var(--b1)',
-            borderRadius: '6px',
-            fontFamily: 'var(--mo, monospace)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--tx)', letterSpacing: '0.5px' }}>
-              CONSUMIBLES:
-            </span>
-            <div className="mode-toggle" style={{ display: 'inline-flex' }}>
-              <button
-                type="button"
-                className={`mode-btn ${accessoryViewMode === 'separated' ? 'active' : ''}`}
-                onClick={() => setAccessoryViewMode('separated')}
-                style={{ fontSize: '11px', padding: '4px 12px', fontWeight: 600 }}
-                title="Mostrar consumibles base y jumpers en filas separadas independientes"
-              >
-                SEPARADOS
-              </button>
-              <button
-                type="button"
-                className={`mode-btn ${accessoryViewMode === 'join' ? 'active' : ''}`}
-                onClick={() => setAccessoryViewMode('join')}
-                style={{ fontSize: '11px', padding: '4px 12px', fontWeight: 600 }}
-                title="Consolidar y sumar totales de consumibles idénticos por TAG (Base + Jumpers)"
-              >
-                UNIDOS (TOTALES)
-              </button>
+      {/* Main Table Content */}
+      <section className={`takeoff-content ${isSidebarCollapsed ? 'takeoff-content-expanded' : ''}`}>
+        {isSidebarCollapsed && (
+          <button
+            type="button"
+            className="floating-sidebar-toggle"
+            onClick={toggleSidebar}
+            title="Mostrar panel de Metadatos y Reglas"
+          >
+            ▶ METADATOS & INGRESO
+          </button>
+        )}
+
+        {items.length > 0 && (
+          <div className="consumables-bar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span className="consumables-label">
+                CONSUMIBLES:
+              </span>
+              <div className="mode-toggle">
+                <button
+                  type="button"
+                  className={`mode-btn ${accessoryViewMode === 'separated' ? 'active' : ''}`}
+                  onClick={() => setAccessoryViewMode('separated')}
+                  title="Mostrar consumibles base y jumpers en filas separadas independientes"
+                >
+                  SEPARADOS
+                </button>
+                <button
+                  type="button"
+                  className={`mode-btn ${accessoryViewMode === 'join' ? 'active' : ''}`}
+                  onClick={() => setAccessoryViewMode('join')}
+                  title="Consolidar y sumar totales de consumibles idénticos por TAG (Base + Jumpers)"
+                >
+                  UNIDOS (TOTALES)
+                </button>
+              </div>
+            </div>
+
+            <div className="consumables-hint">
+              {accessoryViewMode === 'join' ? (
+                <span className="hint-join">
+                  ● Modo Unido: Accesorios y jumpers consolidados en totales por TAG
+                </span>
+              ) : (
+                <span className="hint-sep">● Modo Separado: Accesorios desglosados en líneas independientes</span>
+              )}
             </div>
           </div>
-
-          <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
-            {accessoryViewMode === 'join' ? (
-              <span style={{ color: 'var(--am, #eab308)', fontWeight: 600 }}>
-                ● Modo Unido: Accesorios y jumpers consolidados en totales por TAG
-              </span>
-            ) : (
-              <span>● Modo Separado: Accesorios desglosados en líneas independientes</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div id="table-container">
-        {items.length === 0 ? (
-          <div className="empty">
-            <div className="empty-icon">—</div>
-            <div className="empty-title">Sin ítems aún</div>
-            <div className="empty-sub">Usa una regla o agrega ítems manualmente</div>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="empty">
-            <div className="empty-icon">—</div>
-            <div className="empty-title">Sin resultados</div>
-            <div className="empty-sub">Prueba con otra búsqueda o limpia los filtros</div>
-          </div>
-        ) : (
-          groups.map(({ pkg, items: groupItems }) => (
-            <PackageGroupView key={pkg.id} pkg={pkg} items={groupItems} />
-          ))
         )}
-      </div>
+
+        <div id="table-container">
+          {items.length === 0 ? (
+            <div className="empty">
+              <div className="empty-icon">📊</div>
+              <div className="empty-title">Sin ítems aún</div>
+              <div className="empty-sub">Selecciona una regla en el panel lateral o importa un Excel</div>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="empty">
+              <div className="empty-icon">🔍</div>
+              <div className="empty-title">Sin resultados</div>
+              <div className="empty-sub">Prueba con otra búsqueda o limpia los filtros en el panel lateral</div>
+            </div>
+          ) : (
+            groups.map(({ pkg, items: groupItems }) => (
+              <PackageGroupView key={pkg.id} pkg={pkg} items={groupItems} />
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 };

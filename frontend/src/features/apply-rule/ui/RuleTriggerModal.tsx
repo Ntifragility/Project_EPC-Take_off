@@ -6,6 +6,7 @@ import { resolveRuleRequirements } from '../model/ruleParameterResolver';
 import { executeApplyRule } from '../model/useApplyRule';
 import { getSequentialTagsExample } from '../../../entities/takeoff-item/model/tagGenerator';
 import { hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { useRulesStore } from '../../manage-rules/model/useRulesStore';
 
 export interface RuleTriggerModalProps {
   isOpen: boolean;
@@ -20,28 +21,31 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   activeArea,
   onClose
 }) => {
+  const storeRule = useRulesStore(state => state.rules.find(r => r.id === rule?.id));
+  const activeRule = storeRule || rule;
+
   const [count, setCount] = useState<number>(1);
   const [baseTag, setBaseTag] = useState<string>('01');
   const [detalleCode, setDetalleCode] = useState<string>('');
   const [numSoportes, setNumSoportes] = useState<number>(1);
   const [numJumpers, setNumJumpers] = useState<number>(1);
-  const [cableTrayWidth, setCableTrayWidth] = useState<string>('600 mm');
+  const [cableTrayWidth, setCableTrayWidth] = useState<string>('900 mm');
 
   useEffect(() => {
-    if (rule) {
-      const req = resolveRuleRequirements(rule, activeArea);
+    if (isOpen && activeRule) {
+      const req = resolveRuleRequirements(activeRule, activeArea);
       setCount(1);
       setBaseTag(`${req.defaultTagPrefix}01`);
       setDetalleCode(req.defaultDetalle);
       setNumSoportes(1);
       setNumJumpers(1);
-      setCableTrayWidth('600 mm');
+      setCableTrayWidth(prev => (prev && ['900 mm', '600 mm', '450 mm', '300 mm'].includes(prev)) ? prev : '900 mm');
     }
-  }, [rule, activeArea, isOpen]);
+  }, [isOpen, activeRule?.id, activeArea]);
 
-  if (!isOpen || !rule) return null;
+  if (!isOpen || !activeRule) return null;
 
-  const req = resolveRuleRequirements(rule, activeArea);
+  const req = resolveRuleRequirements(activeRule, activeArea);
 
   const showSoportes =
     req.requiresSoportes ||
@@ -55,9 +59,9 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rule) return;
+    if (!activeRule) return;
 
-    executeApplyRule(rule, {
+    executeApplyRule(activeRule, {
       count: Math.max(1, count),
       baseTag: baseTag.trim().toUpperCase(),
       detalleCode: detalleCode.trim().toUpperCase(),
@@ -82,7 +86,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             <span style={{ fontSize: '1.2rem' }}>⚡</span>
             <div>
               <h3 style={{ margin: 0 }}>Aplicar Regla</h3>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{rule.trigger}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{activeRule.trigger}</div>
             </div>
           </div>
           <button className="btn btn-icon modal-close" onClick={onClose}>
@@ -98,24 +102,38 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                 ANCHO DE BANDEJA / ESCALERILLA (CABLE TRAY WIDTH):
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
-                {CABLE_TRAY_WIDTHS.map(w => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => setCableTrayWidth(w)}
-                    className="btn"
-                    style={{
-                      padding: '0.6rem 0.3rem',
-                      fontSize: '0.82rem',
-                      fontWeight: cableTrayWidth === w ? 'bold' : 'normal',
-                      borderColor: cableTrayWidth === w ? 'var(--accent)' : 'var(--border)',
-                      backgroundColor: cableTrayWidth === w ? 'var(--accent-dim)' : 'transparent',
-                      color: cableTrayWidth === w ? 'var(--accent)' : 'var(--text)'
-                    }}
-                  >
-                    {w}
-                  </button>
-                ))}
+                {CABLE_TRAY_WIDTHS.map(w => {
+                  const strutItem = activeRule.cableTrayMatrix?.[0];
+                  const strutVal = strutItem
+                    ? (w === '900 mm' ? strutItem.w900 : w === '600 mm' ? strutItem.w600 : w === '450 mm' ? strutItem.w450 : strutItem.w300)
+                    : (w === '900 mm' ? '1.20' : w === '600 mm' ? '0.76' : w === '450 mm' ? '0.61' : '0.46');
+
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setCableTrayWidth(w)}
+                      className="btn"
+                      style={{
+                        padding: '0.5rem 0.2rem',
+                        fontSize: '0.82rem',
+                        fontWeight: cableTrayWidth === w ? 'bold' : 'normal',
+                        borderColor: cableTrayWidth === w ? 'var(--accent)' : 'var(--border)',
+                        backgroundColor: cableTrayWidth === w ? 'var(--accent-dim)' : 'transparent',
+                        color: cableTrayWidth === w ? 'var(--accent)' : 'var(--text)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      <span>{w}</span>
+                      <span style={{ fontSize: '10px', opacity: 0.85, fontWeight: 'normal' }}>
+                        {strutVal} m
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

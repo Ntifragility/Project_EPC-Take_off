@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { usePackagesStore } from '../../../features/manage-packages/model/usePackagesStore';
 import { useRulesStore } from '../../../features/manage-rules/model/useRulesStore';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
@@ -11,10 +11,15 @@ import { ExcelGuideModal } from '../../../features/import-excel/ui/ExcelGuideMod
 import { RuleTriggerModal } from '../../../features/apply-rule/ui/RuleTriggerModal';
 import { PartidasGuideModal } from '../../../features/manage-partidas/ui/PartidasGuideModal';
 
-export const AddPanel: React.FC = () => {
+export interface AddPanelProps {
+  onCollapseSidebar?: () => void;
+}
+
+export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
   const { packages, selPkg, setSelPkg } = usePackagesStore();
   const { rules } = useRulesStore();
   const {
+    items,
     customPlano,
     customRev,
     setCustomPlano,
@@ -128,6 +133,10 @@ export const AddPanel: React.FC = () => {
 
   const hasActiveFilters = Boolean(searchQuery || filterPlano || filterDetalle);
 
+  const availablePlanos = useMemo(() => {
+    return Array.from(new Set(items.map(i => i.plano).filter(Boolean))).sort();
+  }, [items]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -140,71 +149,66 @@ export const AddPanel: React.FC = () => {
   }, []);
 
   return (
-    <div className="add-panel">
+    <div className="sidebar-panel">
       {/* Global Metadata Inputs (Plano & Rev) */}
-      <div
-        className="add-panel-card"
-        style={{
-          padding: '12px 14px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="add-panel-title" style={{ margin: 0, fontSize: '11px' }}>
-            METADATOS GLOBALES
+      <div className="panel-section">
+        <div className="panel-section-hd">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="panel-section-title">Metadatos</span>
+            {onCollapseSidebar && (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={onCollapseSidebar}
+                style={{ fontSize: '10.5px', padding: '1px 6px', color: 'var(--mu)' }}
+                title="Ocultar / Replegar este panel a la izquierda"
+              >
+                ◀ Ocultar
+              </button>
+            )}
           </div>
           <button
             type="button"
             className="btn-ghost"
-            style={{
-              padding: '2px 6px',
-              fontSize: '10px',
-              height: '20px',
-              color: 'var(--tx)',
-              borderColor: 'var(--b1)'
-            }}
+            style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--accent)' }}
             onClick={() => syncGlobalContext(section)}
             title="Aplica este Plano y Rev a todas las filas en la pantalla"
           >
-            APLICAR A TODOS
+            Aplicar a todos
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <div style={{ flex: 1 }}>
-            <div className="field-label" style={{ fontSize: '9.5px', marginBottom: '2px' }}>
-              PLANO
-            </div>
             <input
               type="text"
+              list="add-panel-planos-list"
               value={customPlano}
               onChange={e => setCustomPlano(e.target.value.toUpperCase())}
-              placeholder="P22-DA-2151..."
+              placeholder="Plano (P22-DA-...)"
               style={{
                 width: '100%',
-                fontSize: '11px',
-                padding: '4px 6px',
+                fontSize: '12px',
                 fontFamily: 'var(--mo)',
                 textTransform: 'uppercase'
               }}
             />
+            <datalist id="add-panel-planos-list">
+              {availablePlanos.map(p => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
           </div>
 
           <div style={{ width: '60px' }}>
-            <div className="field-label" style={{ fontSize: '9.5px', marginBottom: '2px' }}>
-              REV
-            </div>
             <input
               type="text"
               value={customRev}
               onChange={e => setCustomRev(e.target.value.toUpperCase())}
-              placeholder="0"
+              placeholder="Rev"
               style={{
                 width: '100%',
-                fontSize: '11px',
-                padding: '4px 6px',
+                fontSize: '12px',
                 fontFamily: 'var(--mo)',
                 textTransform: 'uppercase',
                 textAlign: 'center'
@@ -215,24 +219,17 @@ export const AddPanel: React.FC = () => {
       </div>
 
       {/* Package Selector */}
-      <div className="add-panel-card" style={{ padding: '12px 14px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <div className="add-panel-title" style={{ margin: 0, fontSize: '11px' }}>
-            PARTIDA ACTIVA
-          </div>
+      <div className="panel-section">
+        <div className="panel-section-hd">
+          <span className="panel-section-title">Partida Activa</span>
           <button
+            type="button"
             className="btn-ghost"
-            style={{
-              fontSize: '10px',
-              height: '20px',
-              padding: '0 6px',
-              color: 'var(--tx)',
-              borderColor: 'var(--b1)'
-            }}
+            style={{ fontSize: '11px', padding: '2px 8px' }}
             onClick={() => setTab('packages')}
             title="Administrar / Agregar Partidas"
           >
-            + GESTIONAR
+            + Gestionar
           </button>
         </div>
 
@@ -241,9 +238,7 @@ export const AddPanel: React.FC = () => {
           onChange={e => setSelPkg(e.target.value)}
           style={{
             width: '100%',
-            fontSize: '11px',
-            padding: '5px 6px',
-            fontFamily: 'var(--mo)',
+            fontSize: '12.5px',
             fontWeight: 600,
             cursor: 'pointer'
           }}
@@ -256,36 +251,18 @@ export const AddPanel: React.FC = () => {
         </select>
       </div>
 
-      {/* Mode Switcher Buttons */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+      {/* Mode Switcher Pill */}
+      <div className="mode-toggle">
         <button
           type="button"
-          className="btn"
-          style={{
-            flex: 1,
-            padding: '6px',
-            fontSize: '11px',
-            fontWeight: addMode === 'rule' ? 'bold' : 'normal',
-            borderColor: addMode === 'rule' ? 'var(--accent)' : 'var(--b1)',
-            backgroundColor: addMode === 'rule' ? 'var(--accent-dim)' : 'transparent',
-            color: addMode === 'rule' ? 'var(--accent)' : 'var(--tx)'
-          }}
+          className={`mode-btn ${addMode === 'rule' ? 'active' : ''}`}
           onClick={() => setAddMode('rule')}
         >
           ⚡ Por Regla
         </button>
         <button
           type="button"
-          className="btn"
-          style={{
-            flex: 1,
-            padding: '6px',
-            fontSize: '11px',
-            fontWeight: addMode === 'custom' ? 'bold' : 'normal',
-            borderColor: addMode === 'custom' ? 'var(--accent)' : 'var(--b1)',
-            backgroundColor: addMode === 'custom' ? 'var(--accent-dim)' : 'transparent',
-            color: addMode === 'custom' ? 'var(--accent)' : 'var(--tx)'
-          }}
+          className={`mode-btn ${addMode === 'custom' ? 'active' : ''}`}
           onClick={() => setAddMode('custom')}
         >
           ✏️ Manual
@@ -294,29 +271,22 @@ export const AddPanel: React.FC = () => {
 
       {/* Rule Selection Mode */}
       {addMode === 'rule' && (
-        <div className="add-panel-card" style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <div className="add-panel-title" style={{ margin: 0, fontSize: '11px' }}>
-              SELECCIONAR REGLA
-            </div>
+        <div className="panel-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="panel-section-hd">
+            <span className="panel-section-title">Catálogo de Reglas</span>
             <button
+              type="button"
               className="btn-ghost"
-              style={{
-                fontSize: '10px',
-                height: '20px',
-                padding: '0 6px',
-                color: 'var(--tx)',
-                borderColor: 'var(--b1)'
-              }}
+              style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--accent)' }}
               onClick={() => setTab('rules')}
               title="Configurar y agregar nuevas reglas"
             >
-              + NUEVA
+              + Nueva
             </button>
           </div>
 
           {/* Autocomplete Input */}
-          <div ref={dropdownRef} style={{ position: 'relative', marginBottom: '8px' }}>
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
             <input
               type="text"
               value={triggerQuery}
@@ -328,9 +298,7 @@ export const AddPanel: React.FC = () => {
               placeholder="Buscar regla rápida..."
               style={{
                 width: '100%',
-                fontSize: '11px',
-                padding: '5px 8px',
-                fontFamily: 'var(--mo)'
+                fontSize: '12px'
               }}
             />
 
@@ -338,16 +306,17 @@ export const AddPanel: React.FC = () => {
               <div
                 style={{
                   position: 'absolute',
-                  top: '100%',
+                  top: 'calc(100% + 6px)',
                   left: 0,
                   right: 0,
-                  maxHeight: '180px',
+                  maxHeight: '220px',
                   overflowY: 'auto',
                   backgroundColor: 'var(--s1)',
                   border: '1px solid var(--b1)',
-                  borderRadius: '4px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  zIndex: 20
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--dropdown-shadow)',
+                  zIndex: 30,
+                  padding: '6px'
                 }}
               >
                 {filteredRules.map(r => (
@@ -355,16 +324,17 @@ export const AddPanel: React.FC = () => {
                     key={r.id}
                     onClick={() => handleSelectRule(r)}
                     style={{
-                      padding: '6px 10px',
-                      fontSize: '11px',
+                      padding: '8px 12px',
+                      fontSize: '12px',
                       cursor: 'pointer',
-                      borderBottom: '1px solid var(--b1)'
+                      borderRadius: 'var(--radius-sm)',
+                      transition: 'background 0.15s ease'
                     }}
                     onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--s2)')}
                     onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    <div style={{ fontWeight: 600 }}>{r.trigger}</div>
-                    <div style={{ fontSize: '9.5px', color: 'var(--mu)' }}>{getRuleSubtitle(r)}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--tx-hd)' }}>{r.trigger}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--mu)', marginTop: '2px' }}>{getRuleSubtitle(r)}</div>
                   </div>
                 ))}
               </div>
@@ -374,11 +344,11 @@ export const AddPanel: React.FC = () => {
           {/* Rules List Scroll */}
           <div
             style={{
-              maxHeight: '260px',
+              maxHeight: '280px',
               overflowY: 'auto',
               display: 'flex',
               flexDirection: 'column',
-              gap: '4px',
+              gap: '6px',
               paddingRight: '2px'
             }}
           >
@@ -389,25 +359,29 @@ export const AddPanel: React.FC = () => {
                 onClick={() => handleSelectRule(r)}
                 style={{
                   textAlign: 'left',
-                  padding: '7px 10px',
-                  borderRadius: '4px',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--b1)',
                   backgroundColor: 'var(--s2)',
                   color: 'var(--tx)',
                   cursor: 'pointer',
-                  transition: 'all 0.1s ease'
+                  transition: 'all 0.18s ease'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.borderColor = 'var(--accent)';
-                  e.currentTarget.style.backgroundColor = 'var(--s3)';
+                  e.currentTarget.style.backgroundColor = 'var(--s1)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(91, 80, 230, 0.08)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.borderColor = 'var(--b1)';
                   e.currentTarget.style.backgroundColor = 'var(--s2)';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'none';
                 }}
               >
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>{r.trigger}</div>
-                <div style={{ fontSize: '9.5px', color: 'var(--mu)', marginTop: '2px' }}>{getRuleSubtitle(r)}</div>
+                <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--tx-hd)' }}>{r.trigger}</div>
+                <div style={{ fontSize: '11px', color: 'var(--mu)', marginTop: '2px' }}>{getRuleSubtitle(r)}</div>
               </button>
             ))}
           </div>
@@ -418,164 +392,68 @@ export const AddPanel: React.FC = () => {
       {addMode === 'custom' && (
         <form
           onSubmit={handleAddManual}
-          className="add-panel-card"
-          style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}
+          className="panel-section"
+          style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
         >
-          <div className="add-panel-title" style={{ margin: 0, fontSize: '11px' }}>
-            AGREGAR ÍTEM MANUAL
+          <div className="panel-section-title">
+            Ítem Manual
           </div>
 
           <div>
-            <div className="field-label" style={{ fontSize: '9.5px', marginBottom: '2px' }}>
-              DESCRIPCIÓN
-            </div>
+            <div className="field-label">Descripción</div>
             <input
               type="text"
               value={desc}
               onChange={e => setDesc(e.target.value)}
               placeholder="Descripción del material..."
               required
-              style={{ width: '100%', fontSize: '11px', padding: '4px 6px', textTransform: 'uppercase' }}
+              style={{ width: '100%', fontSize: '12px', textTransform: 'uppercase' }}
             />
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
             <div style={{ flex: 1 }}>
-              <div className="field-label" style={{ fontSize: '9.5px', marginBottom: '2px' }}>
-                CANTIDAD
-              </div>
+              <div className="field-label">Cantidad</div>
               <input
                 type="number"
                 value={qty}
                 onChange={e => setQty(parseFloat(e.target.value) || 1)}
                 min={0.001}
                 step="any"
-                style={{ width: '100%', fontSize: '11px', padding: '4px 6px' }}
+                style={{ width: '100%', fontSize: '12px' }}
               />
             </div>
 
             <div style={{ width: '80px' }}>
-              <div className="field-label" style={{ fontSize: '9.5px', marginBottom: '2px' }}>
-                UNIDAD
-              </div>
+              <div className="field-label">Unidad</div>
               <input
                 type="text"
                 value={unit}
                 onChange={e => setUnit(e.target.value.toUpperCase())}
                 placeholder="UND"
-                style={{ width: '100%', fontSize: '11px', padding: '4px 6px', textTransform: 'uppercase' }}
+                style={{ width: '100%', fontSize: '12px', textTransform: 'uppercase' }}
               />
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ marginTop: '4px', padding: '6px' }}>
+          <button type="submit" className="btn btn-primary" style={{ marginTop: '4px' }}>
             + Agregar a Tabla
           </button>
         </form>
       )}
 
-      {/* Excel / CSV File Import & Template Action Card */}
-      <div
-        className="add-panel-card"
-        style={{
-          padding: '12px 14px',
-          marginTop: '8px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="add-panel-title" style={{ margin: 0, fontSize: '11px' }}>
-            IMPORTAR / CARGAR
-          </div>
-          <button
-            type="button"
-            className="btn-ghost"
-            style={{
-              padding: '2px 6px',
-              fontSize: '10px',
-              height: '20px',
-              color: 'var(--accent)',
-              borderColor: 'var(--b1)'
-            }}
-            onClick={() => setShowExcelGuide(true)}
-            title="Ver guía y descargar plantilla Excel multi-pestaña"
-          >
-            📋 GUÍA EXCEL
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <label
-            className="btn btn-primary"
-            style={{
-              flex: 1,
-              padding: '6px',
-              fontSize: '11px',
-              textAlign: 'center',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: 0
-            }}
-            title="Subir archivo Excel (.xlsx, .xlsb, .xls) de Metrado"
-          >
-            <span>📁 Importar Metrado</span>
-            <input
-              type="file"
-              accept=".xlsx,.xlsb,.xls,.csv"
-              style={{ display: 'none' }}
-              onChange={handleFileUpload}
-            />
-          </label>
-
-          <button
-            type="button"
-            className="btn"
-            style={{
-              padding: '6px 10px',
-              fontSize: '11px',
-              borderColor: 'var(--b1)'
-            }}
-            onClick={() => setIsPartidasModalOpen(true)}
-            title="Cargar / Actualizar Partidas Master en Supabase"
-          >
-            🏷️ Partidas
-          </button>
-        </div>
-      </div>
-
       {/* Filter / Search Box */}
-      <div
-        className="add-panel-card"
-        style={{
-          padding: '12px 14px',
-          marginTop: '8px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="add-panel-title" style={{ margin: 0, fontSize: '11px' }}>
-            FILTRAR TABLA
-          </div>
+      <div className="panel-section">
+        <div className="panel-section-hd">
+          <span className="panel-section-title">Filtrar Metrado</span>
           {hasActiveFilters && (
             <button
               type="button"
               className="btn-ghost"
-              style={{
-                padding: '1px 5px',
-                fontSize: '9.5px',
-                height: '18px',
-                color: '#ef4444',
-                borderColor: 'rgba(239, 68, 68, 0.3)'
-              }}
+              style={{ fontSize: '10.5px', padding: '2px 6px', color: 'var(--rd)' }}
               onClick={clearFilters}
             >
-              LIMPIAR
+              Limpiar
             </button>
           )}
         </div>
@@ -587,11 +465,53 @@ export const AddPanel: React.FC = () => {
           placeholder="Buscar descripción o TAG..."
           style={{
             width: '100%',
-            fontSize: '11px',
-            padding: '4px 6px',
-            fontFamily: 'var(--mo)'
+            fontSize: '12px'
           }}
         />
+      </div>
+
+      {/* Import / Guide Action Buttons */}
+      <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+        <label
+          className="btn btn-secondary"
+          style={{
+            flex: 1,
+            padding: '7px 10px',
+            fontSize: '11.5px',
+            cursor: 'pointer',
+            textAlign: 'center',
+            margin: 0
+          }}
+          title="Subir archivo Excel (.xlsx, .xlsb, .xls) de Metrado"
+        >
+          <span>📁 Importar</span>
+          <input
+            type="file"
+            accept=".xlsx,.xlsb,.xls,.csv"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+        </label>
+
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ padding: '7px 10px', fontSize: '11.5px' }}
+          onClick={() => setIsPartidasModalOpen(true)}
+          title="Cargar / Actualizar Partidas Master en Supabase"
+        >
+          🏷️ Partidas
+        </button>
+
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ padding: '7px 10px', fontSize: '11.5px' }}
+          onClick={() => setShowExcelGuide(true)}
+          title="Ver guía y descargar plantilla Excel multi-pestaña"
+        >
+          📋 Guía
+        </button>
       </div>
 
       {/* Undo Action Bar */}
@@ -605,14 +525,12 @@ export const AddPanel: React.FC = () => {
           }}
           className="btn"
           style={{
-            marginTop: '8px',
-            padding: '6px',
             width: '100%',
-            fontSize: '11px',
-            backgroundColor: 'rgba(234, 179, 8, 0.15)',
-            borderColor: 'rgba(234, 179, 8, 0.4)',
-            color: 'var(--am, #eab308)',
-            fontWeight: 600
+            fontSize: '11.5px',
+            backgroundColor: 'var(--am-dim)',
+            borderColor: 'var(--am)',
+            color: 'var(--am)',
+            fontWeight: 700
           }}
           title="Deshacer la última acción agregada o modificada"
         >

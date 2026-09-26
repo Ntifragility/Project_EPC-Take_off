@@ -5,9 +5,10 @@ import { loadStoredRules, saveStoredRules } from '../../../shared/lib/storage';
 import {
   saveTakeoffRuleToSupabase,
   deleteTakeoffRuleFromSupabase,
-  saveDetalleVariantToSupabase
+  saveDetalleVariantToSupabase,
+  deleteDetalleVariantFromSupabase
 } from '../../../shared/api/supabase';
-import { updateSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { updateSingleDynamicVariant, deleteSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
 
 export interface RulesState {
   rules: TakeoffRule[];
@@ -24,6 +25,11 @@ export interface RulesActions {
     area: string,
     detalleCode: string,
     itemsToSave: DetalleVariantItem[],
+    category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
+  ) => Promise<boolean>;
+  deleteDetalleVariant: (
+    area: string,
+    detalleCode: string,
     category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
   ) => Promise<boolean>;
   setRules: (rules: TakeoffRule[], section: SectionType) => void;
@@ -63,9 +69,6 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       throw new Error('La regla debe tener al menos un sub-ítem.');
     }
 
-    const orderIndex = isNew ? get().rules.length : (get().rules.findIndex(r => r.id === rule.id) !== -1 ? get().rules.findIndex(r => r.id === rule.id) : 0);
-    await saveTakeoffRuleToSupabase(rule, section, orderIndex);
-
     let nextRules: TakeoffRule[];
     if (isNew) {
       nextRules = [...get().rules, rule];
@@ -75,13 +78,25 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
 
     saveStoredRules(section, nextRules);
     set({ rules: nextRules });
+
+    // Sync with Supabase asynchronously without blocking local state
+    try {
+      const orderIndex = isNew ? nextRules.length - 1 : Math.max(0, nextRules.findIndex(r => r.id === rule.id));
+      await saveTakeoffRuleToSupabase(rule, section, orderIndex);
+    } catch (err) {
+      console.warn('Supabase sync background notice:', err);
+    }
   },
 
   deleteRule: async (id: string, section: SectionType) => {
-    await deleteTakeoffRuleFromSupabase(id);
     const nextRules = get().rules.filter(r => r.id !== id);
     saveStoredRules(section, nextRules);
     set({ rules: nextRules });
+    try {
+      await deleteTakeoffRuleFromSupabase(id);
+    } catch (err) {
+      console.warn('Supabase delete background notice:', err);
+    }
   },
 
   saveDetalleVariant: async (
@@ -105,6 +120,24 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       return true;
     } catch (err) {
       console.error('Error saving detalle variant:', err);
+      return false;
+    }
+  },
+
+  deleteDetalleVariant: async (
+    area: string,
+    detalleCode: string,
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+  ) => {
+    try {
+      deleteSingleDynamicVariant(area, detalleCode, category);
+      set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
+
+      const areaDb = area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
+      await deleteDetalleVariantFromSupabase(`${areaDb}_${category}_${detalleCode}`);
+      return true;
+    } catch (err) {
+      console.error('Error deleting detalle variant:', err);
       return false;
     }
   },

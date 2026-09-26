@@ -17,6 +17,11 @@ export interface DetalleEditorModalProps {
     items: DetalleVariantItem[],
     category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
   ) => Promise<boolean>;
+  onDelete?: (
+    area: string,
+    detalleCode: string,
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
+  ) => Promise<boolean>;
 }
 
 interface EditableItem {
@@ -47,12 +52,15 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   availableCodes = [],
   onSelectDetalle,
   onClose,
-  onSave
+  onSave,
+  onDelete
 }) => {
   const [items, setItems] = useState<EditableItem[]>([]);
   const [activeCode, setActiveCode] = useState(initialCode);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [customNewCode, setCustomNewCode] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renamedCode, setRenamedCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const suggestedMaterials = React.useMemo(() => {
@@ -70,6 +78,8 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
       setActiveCode(initialCode);
       setIsCreatingNew(false);
       setCustomNewCode('');
+      setIsRenaming(false);
+      setRenamedCode('');
       setItems(
         (initialItems || []).map((it, idx) => ({
           id: `item-${idx}-${Date.now()}`,
@@ -113,6 +123,8 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   };
 
   const handleCodeChange = (newCode: string) => {
+    setIsRenaming(false);
+    setRenamedCode('');
     if (newCode === '__NEW__') {
       setIsCreatingNew(true);
       setCustomNewCode('');
@@ -127,7 +139,12 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   };
 
   const handleSave = async () => {
-    const finalCode = isCreatingNew ? customNewCode.trim().toUpperCase() : activeCode.trim().toUpperCase();
+    const isRenameAction = isRenaming && renamedCode.trim().toUpperCase() !== activeCode.trim().toUpperCase();
+    const finalCode = isCreatingNew
+      ? customNewCode.trim().toUpperCase()
+      : isRenaming
+      ? renamedCode.trim().toUpperCase()
+      : activeCode.trim().toUpperCase();
 
     if (!finalCode) {
       alert('Por favor especifica un código de detalle válido.');
@@ -158,6 +175,9 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
     try {
       const ok = await onSave(area, finalCode, payloadItems, category);
       if (ok) {
+        if (isRenameAction && onDelete) {
+          await onDelete(area, activeCode, category);
+        }
         onClose();
       }
     } finally {
@@ -215,30 +235,109 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '15px', fontWeight: 'bold' }}>EDITAR DETALLE:</span>
 
-              {!isCreatingNew && availableCodes.length > 0 ? (
-                <select
-                  value={activeCode}
-                  onChange={e => handleCodeChange(e.target.value)}
-                  style={{
-                    background: 'var(--ad)',
-                    color: 'var(--tx)',
-                    border: '1px solid var(--b1)',
-                    padding: '4px 10px',
-                    borderRadius: '4px',
-                    fontFamily: 'var(--mo)',
-                    fontSize: '13px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                  title="Cambiar de detalle para editar"
-                >
-                  {availableCodes.map(code => (
-                    <option key={code} value={code}>
-                      Detalle: {code}
-                    </option>
-                  ))}
-                  <option value="__NEW__">+ Crear Nuevo Detalle...</option>
-                </select>
+              {!isCreatingNew && !isRenaming ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {availableCodes.length > 0 ? (
+                    <select
+                      value={activeCode}
+                      onChange={e => handleCodeChange(e.target.value)}
+                      style={{
+                        background: 'var(--ad)',
+                        color: 'var(--tx)',
+                        border: '1px solid var(--b1)',
+                        padding: '4px 10px',
+                        borderRadius: '4px',
+                        fontFamily: 'var(--mo)',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                      title="Cambiar de detalle para editar"
+                    >
+                      {availableCodes.map(code => (
+                        <option key={code} value={code}>
+                          Detalle: {code}
+                        </option>
+                      ))}
+                      <option value="__NEW__">+ Crear Nuevo Detalle...</option>
+                    </select>
+                  ) : (
+                    <span
+                      style={{
+                        background: 'var(--ad)',
+                        color: 'var(--tx)',
+                        border: '1px solid var(--b1)',
+                        padding: '3px 10px',
+                        borderRadius: '4px',
+                        fontFamily: 'var(--mo)',
+                        fontSize: '13px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {activeCode}
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => {
+                      setIsRenaming(true);
+                      setRenamedCode(activeCode);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      padding: '4px 10px',
+                      border: '1px solid var(--b1)',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: 'var(--s2)'
+                    }}
+                    title="Cambiar el nombre / código de este detalle constructivo"
+                  >
+                    ✏️ Renombrar Código
+                  </button>
+                </div>
+              ) : isRenaming ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--mu)', fontWeight: 600 }}>CÓDIGO:</span>
+                  <input
+                    type="text"
+                    value={renamedCode}
+                    onChange={e => setRenamedCode(e.target.value)}
+                    placeholder="NUEVO CÓDIGO (ej. 010/17B)"
+                    style={{
+                      background: 'var(--s2)',
+                      color: 'var(--tx)',
+                      border: '1px solid #3b82f6',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      fontFamily: 'var(--mo)',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      width: '210px',
+                      textTransform: 'uppercase'
+                    }}
+                    autoFocus
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--mu)' }}>
+                    (actual: <strong style={{ color: 'var(--tx)' }}>{activeCode}</strong>)
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => {
+                      setIsRenaming(false);
+                      setRenamedCode('');
+                    }}
+                    style={{ fontSize: '10px', padding: '4px 8px' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
               ) : isCreatingNew ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <input
@@ -271,22 +370,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                     Volver a existentes
                   </button>
                 </div>
-              ) : (
-                <span
-                  style={{
-                    background: 'var(--ad)',
-                    color: 'var(--tx)',
-                    border: '1px solid var(--b1)',
-                    padding: '3px 10px',
-                    borderRadius: '4px',
-                    fontFamily: 'var(--mo)',
-                    fontSize: '13px',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {activeCode}
-                </span>
-              )}
+              ) : null}
 
               <span
                 style={{
@@ -515,9 +599,46 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
             borderBottomRightRadius: '8px'
           }}
         >
-          <span style={{ fontSize: '11px', color: 'var(--tx2)' }}>
-            Ítems configurados: <strong>{items.length}</strong>
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--tx2)' }}>
+              Ítems configurados: <strong>{items.length}</strong>
+            </span>
+            {onDelete && !isCreatingNew && (
+              <button
+                type="button"
+                className="btn"
+                onClick={async () => {
+                  if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el detalle "${activeCode}"? Esta acción borrará todas sus partidas asignadas.`)) {
+                    setIsSaving(true);
+                    try {
+                      const ok = await onDelete(area, activeCode, category);
+                      if (ok) {
+                        onClose();
+                      }
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }
+                }}
+                disabled={isSaving}
+                style={{
+                  fontSize: '11px',
+                  padding: '6px 14px',
+                  fontWeight: 700,
+                  backgroundColor: '#fee2e2',
+                  border: '1px solid #ef4444',
+                  color: '#b91c1c',
+                  cursor: isSaving ? 'not-allowed' : 'pointer',
+                  borderRadius: '4px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                🗑️ ELIMINAR ESTE DETALLE COMPLETO
+              </button>
+            )}
+          </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button

@@ -12,4 +12,4 @@ export const DEFAULT_PLANO = 'P22-DA-2151-07-GL-001';
 export const DEFAULT_REV = '0';
 export const DEFAULT_SECTION = 'pat';
 export const DEFAULT_AREA = 'AREA SECA';
-export const DEFAULT_THEME = 'dark';
+export const DEFAULT_THEME = 'light';
