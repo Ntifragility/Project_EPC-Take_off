@@ -1,6 +1,7 @@
 import React from 'react';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { ItemEditModal } from '../../../features/manage-items/ui/ItemEditModal';
+import { DetalleChangeModal } from '../../../features/manage-items/ui/DetalleChangeModal';
 import { MaterialSummaryModal } from '../../../features/export-takeoff/ui/MaterialSummaryModal';
 import { TagSummaryModal } from '../../../features/export-takeoff/ui/TagSummaryModal';
 import { AreaSelectModal } from '../../../features/filter-takeoff/ui/AreaSelectModal';
@@ -38,6 +39,8 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
         item={editingItem}
         onClose={() => setEditingItemId(null)}
       />
+
+      <DetalleChangeModal />
 
       <MaterialSummaryModal
         isOpen={summaryModalOpen}

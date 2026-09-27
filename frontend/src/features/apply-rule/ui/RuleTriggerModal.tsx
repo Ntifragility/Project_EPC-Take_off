@@ -66,7 +66,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
     e.preventDefault();
     if (!activeRule) return;
 
-    executeApplyRule(activeRule, {
+    const applied = executeApplyRule(activeRule, {
       count: effCount,
       baseTag: baseTag.trim().toUpperCase(),
       detalleCode: detalleCode.trim().toUpperCase(),
@@ -76,7 +76,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
       cableTrayWidth
     });
 
-    onClose();
+    if (applied) onClose();
   };
 
   return (

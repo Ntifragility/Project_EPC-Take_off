@@ -3,6 +3,7 @@ import { TakeoffItem, MaterialType } from '../../../entities/takeoff-item/model/
 import { AreaType, SectionType } from '../../../shared/types/common';
 import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico, getSequentialTag, assignTagUnicoSuffixes } from '../../../entities/takeoff-item/model/tagGenerator';
+import { findIntroducedTagCollision, tagCollisionMessage } from '../../../entities/takeoff-item/model/itemIdentity';
 import { isPrimaryMaterial } from '../../../entities/takeoff-item/model/materialClassifier';
 import { DEFAULT_CABLE_TRAY_MATRIX, getCableTrayMatrixValue } from '../../../entities/takeoff-rule/model/cableTrayRules';
 import { getCalculatedVariantItems } from '../../../entities/takeoff-rule/model/detalleVariants';
@@ -26,7 +27,7 @@ export function executeApplyRule(
     cableTrayWidth?: string;
     incluirTuberia?: boolean;
   }
-) {
+): boolean {
   const { count, baseTag, detalleCode } = params;
   const numSoportes = params.numSoportes ?? 1;
   const numJumpers = params.numJumpers ?? 1;
@@ -41,8 +42,6 @@ export function executeApplyRule(
 
   // Fetch freshest rule from store if available to avoid stale closures
   const currentRule = useRulesStore.getState().rules.find(r => r.id === rule.id) || rule;
-
-  saveUndoSnapshot();
 
   const planoVal = (customPlano || '').toUpperCase();
   const revVal = (customRev || '').toUpperCase();
@@ -233,30 +232,54 @@ export function executeApplyRule(
     }
   }
 
+  const tagToInstance = new Map<string, string>();
+  newItems.forEach(it => {
+    const tag = it.tagPlano || '';
+    if (!tagToInstance.has(tag)) tagToInstance.set(tag, uid());
+    it.instanceId = tagToInstance.get(tag);
+  });
+
   let combined = [...items, ...newItems];
 
+  const collision = findIntroducedTagCollision(items, combined);
+  if (collision) {
+    showToast(tagCollisionMessage(collision), 'warn');
+    return false;
+  }
+
   if (currentRule.id === 'r1' || currentRule.id === 'r2') {
-    const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
-    uniqueTags.forEach(tag => {
-      const sibs = combined.filter(i => i.tagPlano === tag && i.pkgId === pkgId);
+    tagToInstance.forEach((instanceId, tag) => {
+      const sibs = combined.filter(i => i.instanceId === instanceId);
       const tItem = sibs.find(i => i.desc.toUpperCase().includes('TUBERIA') || i.desc.toUpperCase().includes('TUBERÍA'));
       const cItem = sibs.find(i => i.desc.toUpperCase().includes('CABLE') && !i.desc.toUpperCase().includes('JUMPER'));
       const tOt = tItem ? tItem.metradoOt : '';
       const cOt = cItem ? cItem.metradoOt : '';
-      combined = applyDetalleVariant(combined, tag, pkgId, detalleCode, numSoportes, numJumpers, tOt, cOt);
+      combined = applyDetalleVariant(
+        combined,
+        tag,
+        pkgId,
+        detalleCode,
+        numSoportes,
+        numJumpers,
+        tOt,
+        cOt,
+        false,
+        instanceId
+      );
     });
   }
 
   if ((currentRule.id === 'r8' || currentRule.id === 'r9' || upTrigger.includes('BARRA')) && (activeArea === 'AREA HUMEDA' || detalleCode.startsWith('010/17'))) {
-    const uniqueTags = [...new Set(newItems.map(it => it.tagPlano))];
-    uniqueTags.forEach(tag => {
-      combined = applyBarraPotDetalleVariant(combined, tag, pkgId, detalleCode, numSoportes);
+    tagToInstance.forEach((instanceId, tag) => {
+      combined = applyBarraPotDetalleVariant(combined, tag, pkgId, detalleCode, numSoportes, false, instanceId);
     });
   }
 
+  saveUndoSnapshot();
   combined = assignTagUnicoSuffixes(combined);
   combined = correlateItemsWithPartidas(combined, partidas, activeArea);
 
   setItems(combined, section);
   showToast(`${newItems.length} ítems agregados`, 'success');
+  return true;
 }

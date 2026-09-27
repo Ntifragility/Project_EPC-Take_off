@@ -12,6 +12,8 @@ import {
   sumWidths
 } from './columnWidths';
 import { COLUMN_LABELS, uniqueColumnValues } from '../model/columnValue';
+import { SELECTABLE_COLS, cellKey, cellsInRect, isSingleCell, type CellRef } from '../model/cellRange';
+import { isDetalleTriggerRow } from '../../../entities/takeoff-rule/model/instanceRebuild';
 import { mergeItemsByDetalle } from '../../../entities/takeoff-item/model/itemAggregation';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
@@ -34,6 +36,7 @@ function idsInFillRange(
   const end = Math.max(sourceIdx, targetIdx);
   const slice = rows.slice(start, end + 1).filter(it => it.id !== sourceId);
   if (colKey === 'plano') return slice.map(i => i.id);
+  if (colKey === 'detalle') return slice.filter(it => isDetalleTriggerRow(it, rows)).map(i => i.id);
   return slice.filter(it => it.material === 'P').map(i => i.id);
 }
 
@@ -65,7 +68,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     setColumnFilter,
     searchQuery,
     clearFilters,
-    fitTableNonce
+    fitTableNonce,
+    isMergedView
   } = useUIStore();
 
   // Manual drag only. Defaults fill the pane once at load; window resize
@@ -164,6 +168,12 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
 
   // Excel Cell Selection & Drag-to-Fill State
   const [selectedCell, setSelectedCell] = useState<{ itemId: string; colKey: string; value: any } | null>(null);
+  const [rangeFocus, setRangeFocus] = useState<CellRef | null>(null);
+  const selectedCellRef = useRef(selectedCell);
+  const rangeFocusRef = useRef(rangeFocus);
+  selectedCellRef.current = selectedCell;
+  rangeFocusRef.current = rangeFocus;
+  const selectingRangeRef = useRef(false);
   const [editingCell, setEditingCell] = useState<{ itemId: string; colKey: string } | null>(null);
   const [dragFill, setDragFill] = useState<{
     isDragging: boolean;
@@ -181,7 +191,6 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
 
   const [pageSize, setPageSize] = useState<number>(100);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isMergedView, setIsMergedView] = useState<boolean>(false);
 
   const displayedItems = useMemo(() => {
     if (!isMergedView) {
@@ -260,7 +269,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         session.sourceValue,
         sectionRef.current
       );
-      if (applied) {
+      if (applied && session.colKey !== 'detalle') {
         const noun = session.colKey === 'plano' ? 'fila(s)' : 'ítem(s) principal(es)';
         showToastRef.current(
           `Copiado "${session.sourceValue ?? ''}" a ${session.targetItemIds.length} ${noun}`,
@@ -311,9 +320,77 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     };
   };
 
-  const handleCellMouseEnter = (itemId: string, colKey: string) => {
-    applyFillHover(itemId, colKey);
+  const handleSelectCell = (itemId: string, colKey: string, value: any, e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.excel-fill-handle, .act-row-floating')) return;
+    selectingRangeRef.current = true;
+    const anchor = selectedCellRef.current;
+
+    if (e.shiftKey && anchor) {
+      rangeFocusRef.current = { itemId, colKey };
+      setRangeFocus(rangeFocusRef.current);
+      return;
+    }
+
+    const next = { itemId, colKey, value };
+    selectedCellRef.current = next;
+    rangeFocusRef.current = null;
+    setSelectedCell(next);
+    setRangeFocus(null);
   };
+
+  const handleCellMouseEnter = (itemId: string, colKey: string, e?: React.MouseEvent) => {
+    applyFillHover(itemId, colKey);
+    if (fillSessionRef.current.isDragging) return;
+    const dragging = selectingRangeRef.current || (e && e.buttons === 1);
+    if (dragging && selectedCellRef.current) {
+      rangeFocusRef.current = { itemId, colKey };
+      setRangeFocus(rangeFocusRef.current);
+    }
+  };
+
+  useEffect(() => {
+    const onUp = () => {
+      selectingRangeRef.current = false;
+    };
+    const onMove = (ev: MouseEvent) => {
+      if (!selectingRangeRef.current || ev.buttons !== 1) return;
+      if (fillSessionRef.current.isDragging) return;
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const cell = el?.closest('td.excel-cell') as HTMLElement | null;
+      if (!cell) return;
+      const itemId = cell.getAttribute('data-item-id');
+      const colKey = cell.getAttribute('data-col-key');
+      if (!itemId || !colKey) return;
+      if (!SELECTABLE_COLS.includes(colKey as (typeof SELECTABLE_COLS)[number])) return;
+      const focus = rangeFocusRef.current;
+      if (focus?.itemId === itemId && focus?.colKey === colKey) return;
+      rangeFocusRef.current = { itemId, colKey };
+      setRangeFocus(rangeFocusRef.current);
+    };
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') {
+        selectedCellRef.current = null;
+        rangeFocusRef.current = null;
+        setSelectedCell(null);
+        setRangeFocus(null);
+      }
+    };
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  const rangeKeys = useMemo(() => {
+    if (!selectedCell) return new Set<string>();
+    return cellsInRect(visibleItems, selectedCell, rangeFocus || selectedCell);
+  }, [selectedCell, rangeFocus, visibleItems]);
+
+  const rangeIsSingle = Boolean(selectedCell && isSingleCell(selectedCell, rangeFocus));
 
   const handleSaveInlineCell = (itemId: string, colKey: string, newValue: any) => {
     setEditingCell(null);
@@ -375,65 +452,6 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {/* Toggle buttons for Merged vs Separated */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              background: 'var(--s1)',
-              borderRadius: '4px',
-              border: '1px solid var(--b1)',
-              padding: '2px',
-              gap: '2px'
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setIsMergedView(false)}
-              style={{
-                background: !isMergedView ? 'var(--am, #2563eb)' : 'transparent',
-                color: !isMergedView ? '#ffffff' : 'var(--mu)',
-                border: 'none',
-                borderRadius: '3px',
-                padding: '3px 8px',
-                fontSize: '11px',
-                fontWeight: !isMergedView ? 700 : 400,
-                fontFamily: 'var(--mo, monospace)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.15s ease'
-              }}
-              title="Mantener ítems separados (Vista detallada actual)"
-            >
-              <span>📋 Separado</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMergedView(true)}
-              style={{
-                background: isMergedView ? 'var(--am, #2563eb)' : 'transparent',
-                color: isMergedView ? '#ffffff' : 'var(--mu)',
-                border: 'none',
-                borderRadius: '3px',
-                padding: '3px 8px',
-                fontSize: '11px',
-                fontWeight: isMergedView ? 700 : 400,
-                fontFamily: 'var(--mo, monospace)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.15s ease'
-              }}
-              title="Fusionar ítems similares de cada DETALLE en una sola fila consolidada"
-            >
-              <span>📑 Consolidado por Detalle</span>
-            </button>
-          </div>
-
-          <div style={{ width: '1px', height: '18px', background: 'var(--b1)', margin: '0 4px' }} />
           <span>Mostrar:</span>
           <select
             value={pageSize}
@@ -598,9 +616,10 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
               </tr>
             ) : (
               visibleItems.map((item, idx) => {
-                const isSelectedRow = selectedCell?.itemId === item.id;
+                const isActiveRow = selectedCell?.itemId === item.id;
                 const isEditingThisRow = editingCell?.itemId === item.id;
                 const isTargetRow = dragFill.isDragging && dragFill.targetItemIds.includes(item.id);
+                const rowSelectedCols = SELECTABLE_COLS.filter(c => rangeKeys.has(cellKey(item.id, c)));
 
                 return (
                   <TakeoffRow
@@ -611,11 +630,13 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                     availablePlanos={availablePlanos}
                     onStartEdit={() => setEditingItemId(item.id)}
                     onCancelEdit={() => setEditingItemId(null)}
-                    selectedColKey={isSelectedRow ? selectedCell?.colKey : isTargetRow ? dragFill.colKey : null}
+                    selectedColKey={isActiveRow ? selectedCell?.colKey : isTargetRow ? dragFill.colKey : null}
+                    selectedColKeys={rowSelectedCols}
                     editingColKey={isEditingThisRow ? editingCell?.colKey : null}
                     isFillTarget={isTargetRow}
-                    onSelectCell={(colKey, val) => {
-                      setSelectedCell({ itemId: item.id, colKey, value: val });
+                    showFillHandle={rangeIsSingle && !dragFill.isDragging}
+                    onSelectCell={(colKey, val, e) => {
+                      handleSelectCell(item.id, colKey, val, e);
                     }}
                     onStartInlineEdit={(colKey) => {
                       setEditingCell({ itemId: item.id, colKey });
@@ -625,10 +646,11 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                     }}
                     onCancelInlineEdit={() => setEditingCell(null)}
                     onStartFillDrag={(colKey, val, e) => {
+                      if (!rangeIsSingle) return;
                       handleStartFillDrag(item.id, colKey, val, e);
                     }}
-                    onCellMouseEnter={(colKey) => {
-                      handleCellMouseEnter(item.id, colKey);
+                    onCellMouseEnter={(colKey, e) => {
+                      handleCellMouseEnter(item.id, colKey, e);
                     }}
                   />
                 );

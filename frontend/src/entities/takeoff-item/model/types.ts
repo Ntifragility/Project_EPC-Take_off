@@ -23,4 +23,6 @@ export interface TakeoffItem {
   unit: string;
   notes?: string;
   ruleId?: string;
+  /** Hidden id for one rule insert. Never changes when TAG EN PLANO is edited. */
+  instanceId?: string;
 }

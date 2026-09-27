@@ -5,18 +5,37 @@ import { PartidaRecord } from '../../../entities/partida/model/types';
 import { loadStoredItems, saveStoredItems, loadStoredPartidas } from '../../../shared/lib/storage';
 import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico, assignTagUnicoSuffixes } from '../../../entities/takeoff-item/model/tagGenerator';
-import { isPrimaryMaterial } from '../../../entities/takeoff-item/model/materialClassifier';
-import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../../entities/takeoff-rule/model/ruleExpander';
 import {
-  normalizeDetalle,
-  isKnownDetalle,
-  SOLDADURA_DETALLE_SPECS,
-  applySoldaduraDetalleTransition
-} from '../../../entities/takeoff-rule/model/detalleRegistry';
+  backfillInstanceIds,
+  findIntroducedTagCollision,
+  tagCollisionMessage
+} from '../../../entities/takeoff-item/model/itemIdentity';
+import { isPrimaryMaterial } from '../../../entities/takeoff-item/model/materialClassifier';
+import {
+  syncInstanceFields,
+  instanceIdsForItemIds,
+  isDetalleTriggerRow,
+  previewInstanceBom,
+  applyInstanceDetalleChange,
+  type BomLine,
+  type RebuildExtras
+} from '../../../entities/takeoff-rule/model/instanceRebuild';
+import { normalizeDetalle, isKnownDetalle } from '../../../entities/takeoff-rule/model/detalleRegistry';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 import { findMatchingPartida, correlateItemsWithPartidas } from '../../../entities/partida/model/partidaMatcher';
 import { DEFAULT_PLANO, DEFAULT_REV, DEFAULT_AREA, STORAGE_KEYS } from '../../../shared/config/constants';
+
+export interface PendingDetalleEdit {
+  itemId: string;
+  instanceId: string;
+  newDetalle: string;
+  currentTag: string;
+  currentDetalle: string;
+  previewLines: BomLine[];
+  extras: RebuildExtras;
+  applyToItemIds: string[];
+}
 
 export interface ItemsState {
   items: TakeoffItem[];
@@ -25,6 +44,7 @@ export interface ItemsState {
   editingItemId: string | null;
   highlightedTag: string | null;
   undoSnapshot: string | null;
+  pendingDetalleEdit: PendingDetalleEdit | null;
 }
 
 export interface ItemsActions {
@@ -55,6 +75,18 @@ export interface ItemsActions {
   deleteItem: (id: string, section: SectionType) => void;
   setItems: (items: TakeoffItem[], section: SectionType) => void;
   saveUndoSnapshot: () => void;
+  requestDetalleChange: (
+    itemId: string,
+    newDetalle: string,
+    extras?: RebuildExtras,
+    applyToItemIds?: string[]
+  ) => boolean;
+  confirmDetalleChange: (
+    tagPlano: string,
+    lines: BomLine[],
+    section: SectionType
+  ) => boolean;
+  cancelDetalleChange: () => void;
   undoLastAction: (section: SectionType) => boolean;
   clearCache: (section: SectionType) => void;
   syncGlobalContext: (section: SectionType) => void;
@@ -66,7 +98,11 @@ export type ItemsStore = ItemsState & ItemsActions;
 const initialSection = (localStorage.getItem(STORAGE_KEYS.ACTIVE_SECTION) as SectionType) || 'pat';
 const initialStoredItems = loadStoredItems(initialSection);
 const initialPartidas = loadStoredPartidas();
-const initialCorrelatedItems = correlateItemsWithPartidas(initialStoredItems, initialPartidas, 'AREA SECA');
+const initialCorrelatedItems = correlateItemsWithPartidas(
+  backfillInstanceIds(initialStoredItems),
+  initialPartidas,
+  'AREA SECA'
+);
 const initialPlano = localStorage.getItem(STORAGE_KEYS.PLANO) || DEFAULT_PLANO;
 const initialRev = localStorage.getItem(STORAGE_KEYS.REV) || DEFAULT_REV;
 
@@ -79,9 +115,10 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   editingItemId: null,
   highlightedTag: null,
   undoSnapshot: null,
+  pendingDetalleEdit: null,
 
   loadItems: (section: SectionType, activeArea = 'AREA SECA') => {
-    const raw = loadStoredItems(section);
+    const raw = backfillInstanceIds(loadStoredItems(section));
     const partidas = loadStoredPartidas();
     const correlated = correlateItemsWithPartidas(raw, partidas, activeArea);
     set({ items: correlated, undoSnapshot: null });
@@ -141,7 +178,8 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       tagUnico: '',
       tagPlano: '',
       detalle: '',
-      metradoOt: ''
+      metradoOt: '',
+      instanceId: uid()
     };
 
     const matchedPartida = findMatchingPartida(newItem, partidas, activeArea);
@@ -158,16 +196,14 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     updates: Partial<TakeoffItem> & { numSoportes?: number; numJumpers?: number },
     section: SectionType
   ) => {
-    const { items, setHighlightedTag } = get();
+    const { items: rawItems, setHighlightedTag } = get();
+    const items = backfillInstanceIds(rawItems);
     const oldItem = items.find(i => i.id === id);
     if (!oldItem) return false;
 
     const showToast = useUIStore.getState().showToast;
     const knownRules = useRulesStore.getState().rules;
 
-    // PARTIDA SICME / PARTIDA BALANCE are read-only: they come from the
-    // PARTIDAS master and change only via master re-upload + recorrelate.
-    // TAG UNICO is derived and regenerated below.
     if (updates.partida !== undefined || updates.partidaBalance !== undefined) {
       showToast('PARTIDA es de solo lectura: se actualiza desde el maestro PARTIDAS', 'warn');
       return false;
@@ -177,248 +213,125 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       return false;
     }
 
-    // Normalize + validate DETALLE before touching anything.
     if (updates.detalle !== undefined) {
       updates = { ...updates, detalle: normalizeDetalle(updates.detalle) };
       if (!isKnownDetalle(updates.detalle, knownRules)) {
         showToast(`DETALLE "${updates.detalle}" no existe en ninguna regla: cambio rechazado`, 'warn');
         return false;
       }
-      // Soldadura groups (r5/r6) must be fully mappable to the new detalle,
-      // otherwise the whole change is rejected without mutating anything.
-      if (
-        (oldItem.ruleId === 'r5' || oldItem.ruleId === 'r6') &&
-        SOLDADURA_DETALLE_SPECS[updates.detalle as string] &&
-        (updates.detalle as string) !== (oldItem.detalle || '').trim().toUpperCase() &&
-        applySoldaduraDetalleTransition(items, oldItem.tagPlano, oldItem.pkgId, updates.detalle as string) === null
-      ) {
-        showToast(
-          `DETALLE "${updates.detalle}": hay ítems del grupo que no se pueden actualizar, cambio rechazado`,
-          'warn'
-        );
-        return false;
-      }
     }
 
     const oldTagPlano = (oldItem.tagPlano || '').trim();
-    const newTagPlano = (updates.tagPlano || '').trim();
-    const tagChanged = updates.tagPlano !== undefined && newTagPlano !== oldTagPlano;
-
-    const oldPlano = (oldItem.plano || '').trim();
-    const newPlano = (updates.plano || '').trim();
-    const planoChanged = updates.plano !== undefined && newPlano !== oldPlano;
-
-    const oldRev = (oldItem.rev || '').trim();
-    const newRev = updates.rev !== undefined ? (updates.rev || '').trim() : oldRev;
-
-    const oldDetalle = (oldItem.detalle || '').trim();
-    const newDetalle = updates.detalle !== undefined ? (updates.detalle || '').trim() : oldDetalle;
-    const detalleChanged = updates.detalle !== undefined && newDetalle !== oldDetalle;
-
-    const isGroupedRule =
-      oldItem.ruleId &&
-      (oldItem.ruleId === 'r1' ||
-        oldItem.ruleId === 'r2' ||
-        oldItem.ruleId === 'r5' ||
-        oldItem.ruleId === 'r6' ||
-        oldItem.ruleId === 'r7' ||
-        oldItem.ruleId === 'r8' ||
-        oldItem.ruleId === 'r9' ||
-        oldItem.ruleId === 'r-001-2b-x1' ||
-        oldItem.ruleId === 'r-001-2b-x1-can' ||
-        oldItem.ruleId.includes('001-2b') ||
-        oldItem.ruleId.includes('001/2b'));
+    const newTagPlano = updates.tagPlano !== undefined ? (updates.tagPlano || '').trim() : oldTagPlano;
+    const newPlano = updates.plano !== undefined ? (updates.plano || '').trim() : (oldItem.plano || '').trim();
+    const newRev = updates.rev !== undefined ? (updates.rev || '').trim() : (oldItem.rev || '').trim();
+    const newDetalle = updates.detalle !== undefined ? (updates.detalle || '').trim() : (oldItem.detalle || '').trim();
+    const detalleChanged = updates.detalle !== undefined && newDetalle !== (oldItem.detalle || '').trim();
+    const instanceId = oldItem.instanceId;
+    const detalleExtras = detalleChanged
+      ? {
+          numSoportes: updates.numSoportes,
+          numJumpers: updates.numJumpers,
+          rules: knownRules
+        }
+      : null;
+    if (detalleChanged) {
+      if (!isDetalleTriggerRow(oldItem, items)) {
+        showToast('Solo el ítem principal puede cambiar DETALLE y generar filas', 'warn');
+        return false;
+      }
+      const { detalle: _detalle, ...rest } = updates;
+      updates = rest;
+    }
 
     let updated = items.map(it => {
-      if (it.id === id) {
-        const appliedTagPlano = updates.tagPlano !== undefined ? updates.tagPlano : it.tagPlano;
-        const appliedPlano = updates.plano !== undefined ? updates.plano : it.plano;
-        const appliedRev = updates.rev !== undefined ? updates.rev : it.rev;
-        const appliedDetalle = updates.detalle !== undefined ? updates.detalle : it.detalle;
-        const appliedMaterial = updates.material !== undefined ? updates.material : it.material;
-        const appliedMetradoOt = updates.metradoOt !== undefined ? updates.metradoOt : it.metradoOt;
-        const appliedTagUnico =
-          appliedMaterial === 'P'
-            ? generateTagUnico(appliedPlano, appliedTagPlano, 'P')
-            : '';
-
-        let finalQty = updates.qty !== undefined ? updates.qty : it.qty;
-        // Keep qty in sync with metradoOt if it's a strut or primary material in cable tray
-        if (updates.metradoOt !== undefined && (it.desc.toUpperCase().includes('RIEL') || it.desc.toUpperCase().includes('STRUT'))) {
-          const parsed = parseFloat(String(appliedMetradoOt).replace(',', '.'));
-          if (!isNaN(parsed)) {
-            finalQty = parsed;
-          }
-        }
-
-        return {
-          ...it,
-          ...updates,
-          qty: finalQty,
-          metradoOt: appliedMetradoOt,
-          tagPlano: appliedTagPlano,
-          plano: appliedPlano,
-          rev: appliedRev,
-          detalle: appliedDetalle,
-          tagUnico: appliedTagUnico
-        };
-      }
-
-      // Synchronize companion items in the same rule group
+      if (it.id !== id) return it;
+      const appliedTagPlano = updates.tagPlano !== undefined ? updates.tagPlano : it.tagPlano;
+      const appliedPlano = updates.plano !== undefined ? updates.plano : it.plano;
+      const appliedRev = updates.rev !== undefined ? updates.rev : it.rev;
+      const appliedMaterial = updates.material !== undefined ? updates.material : it.material;
+      const appliedMetradoOt = updates.metradoOt !== undefined ? updates.metradoOt : it.metradoOt;
+      let finalQty = updates.qty !== undefined ? updates.qty : it.qty;
       if (
-        isGroupedRule &&
-        it.ruleId === oldItem.ruleId &&
-        it.pkgId === oldItem.pkgId &&
-        (it.tagPlano || '').trim() === oldTagPlano
+        updates.metradoOt !== undefined &&
+        (it.desc.toUpperCase().includes('RIEL') || it.desc.toUpperCase().includes('STRUT'))
       ) {
-        const companionTagPlano = tagChanged ? newTagPlano : it.tagPlano;
-        const companionPlano = planoChanged ? newPlano : it.plano;
-        const companionRev = newRev;
-        const companionDetalle = detalleChanged ? newDetalle : it.detalle;
-        const companionTagUnico =
-          it.material === 'P'
-            ? generateTagUnico(companionPlano, companionTagPlano, 'P')
-            : '';
-
-        return {
-          ...it,
-          tagPlano: companionTagPlano,
-          plano: companionPlano,
-          rev: companionRev,
-          detalle: companionDetalle,
-          tagUnico: companionTagUnico
-        };
+        const parsed = parseFloat(String(appliedMetradoOt).replace(',', '.'));
+        if (!isNaN(parsed)) finalQty = parsed;
       }
-
-      return it;
+      return {
+        ...it,
+        ...updates,
+        qty: finalQty,
+        metradoOt: appliedMetradoOt,
+        tagPlano: appliedTagPlano,
+        plano: appliedPlano,
+        rev: appliedRev,
+        tagUnico: appliedMaterial === 'P' ? generateTagUnico(appliedPlano, appliedTagPlano, 'P') : ''
+      };
     });
 
-    const target = updated.find(i => i.id === id);
-    if (!target) return false;
-
-    // DETALLE change on a soldadura group (r5 / r6): swap every sibling
-    // description to its counterpart (pre-validated above, cannot fail here).
-    if (
-      updates.detalle !== undefined &&
-      (target.ruleId === 'r5' || target.ruleId === 'r6') &&
-      SOLDADURA_DETALLE_SPECS[target.detalle]
-    ) {
-      const transitioned = applySoldaduraDetalleTransition(
-        updated,
-        target.tagPlano,
-        target.pkgId,
-        target.detalle
-      );
-      if (transitioned === null) return false;
-      updated = transitioned;
+    if (instanceId) {
+      updated = syncInstanceFields(updated, instanceId, {
+        tagPlano: newTagPlano,
+        plano: newPlano,
+        rev: newRev
+      });
     }
 
-    // Check DETALLE modification on r1 or r2
-    if (updates.detalle !== undefined && (target.ruleId === 'r1' || target.ruleId === 'r2')) {
-      const nSop = updates.numSoportes || 0;
-      const nJmp = updates.numJumpers || 0;
-      const sibs = updated.filter(i => i.tagPlano === target.tagPlano && i.pkgId === target.pkgId);
-      const tItem = sibs.find(i => i.desc.toUpperCase().includes('TUBERIA') || i.desc.toUpperCase().includes('TUBERÍA'));
-      const cItem = sibs.find(i => i.desc.toUpperCase().includes('CABLE') && !i.desc.toUpperCase().includes('JUMPER'));
-      const tOt = tItem ? tItem.metradoOt : '';
-      const cOt = cItem ? cItem.metradoOt : '';
-      updated = applyDetalleVariant(updated, target.tagPlano, target.pkgId, target.detalle, nSop, nJmp, tOt, cOt);
+    if (detalleChanged && detalleExtras) {
+      const result = assignTagUnicoSuffixes(updated);
+      saveStoredItems(section, result);
+      set({ items: result, editingItemId: null });
+      return get().requestDetalleChange(id, newDetalle, detalleExtras);
+    }
 
-      if (target.ruleId === 'r1') {
-        const isDetalle3B = target.detalle.toUpperCase() === '008/3B';
-        const siblings = updated.filter(i => i.tagPlano === target.tagPlano && i.pkgId === target.pkgId && i.ruleId === 'r1');
-        const cemento = siblings.find(i => i.desc.toUpperCase().includes('CEMENTO GEM'));
+    const target =
+      updated.find(i => i.id === id) ||
+      (instanceId ? updated.find(i => i.instanceId === instanceId) : undefined);
+    if (!target) return false;
 
-        if (isDetalle3B && !cemento) {
-          const cable = siblings.find(i => i.desc.toUpperCase().includes('CABLE DESNUDO 4/0 AWG'));
-          const cableVal = parseFloat(cable?.metradoOt || '') || 0;
-          const ref = cable || target;
-          updated.push({
-            ...ref,
-            id: uid(),
-            desc: 'CEMENTO GEM (11.3 Kg x bls)',
-            qty: 'length x 11.3 / 2',
-            unit: 'kg',
-            material: 'C',
-            tagUnico: '',
-            metradoOt: String(parseFloat((cableVal * 11.3 / 2).toFixed(4)))
-          });
-        } else if (!isDetalle3B && cemento) {
-          updated = updated.filter(i => i.id !== cemento.id);
-        }
+    if (updates.metradoOt !== undefined && instanceId) {
+      const descUp = (oldItem.desc || '').toUpperCase();
+      if (oldItem.ruleId === 'r1' && descUp.includes('CABLE DESNUDO 4/0 AWG')) {
+        const cableVal = parseFloat(String(updates.metradoOt)) || 0;
+        const tierraVal = String(parseFloat((0.375 * 0.5 * cableVal).toFixed(4)));
+        const cementoVal = String(parseFloat(((cableVal * 11.3) / 2).toFixed(4)));
+        updated = updated.map(sib => {
+          if (sib.instanceId !== instanceId) return sib;
+          if (sib.desc.toUpperCase().includes('CINTA AMARILLA')) return { ...sib, metradoOt: String(updates.metradoOt) };
+          if (sib.desc.toUpperCase().includes('TIERRA DE CULTIVO')) return { ...sib, metradoOt: tierraVal };
+          if (sib.desc.toUpperCase().includes('CEMENTO GEM')) return { ...sib, metradoOt: cementoVal };
+          return sib;
+        });
+      }
+      if (
+        oldItem.ruleId === 'r2' &&
+        descUp.includes('CABLE DESNUDO 2/0 AWG') &&
+        (target.detalle || oldItem.detalle) === '153'
+      ) {
+        const cableVal = parseFloat(String(updates.metradoOt)) || 0;
+        const prensaVal = Math.ceil(cableVal / 3).toString();
+        updated = updated.map(sib => {
+          if (
+            sib.instanceId === instanceId &&
+            sib.desc.toUpperCase().includes('PRENSA PARALELA 1 CONDUCTOR')
+          ) {
+            return { ...sib, metradoOt: prensaVal };
+          }
+          return sib;
+        });
       }
     }
 
-    // Check CABLE DESNUDO 4/0 AWG changes (update CINTA AMARILLA, TIERRA DE CULTIVO, CEMENTO GEM)
-    if (
-      target.ruleId === 'r1' &&
-      target.desc.toUpperCase().includes('CABLE DESNUDO 4/0 AWG') &&
-      updates.metradoOt !== undefined
-    ) {
-      const cableVal = parseFloat(updates.metradoOt) || 0;
-      const tierraVal = String(parseFloat((0.375 * 0.5 * cableVal).toFixed(4)));
-      const cementoVal = String(parseFloat((cableVal * 11.3 / 2).toFixed(4)));
-
-      updated = updated.map(sib => {
-        if (
-          sib.tagPlano === target.tagPlano &&
-          sib.pkgId === target.pkgId
-        ) {
-          if (sib.desc.toUpperCase().includes('CINTA AMARILLA')) {
-            return { ...sib, metradoOt: updates.metradoOt! };
-          }
-          if (sib.desc.toUpperCase().includes('TIERRA DE CULTIVO')) {
-            return { ...sib, metradoOt: tierraVal };
-          }
-          if (sib.desc.toUpperCase().includes('CEMENTO GEM')) {
-            return { ...sib, metradoOt: cementoVal };
-          }
-        }
-        return sib;
-      });
-    }
-
-    // Check CABLE DESNUDO 2/0 AWG changes with DETALLE 153 (update PRENSA PARALELA 1c/3m)
-    if (
-      target.ruleId === 'r2' &&
-      target.desc.toUpperCase().includes('CABLE DESNUDO 2/0 AWG') &&
-      target.detalle === '153' &&
-      updates.metradoOt !== undefined
-    ) {
-      const cableVal = parseFloat(updates.metradoOt) || 0;
-      const prensaVal = Math.ceil(cableVal / 3).toString();
-
-      updated = updated.map(sib => {
-        if (
-          sib.ruleId === target.ruleId &&
-          sib.tagPlano === target.tagPlano &&
-          sib.pkgId === target.pkgId &&
-          sib.desc.toUpperCase().includes('PRENSA PARALELA 1 CONDUCTOR')
-        ) {
-          return { ...sib, metradoOt: prensaVal };
-        }
-        return sib;
-      });
-    }
-
-    // Check DETALLE modification on BARRA (r8 / r9 / BARRA)
-    if (
-      updates.detalle !== undefined &&
-      (target.ruleId === 'r8' || target.ruleId === 'r9' || target.desc.toUpperCase().includes('BARRA'))
-    ) {
-      updated = applyBarraPotDetalleVariant(
-        updated,
-        target.tagPlano,
-        target.pkgId,
-        target.detalle,
-        updates.numSoportes || 1
-      );
+    const collision = findIntroducedTagCollision(items, updated);
+    if (collision) {
+      showToast(tagCollisionMessage(collision), 'warn');
+      return false;
     }
 
     const targetTag = newTagPlano || oldTagPlano;
-    if (targetTag) {
-      setHighlightedTag(targetTag);
-    }
+    if (targetTag) setHighlightedTag(targetTag);
 
     const result = assignTagUnicoSuffixes(updated);
     saveStoredItems(section, result);
@@ -433,12 +346,10 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     section: SectionType
   ) => {
     if (!itemIds || itemIds.length === 0) return false;
-    const { items } = get();
+    const items = backfillInstanceIds(get().items);
     const showToast = useUIStore.getState().showToast;
     const knownRules = useRulesStore.getState().rules;
 
-    // PARTIDA SICME / PARTIDA BALANCE are read-only (master-driven).
-    // TAG UNICO is derived (regenerated on every save).
     if (field === 'partida' || field === 'partidaBalance') {
       showToast('PARTIDA es de solo lectura: se actualiza desde el maestro PARTIDAS', 'warn');
       return false;
@@ -448,36 +359,14 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       return false;
     }
 
-    // Normalize + validate DETALLE once, before the undo snapshot and any mutation.
-    let normDetalle = '';
     if (field === 'detalle') {
-      normDetalle = normalizeDetalle(value);
-      if (!isKnownDetalle(normDetalle, knownRules)) {
-        showToast(`DETALLE "${normDetalle}" no existe en ninguna regla: cambio rechazado`, 'warn');
+      value = normalizeDetalle(value);
+      if (!isKnownDetalle(value, knownRules)) {
+        showToast(`DETALLE "${value}" no existe en ninguna regla: cambio rechazado`, 'warn');
         return false;
       }
-      // Pre-validate soldadura groups: every sibling must be mappable,
-      // otherwise the whole batch is rejected without mutating anything.
-      for (const targetId of itemIds) {
-        const t = items.find(i => i.id === targetId);
-        if (!t) continue;
-        if (
-          (t.ruleId === 'r5' || t.ruleId === 'r6') &&
-          SOLDADURA_DETALLE_SPECS[normDetalle] &&
-          normDetalle !== (t.detalle || '').trim().toUpperCase() &&
-          applySoldaduraDetalleTransition(items, t.tagPlano, t.pkgId, normDetalle) === null
-        ) {
-          showToast(
-            `DETALLE "${normDetalle}": hay ítems del grupo que no se pueden actualizar, cambio rechazado`,
-            'warn'
-          );
-          return false;
-        }
-      }
-      value = normDetalle;
     }
 
-    // Normalize DESCRIPCION (uppercase, trimmed, non-empty).
     if (field === 'desc') {
       value = String(value).toUpperCase().trim();
       if (!value) {
@@ -489,167 +378,57 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     const { saveUndoSnapshot } = get();
     saveUndoSnapshot();
     const idSet = new Set(itemIds);
-
     let currentItems = [...items];
+    const instanceIds = instanceIdsForItemIds(currentItems, itemIds);
 
-    // Process each target item
-    for (const targetId of itemIds) {
-      const target = currentItems.find(i => i.id === targetId);
-      if (!target) continue;
-
-      const oldTagPlano = (target.tagPlano || '').trim();
-      const oldPlano = (target.plano || '').trim();
-      const oldRev = (target.rev || '').trim();
-      const oldDetalle = (target.detalle || '').trim();
-
-      let newPlano = oldPlano;
-      let newRev = oldRev;
-      let newTagPlano = oldTagPlano;
-      let newDetalle = oldDetalle;
-
-      if (field === 'plano') newPlano = String(value).toUpperCase().trim();
-      if (field === 'rev') newRev = String(value).toUpperCase().trim();
-      if (field === 'tagPlano') newTagPlano = String(value).trim();
-      if (field === 'detalle') newDetalle = String(value).toUpperCase().trim();
-
-      const planoChanged = field === 'plano' && newPlano !== oldPlano;
-      const tagChanged = field === 'tagPlano' && newTagPlano !== oldTagPlano;
-      const detalleChanged = field === 'detalle' && newDetalle !== oldDetalle;
-
-      currentItems = currentItems.map(it => {
-        if (it.id === targetId) {
-          const upd: any = { ...it, [field]: value };
-          if (field === 'plano') upd.plano = newPlano;
-          if (field === 'rev') upd.rev = newRev;
-          if (field === 'tagPlano') upd.tagPlano = newTagPlano;
-          if (field === 'detalle') upd.detalle = newDetalle;
-          if (field === 'material') upd.material = value as MaterialType;
-          if (field === 'metradoOt') upd.metradoOt = value;
-
-          upd.tagUnico = upd.material === 'P' ? generateTagUnico(upd.plano, upd.tagPlano, 'P') : '';
-          return upd;
-        }
-
-        // A change on the principal rewrites the shared fields of its components.
-        // A direct edit of a consumable (PLANO fill) stays on that row.
-        if (
-          target.material === 'P' &&
-          it.ruleId &&
-          it.ruleId === target.ruleId &&
-          it.pkgId === target.pkgId &&
-          (it.tagPlano || '').trim() === oldTagPlano
-        ) {
-          const companionPlano = planoChanged ? newPlano : it.plano;
-          const companionTagPlano = tagChanged ? newTagPlano : it.tagPlano;
-          const companionRev = newRev;
-          const companionDetalle = detalleChanged ? newDetalle : it.detalle;
-          const companionTagUnico =
-            it.material === 'P'
-              ? generateTagUnico(companionPlano, companionTagPlano, 'P')
-              : '';
-
-          return {
-            ...it,
-            plano: companionPlano,
-            tagPlano: companionTagPlano,
-            rev: companionRev,
-            detalle: companionDetalle,
-            tagUnico: companionTagUnico
-          };
-        }
-
-        return it;
+    if (field === 'detalle') {
+      const triggerIds = itemIds.filter(id => {
+        const row = currentItems.find(it => it.id === id);
+        return row ? isDetalleTriggerRow(row, currentItems) : false;
       });
-
-      // If DETALLE changed on CABLE 2/0 (r1 / r2), expand dynamic variants
-      if (field === 'detalle' && (target.ruleId === 'r1' || target.ruleId === 'r2')) {
-        const sibs = currentItems.filter(i => i.tagPlano === target.tagPlano && i.pkgId === target.pkgId);
-        const tItem = sibs.find(i => i.desc.toUpperCase().includes('TUBERIA') || i.desc.toUpperCase().includes('TUBERÍA'));
-        const cItem = sibs.find(i => i.desc.toUpperCase().includes('CABLE') && !i.desc.toUpperCase().includes('JUMPER'));
-        const tOt = tItem ? tItem.metradoOt : '';
-        const cOt = cItem ? cItem.metradoOt : '';
-        currentItems = applyDetalleVariant(
-          currentItems,
-          target.tagPlano,
-          target.pkgId,
-          newDetalle,
-          (target as any).numSoportes || 1,
-          (target as any).numJumpers || 1,
-          tOt,
-          cOt,
-          true
-        );
-
-        // CABLE 4/0 (r1): 008/3B carries CEMENTO GEM, any other detalle drops it.
-        // TUBERIA rows (optional, 008/3A) are preserved in both directions.
-        if (target.ruleId === 'r1') {
-          const isDetalle3B = newDetalle.toUpperCase() === '008/3B';
-          const siblings = currentItems.filter(
-            i => i.tagPlano === target.tagPlano && i.pkgId === target.pkgId && i.ruleId === 'r1'
+      if (triggerIds.length === 0) {
+        showToast('Solo el ítem principal puede cambiar DETALLE y generar filas', 'warn');
+        return false;
+      }
+      return get().requestDetalleChange(triggerIds[0], value, { rules: knownRules }, triggerIds);
+    } else if (field === 'tagPlano' || field === 'plano' || field === 'rev') {
+      const nextVal =
+        field === 'tagPlano' ? String(value).trim() : String(value).toUpperCase().trim();
+      for (const instanceId of instanceIds) {
+        const sample = currentItems.find(it => (it.instanceId || it.id) === instanceId);
+        if (!sample) continue;
+        if (sample.instanceId) {
+          currentItems = syncInstanceFields(currentItems, sample.instanceId, { [field]: nextVal });
+        } else {
+          currentItems = currentItems.map(it =>
+            it.id === instanceId
+              ? {
+                  ...it,
+                  [field]: nextVal,
+                  tagUnico:
+                    it.material === 'P'
+                      ? generateTagUnico(
+                          field === 'plano' ? nextVal : it.plano,
+                          field === 'tagPlano' ? nextVal : it.tagPlano,
+                          'P'
+                        )
+                      : ''
+                }
+              : it
           );
-          const cemento = siblings.find(i => i.desc.toUpperCase().includes('CEMENTO GEM'));
-          if (isDetalle3B && !cemento) {
-            const cable = siblings.find(i => i.desc.toUpperCase().includes('CABLE DESNUDO 4/0 AWG'));
-            const cableVal = parseFloat(cable?.metradoOt || '') || 0;
-            const ref = cable || { ...target, tagPlano: target.tagPlano, pkgId: target.pkgId };
-            currentItems.push({
-              ...ref,
-              id: uid(),
-              desc: 'CEMENTO GEM (11.3 Kg x bls)',
-              qty: 'length x 11.3 / 2',
-              unit: 'kg',
-              material: 'C',
-              tagUnico: '',
-              detalle: newDetalle,
-              metradoOt: String(parseFloat((cableVal * 11.3 / 2).toFixed(4)))
-            });
-          } else if (!isDetalle3B && cemento) {
-            currentItems = currentItems.filter(i => i.id !== cemento.id);
-          }
         }
       }
-
-      // If DETALLE changed on a soldadura group (r5 / r6), swap every sibling
-      // description to its counterpart (pre-validated above).
-      if (
-        field === 'detalle' &&
-        (target.ruleId === 'r5' || target.ruleId === 'r6') &&
-        SOLDADURA_DETALLE_SPECS[newDetalle]
-      ) {
-        const transitioned = applySoldaduraDetalleTransition(
-          currentItems,
-          target.tagPlano,
-          target.pkgId,
-          newDetalle
-        );
-        if (transitioned === null) {
-          showToast(
-            `DETALLE "${newDetalle}": hay ítems del grupo que no se pueden actualizar, cambio rechazado`,
-            'warn'
-          );
-          return false;
-        }
-        currentItems = transitioned;
-      }
-
-      // If DETALLE changed on BARRA, expand dynamic variants
-      if (
-        field === 'detalle' &&
-        (target.ruleId === 'r8' || target.ruleId === 'r9' || target.desc.toUpperCase().includes('BARRA'))
-      ) {
-        currentItems = applyBarraPotDetalleVariant(
-          currentItems,
-          target.tagPlano,
-          target.pkgId,
-          newDetalle,
-          (target as any).numSoportes || 1,
-          true
-        );
-      }
+    } else {
+      currentItems = currentItems.map(it => {
+        if (!idSet.has(it.id)) return it;
+        const upd: TakeoffItem = { ...it, [field]: value };
+        if (field === 'material') upd.material = value as MaterialType;
+        if (field === 'metradoOt') upd.metradoOt = value;
+        upd.tagUnico = upd.material === 'P' ? generateTagUnico(upd.plano, upd.tagPlano, 'P') : '';
+        return upd;
+      });
     }
 
-    // DESCRIPCION stays local to each edited row (companions keep theirs),
-    // but its PARTIDA match must be recorrelated since partidas are read-only.
     if (field === 'desc') {
       const partidas = loadStoredPartidas();
       const area = localStorage.getItem(STORAGE_KEYS.ACTIVE_AREA) || DEFAULT_AREA;
@@ -680,10 +459,116 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       }
     }
 
+    if (field === 'detalle') {
+      const partidas = loadStoredPartidas();
+      const area = localStorage.getItem(STORAGE_KEYS.ACTIVE_AREA) || DEFAULT_AREA;
+      currentItems = correlateItemsWithPartidas(currentItems, partidas, area);
+    }
+
+    const collision = findIntroducedTagCollision(items, currentItems);
+    if (collision) {
+      showToast(tagCollisionMessage(collision), 'warn');
+      return false;
+    }
+
     const result = assignTagUnicoSuffixes(currentItems);
     saveStoredItems(section, result);
     set({ items: result });
     return true;
+  },
+
+  requestDetalleChange: (
+    itemId: string,
+    newDetalle: string,
+    extras: RebuildExtras = {},
+    applyToItemIds?: string[]
+  ) => {
+    const items = backfillInstanceIds(get().items);
+    const item = items.find(it => it.id === itemId);
+    const showToast = useUIStore.getState().showToast;
+    const knownRules = extras.rules || useRulesStore.getState().rules;
+    if (!item) return false;
+    if (!isDetalleTriggerRow(item, items)) {
+      showToast('Solo el ítem principal puede cambiar DETALLE y generar filas', 'warn');
+      return false;
+    }
+    const norm = normalizeDetalle(newDetalle);
+    if (!isKnownDetalle(norm, knownRules)) {
+      showToast(`DETALLE "${norm}" no existe en ninguna regla: cambio rechazado`, 'warn');
+      return false;
+    }
+    const targetIds = Array.from(new Set([itemId, ...(applyToItemIds || [])]));
+    const targets = targetIds
+      .map(id => items.find(it => it.id === id))
+      .filter((row): row is TakeoffItem => Boolean(row && isDetalleTriggerRow(row, items)));
+    const anyChange = targets.some(row => normalizeDetalle(row.detalle || '') !== norm);
+    if (!anyChange) {
+      showToast('DETALLE no cambió', 'info');
+      return false;
+    }
+    const instanceId = item.instanceId || item.id;
+    const previewLines = previewInstanceBom(items, instanceId, norm, {
+      ...extras,
+      rules: knownRules
+    });
+    if (previewLines.length === 0) {
+      showToast('No hay filas de catálogo para este DETALLE', 'warn');
+      return false;
+    }
+    set({
+      pendingDetalleEdit: {
+        itemId,
+        instanceId,
+        newDetalle: norm,
+        currentTag: item.tagPlano || '',
+        currentDetalle: item.detalle || '',
+        previewLines,
+        extras: { ...extras, rules: knownRules },
+        applyToItemIds: targets.map(row => row.id)
+      },
+      editingItemId: null
+    });
+    return true;
+  },
+
+  confirmDetalleChange: (tagPlano: string, lines: BomLine[], section: SectionType) => {
+    const pending = get().pendingDetalleEdit;
+    if (!pending) return false;
+    const showToast = useUIStore.getState().showToast;
+    get().saveUndoSnapshot();
+    let items = backfillInstanceIds(get().items).map(it =>
+      it.id === pending.itemId && !it.instanceId ? { ...it, instanceId: pending.instanceId } : it
+    );
+    const nextTag = (tagPlano || '').trim();
+    const anchors = pending.applyToItemIds.length > 0 ? pending.applyToItemIds : [pending.itemId];
+    for (const anchorId of anchors) {
+      const anchor = items.find(it => it.id === anchorId);
+      if (!anchor) continue;
+      const instanceId = anchor.instanceId || anchor.id;
+      items = items.map(it =>
+        it.id === anchorId && !it.instanceId ? { ...it, instanceId } : it
+      );
+      items = applyInstanceDetalleChange(items, {
+        instanceId,
+        anchorItemId: anchorId,
+        newDetalle: pending.newDetalle,
+        tagPlano: anchorId === pending.itemId ? nextTag : (anchor.tagPlano || '').trim(),
+        lines
+      });
+    }
+    const partidas = loadStoredPartidas();
+    const area = localStorage.getItem(STORAGE_KEYS.ACTIVE_AREA) || DEFAULT_AREA;
+    const correlated = correlateItemsWithPartidas(items, partidas, area);
+    const result = assignTagUnicoSuffixes(correlated);
+    saveStoredItems(section, result);
+    if (nextTag) get().setHighlightedTag(nextTag);
+    set({ items: result, pendingDetalleEdit: null, editingItemId: null });
+    showToast(`DETALLE ${pending.newDetalle} aplicado — ${anchors.length} implementación(es)`, 'success');
+    return true;
+  },
+
+  cancelDetalleChange: () => {
+    set({ pendingDetalleEdit: null });
   },
 
   deleteItem: (id: string, section: SectionType) => {
@@ -693,8 +578,9 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   },
 
   setItems: (items: TakeoffItem[], section: SectionType) => {
-    saveStoredItems(section, items);
-    set({ items });
+    const next = backfillInstanceIds(items);
+    saveStoredItems(section, next);
+    set({ items: next });
   },
 
   undoLastAction: (section: SectionType) => {

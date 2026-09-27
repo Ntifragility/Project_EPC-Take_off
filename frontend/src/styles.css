@@ -163,7 +163,7 @@ body {
   background: #107c41;
   color: #ffffff;
   border-bottom: 2px solid #0e6b37;
-  padding: 0 16px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -172,16 +172,19 @@ body {
   top: 0;
   z-index: 100;
   height: 48px;
+  gap: 10px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
   min-width: 0;
+  flex: 1 1 auto;
   flex-wrap: nowrap;
   height: 48px;
+  overflow: hidden;
 }
 
 .logo {
@@ -229,20 +232,29 @@ body {
 .nav {
   display: flex;
   height: 100%;
-  gap: 2px;
-  margin-left: 12px;
+  gap: 0;
+  margin-left: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tab {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.85);
-  padding: 0 14px;
+  padding: 0 10px;
   font-size: 12px;
   font-weight: 600;
   display: flex;
   align-items: center;
   height: 48px;
+  white-space: nowrap;
+  flex-shrink: 0;
   border-bottom: 3px solid transparent;
   transition: all 0.15s ease;
 }
@@ -263,20 +275,24 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
 }
 
 .header-right .btn,
 .header-right .btn-ghost,
 .header-right .btn-export,
 .header-right .btn-primary,
-.header-right .btn-icon {
+.header-right .btn-icon,
+.header-right .tools-trigger {
   background: rgba(255, 255, 255, 0.15);
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 2px;
   padding: 5px 10px;
-  font-size: 11.5px;
+  font-size: 12px !important;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .header-right .btn:hover,
@@ -293,6 +309,30 @@ body {
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 2px !important;
+}
+
+/* Solid white chip on the green bar — readable in both app themes. */
+.header-right .btn-save-db {
+  background: #ffffff !important;
+  color: #0b5c30 !important;
+  border: 1px solid #ffffff !important;
+  border-radius: 2px;
+  padding: 5px 10px;
+  font-size: 12px !important;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.header-right .btn-save-db:hover:not(:disabled) {
+  background: #e6f3ec !important;
+  color: #0b5c30 !important;
+}
+
+.header-right .btn-save-db:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 /* ==========================================================================
@@ -626,7 +666,8 @@ body:not(.light-theme):not(.light-mode) .pkg-header {
 
 .takeoff-table-scroll-container {
   width: 100%;
-  overflow-x: auto;
+  overflow: auto;
+  max-height: calc(100vh - 148px);
 }
 
 table.takeoff-table {
@@ -645,7 +686,11 @@ table.takeoff-table {
 }
 
 .takeoff-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 8;
   background: #f3f2f1 !important;
+  box-shadow: 0 1px 0 var(--b1);
 }
 
 body:not(.light-theme):not(.light-mode) .takeoff-table thead th {
@@ -1005,7 +1050,7 @@ tr.tr-edit td {
 }
 
 .modal-hd-title {
-  font-size: 14px;
+  font-size: 14px !important;
   font-weight: 700;
   color: #ffffff;
 }
@@ -1038,6 +1083,54 @@ tr.tr-edit td {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.detalle-change-table-wrap {
+  overflow: auto;
+  max-height: 42vh;
+  border: 1px solid var(--b1);
+}
+
+.detalle-change-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.detalle-change-table th,
+.detalle-change-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--b1);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.detalle-change-table th {
+  background: var(--s2);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.detalle-change-table .input {
+  width: 100%;
+  min-width: 0;
+}
+
+.detalle-change-role {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--excel-green, #107c41);
+  white-space: nowrap;
+}
+
+.detalle-change-desc {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detalle-change-table .input.is-empty-ot {
+  background: rgba(255, 193, 7, 0.12);
 }
 
 /* ==========================================================================
@@ -1121,9 +1214,13 @@ tr.tr-edit td {
   background-color: var(--accent-subtle, rgba(16, 124, 65, 0.05));
 }
 
+.takeoff-table tbody td.excel-cell.is-range-selected {
+  background-color: var(--accent-dim, rgba(16, 124, 65, 0.12)) !important;
+}
+
 .takeoff-table tbody td.excel-cell.is-selected {
   box-shadow: inset 0 0 0 2px var(--excel-green, #107c41);
-  background-color: var(--accent-dim, rgba(16, 124, 65, 0.08)) !important;
+  background-color: var(--accent-dim, rgba(16, 124, 65, 0.16)) !important;
 }
 
 .excel-fill-handle {
@@ -1235,7 +1332,6 @@ body.is-fill-dragging * {
    the grid block comes last and is more specific, so grid cells always win.
    ========================================================================== */
 
-.header, .header *,
 .sidebar-panel, .sidebar-panel *,
 .takeoff-sidebar-drawer, .takeoff-sidebar-drawer *,
 .tools-trigger, .tools-panel, .tools-panel *, .actions-drawer-head,
@@ -1261,6 +1357,23 @@ button, input, select, textarea, label {
 
 .takeoff-table tbody td {
   background-color: var(--s1);
+}
+
+.header .nav-tab,
+.header .section-switch button,
+.header .logo,
+.header #item-count,
+.header .btn-ghost,
+.header .btn-primary,
+.header .btn-icon,
+.header .tools-trigger {
+  font-size: 12px !important;
+}
+
+@media (max-width: 1280px) {
+  .logo {
+    display: none;
+  }
 }
 
 /* Clip cell text with ellipsis so long values never paint over the
