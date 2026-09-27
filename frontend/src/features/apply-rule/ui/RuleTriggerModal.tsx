@@ -30,6 +30,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   const [numSoportes, setNumSoportes] = useState<number>(1);
   const [numJumpers, setNumJumpers] = useState<number>(1);
   const [cableTrayWidth, setCableTrayWidth] = useState<string>('900 mm');
+  const [incluirTuberia, setIncluirTuberia] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen && activeRule) {
@@ -39,6 +40,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
       setDetalleCode(req.defaultDetalle);
       setNumSoportes(1);
       setNumJumpers(1);
+      setIncluirTuberia(false);
       setCableTrayWidth(prev => (prev && ['900 mm', '600 mm', '450 mm', '300 mm'].includes(prev)) ? prev : '900 mm');
     }
   }, [isOpen, activeRule?.id, activeArea]);
@@ -46,6 +48,9 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   if (!isOpen || !activeRule) return null;
 
   const req = resolveRuleRequirements(activeRule, activeArea);
+  const effCount = Math.max(1, count);
+  const effSoportes = Math.max(1, numSoportes);
+  const effJumpers = Math.max(1, numJumpers);
 
   const showSoportes =
     req.requiresSoportes ||
@@ -62,11 +67,12 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
     if (!activeRule) return;
 
     executeApplyRule(activeRule, {
-      count: Math.max(1, count),
+      count: effCount,
       baseTag: baseTag.trim().toUpperCase(),
       detalleCode: detalleCode.trim().toUpperCase(),
-      numSoportes: showSoportes ? Math.max(1, numSoportes) : 1,
-      numJumpers: showJumpers ? Math.max(1, numJumpers) : 1,
+      numSoportes: showSoportes ? effSoportes : 1,
+      numJumpers: showJumpers ? effJumpers : 1,
+      incluirTuberia: incluirTuberia && detalleCode.trim().toUpperCase() === '008/3A',
       cableTrayWidth
     });
 
@@ -80,10 +86,10 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal" style={{ maxWidth: '520px', width: '92vw' }}>
+      <div className="modal" style={{ maxWidth: '600px', width: '94vw' }}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>⚡</span>
+            <span style={{ fontSize: '1.35rem' }}>⚡</span>
             <div>
               <h3 style={{ margin: 0 }}>Aplicar Regla</h3>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{activeRule.trigger}</div>
@@ -94,10 +100,10 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: '1.25rem' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
           {/* CABLE TRAY WIDTH SELECTION */}
           {req.isCableTray && (
-            <div style={{ marginBottom: '1.2rem' }}>
+            <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 ANCHO DE BANDEJA / ESCALERILLA (CABLE TRAY WIDTH):
               </label>
@@ -140,7 +146,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
 
           {/* DETALLE CONSTRUCTIVO SELECTION */}
           {req.isSoldadura40_20 && (
-            <div style={{ marginBottom: '1.2rem' }}>
+            <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO:
               </label>
@@ -167,7 +173,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
           )}
 
           {req.isSoldadura40 && (
-            <div style={{ marginBottom: '1.2rem' }}>
+            <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO:
               </label>
@@ -194,7 +200,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
           )}
 
           {req.isCable40 && (
-            <div style={{ marginBottom: '1.2rem' }}>
+            <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO:
               </label>
@@ -203,7 +209,10 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                   <button
                     key={d}
                     type="button"
-                    onClick={() => setDetalleCode(d)}
+                    onClick={() => {
+                      setDetalleCode(d);
+                      if (d !== '008/3A') setIncluirTuberia(false);
+                    }}
                     className="btn"
                     style={{
                       flex: 1,
@@ -220,8 +229,32 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             </div>
           )}
 
+          {req.isCable40 && detalleCode === '008/3A' && (
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                marginBottom: '1.35rem',
+                padding: '0.6rem 0.75rem',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={incluirTuberia}
+                onChange={e => setIncluirTuberia(e.target.checked)}
+              />
+              Incluir TUBERÍA PVC SCH 80 Ø3/4" (opcional, tramos horizontales)
+            </label>
+          )}
+
           {req.isCable20 && (
-            <div style={{ marginBottom: '1.2rem' }}>
+            <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO ({activeArea}):
               </label>
@@ -241,7 +274,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
           )}
 
           {(req.isBarraPot || req.isBarraInst) && (
-            <div style={{ marginBottom: '1.2rem' }}>
+            <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO:
               </label>
@@ -268,19 +301,23 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
           )}
 
           {/* INSTANCES COUNT & BASE TAG */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1rem', marginBottom: '1.2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1rem', marginBottom: '1.35rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 CANTIDAD (INSTANCIAS):
               </label>
               <input
                 type="number"
-                min={1}
+                min={0}
                 max={500}
                 className="input"
                 style={{ width: '100%' }}
                 value={count}
-                onChange={e => setCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                onFocus={e => e.target.select()}
+                onChange={e => {
+                  const v = parseInt(e.target.value, 10);
+                  setCount(isNaN(v) ? 0 : Math.max(0, v));
+                }}
               />
             </div>
             <div>
@@ -292,6 +329,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                 className="input"
                 style={{ width: '100%' }}
                 value={baseTag}
+                onFocus={e => e.target.select()}
                 onChange={e => setBaseTag(e.target.value)}
                 placeholder="ej: M01, C01, SE01"
                 required
@@ -299,10 +337,10 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             </div>
           </div>
 
-          {count > 1 && (
+          {effCount > 1 && (
             <div
               style={{
-                marginBottom: '1.2rem',
+                marginBottom: '1.35rem',
                 fontSize: '0.8rem',
                 color: 'var(--accent)',
                 backgroundColor: 'var(--accent-dim)',
@@ -310,13 +348,13 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                 borderRadius: '6px'
               }}
             >
-              <strong>Generará {count} TAGs:</strong> {getSequentialTagsExample(baseTag, count)}
+              <strong>Generará {effCount} TAGs:</strong> {getSequentialTagsExample(baseTag, effCount)}
             </div>
           )}
 
           {/* DYNAMIC MULTIPLIERS */}
           {(showSoportes || showJumpers) && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.35rem' }}>
               {showSoportes && (
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
@@ -324,12 +362,16 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                   </label>
                   <input
                     type="number"
-                    min={1}
+                    min={0}
                     max={50}
                     className="input"
                     style={{ width: '100%' }}
                     value={numSoportes}
-                    onChange={e => setNumSoportes(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    onFocus={e => e.target.select()}
+                    onChange={e => {
+                      const v = parseInt(e.target.value, 10);
+                      setNumSoportes(isNaN(v) ? 0 : Math.max(0, v));
+                    }}
                   />
                 </div>
               )}
@@ -340,12 +382,16 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                   </label>
                   <input
                     type="number"
-                    min={1}
+                    min={0}
                     max={50}
                     className="input"
                     style={{ width: '100%' }}
                     value={numJumpers}
-                    onChange={e => setNumJumpers(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    onFocus={e => e.target.select()}
+                    onChange={e => {
+                      const v = parseInt(e.target.value, 10);
+                      setNumJumpers(isNaN(v) ? 0 : Math.max(0, v));
+                    }}
                   />
                 </div>
               )}
@@ -357,7 +403,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
               Cancelar
             </button>
             <button type="submit" className="btn btn-primary" style={{ padding: '0.6rem 1.4rem' }}>
-              Insertar {count > 1 ? `${count} Ítems` : 'Ítem'}
+              Insertar {effCount > 1 ? `${effCount} Ítems` : 'Ítem'}
             </button>
           </div>
         </form>

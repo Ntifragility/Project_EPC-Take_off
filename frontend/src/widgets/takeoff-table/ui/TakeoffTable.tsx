@@ -2,6 +2,16 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { TakeoffItem } from '../../../entities/takeoff-item/model/types';
 import { TakeoffRow } from './TakeoffRow';
 import { TakeoffTableHeader } from './TakeoffTableHeader';
+import {
+  BASE_COL_WIDTHS,
+  COL_WIDTHS_STORAGE_KEY,
+  clampColumnWidth,
+  defaultWidths,
+  fitWidthsToPane,
+  screenCategory,
+  sumWidths
+} from './columnWidths';
+import { COLUMN_LABELS, uniqueColumnValues } from '../model/columnValue';
 import { mergeItemsByDetalle } from '../../../entities/takeoff-item/model/itemAggregation';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
@@ -10,22 +20,6 @@ import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 export interface TakeoffTableProps {
   items: TakeoffItem[];
 }
-
-const DEFAULT_COL_WIDTHS: Record<string, number> = {
-  partida: 85,
-  num: 40,
-  mat: 48,
-  plano: 140,
-  rev: 50,
-  tagUnico: 150,
-  tagPlano: 130,
-  detalle: 110,
-  desc: 280,
-  metradoOt: 90,
-  unit: 75
-};
-
-const FREEZE_KEYS = ['partida', 'num', 'mat', 'plano', 'rev', 'tagUnico', 'tagPlano'] as const;
 
 function idsInFillRange(
   rows: TakeoffItem[],
@@ -67,38 +61,85 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   const showToast = useUIStore(state => state.showToast);
 
   const {
-    filterPlano,
-    setFilterPlano,
-    filterDetalle,
-    setFilterDetalle,
+    columnFilters,
+    setColumnFilter,
     searchQuery,
-    setSearchQuery,
-    clearFilters
+    clearFilters,
+    fitTableNonce
   } = useUIStore();
 
-  // Column resizing state
+  // Manual drag only. Defaults fill the pane once at load; window resize
+  // never touches them. A new storage key drops the broken v1/v2 widths.
+  const hasSavedWidths = useRef<boolean>(false);
   const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
     try {
-      const saved = localStorage.getItem('epc-table-col-widths');
-      if (saved) return { ...DEFAULT_COL_WIDTHS, ...JSON.parse(saved) };
+      const saved = localStorage.getItem(COL_WIDTHS_STORAGE_KEY);
+      if (saved) {
+        hasSavedWidths.current = true;
+        const widths = { ...BASE_COL_WIDTHS, ...JSON.parse(saved) };
+        return Object.fromEntries(
+          Object.keys(BASE_COL_WIDTHS).map(key => [key, clampColumnWidth(key, widths[key])])
+        );
+      }
     } catch (e) {}
-    return DEFAULT_COL_WIDTHS;
+    return defaultWidths(typeof window !== 'undefined' ? window.innerWidth : 1920);
   });
 
   const resizingRef = useRef<{ colKey: string; startX: number; startWidth: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [narrowFreeze, setNarrowFreeze] = useState(false);
+  const lastCategoryRef = useRef<string>(
+    typeof window !== 'undefined' ? screenCategory(window.innerWidth) : '22'
+  );
+
+  const applyFit = (persist: boolean) => {
+    const el = scrollRef.current;
+    if (!el || !el.clientWidth) return;
+    const next = fitWidthsToPane(el.clientWidth);
+    setColWidths(next);
+    if (persist) {
+      try {
+        localStorage.setItem(COL_WIDTHS_STORAGE_KEY, JSON.stringify(next));
+      } catch (e) {}
+    }
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !el.clientWidth) return;
+    if (hasSavedWidths.current && sumWidths(colWidths) <= el.clientWidth) {
+      return;
+    }
+    applyFit(!hasSavedWidths.current);
+  }, []);
+
+  // Refit when the screen category changes (27" ↔ 22" ↔ 15.6"), not on every pixel.
+  useEffect(() => {
+    const onResize = () => {
+      const next = screenCategory(window.innerWidth);
+      if (next === lastCategoryRef.current) return;
+      lastCategoryRef.current = next;
+      applyFit(true);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (fitTableNonce === 0) return;
+    applyFit(true);
+    showToast('Columnas ajustadas al ancho de la pantalla', 'success');
+  }, [fitTableNonce]);
 
   const handleStartResize = (colKey: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const startWidth = colWidths[colKey] || DEFAULT_COL_WIDTHS[colKey] || 80;
+    const startWidth = colWidths[colKey] || BASE_COL_WIDTHS[colKey] || 80;
     resizingRef.current = { colKey, startX: e.clientX, startWidth };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!resizingRef.current) return;
       const delta = moveEvent.clientX - resizingRef.current.startX;
-      const newWidth = Math.max(35, resizingRef.current.startWidth + delta);
+      const newWidth = clampColumnWidth(resizingRef.current.colKey, resizingRef.current.startWidth + delta);
       setColWidths(prev => ({
         ...prev,
         [resizingRef.current!.colKey]: newWidth
@@ -108,7 +149,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     const handleMouseUp = () => {
       if (resizingRef.current) {
         setColWidths(latest => {
-          localStorage.setItem('epc-table-col-widths', JSON.stringify(latest));
+          localStorage.setItem(COL_WIDTHS_STORAGE_KEY, JSON.stringify(latest));
           return latest;
         });
         resizingRef.current = null;
@@ -163,19 +204,11 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     if (!highlightedTag) {
       setCurrentPage(1);
     }
-  }, [pageSize, filterPlano, filterDetalle, isMergedView]);
+  }, [pageSize, columnFilters, isMergedView]);
 
   const availablePlanos = useMemo(
     () =>
       Array.from(new Set(allItems.map(i => i.plano).filter(Boolean))).sort((a, b) =>
-        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-      ),
-    [allItems]
-  );
-
-  const availableDetalles = useMemo(
-    () =>
-      Array.from(new Set(allItems.map(i => i.detalle).filter(Boolean))).sort((a, b) =>
         a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
       ),
     [allItems]
@@ -221,17 +254,19 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     document.body.classList.remove('is-fill-dragging');
     const session = fillSessionRef.current;
     if (session.isDragging && session.targetItemIds.length > 0) {
-      batchUpdateRef.current(
+      const applied = batchUpdateRef.current(
         session.targetItemIds,
         session.colKey as keyof TakeoffItem,
         session.sourceValue,
         sectionRef.current
       );
-      const noun = session.colKey === 'plano' ? 'fila(s)' : 'ítem(s) principal(es)';
-      showToastRef.current(
-        `Copiado "${session.sourceValue ?? ''}" a ${session.targetItemIds.length} ${noun}`,
-        'info'
-      );
+      if (applied) {
+        const noun = session.colKey === 'plano' ? 'fila(s)' : 'ítem(s) principal(es)';
+        showToastRef.current(
+          `Copiado "${session.sourceValue ?? ''}" a ${session.targetItemIds.length} ${noun}`,
+          'info'
+        );
+      }
     }
     const cleared = {
       isDragging: false,
@@ -280,29 +315,25 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     applyFillHover(itemId, colKey);
   };
 
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const update = () => setNarrowFreeze(el.clientWidth < 1100);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const freezeVars = useMemo(() => {
-    let offset = 0;
-    const vars: Record<string, string> = {};
-    FREEZE_KEYS.forEach((key, index) => {
-      vars[`--freeze-${index + 1}`] = `${offset}px`;
-      offset += colWidths[key] || DEFAULT_COL_WIDTHS[key];
-    });
-    return vars;
-  }, [colWidths]);
-
   const handleSaveInlineCell = (itemId: string, colKey: string, newValue: any) => {
     setEditingCell(null);
+    // System columns are display-only (the store also rejects them).
+    if (colKey === 'partida' || colKey === 'partidaBalance') {
+      showToast('PARTIDA es de solo lectura: se actualiza desde el maestro PARTIDAS', 'warn');
+      return;
+    }
+    if (colKey === 'tagUnico') {
+      showToast('TAG ÚNICO se genera automáticamente', 'warn');
+      return;
+    }
     let parsedVal = newValue;
+    if (colKey === 'desc') {
+      parsedVal = String(newValue).toUpperCase().trim();
+      if (!parsedVal) {
+        showToast('La descripción no puede estar vacía', 'warn');
+        return;
+      }
+    }
     if (colKey === 'plano' || colKey === 'rev') {
       parsedVal = String(newValue).toUpperCase().trim();
     }
@@ -312,7 +343,16 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     batchUpdateField([itemId], colKey as keyof TakeoffItem, parsedVal, section);
   };
 
-  const hasActiveFilters = Boolean(filterPlano || filterDetalle || searchQuery);
+  const uniqueValues = useMemo(() => {
+    const values: Record<string, string[]> = {};
+    for (const key of Object.keys(COLUMN_LABELS)) {
+      values[key] = uniqueColumnValues(allItems, key);
+    }
+    return values;
+  }, [allItems]);
+
+  const activeColumnFilters = Object.entries(columnFilters);
+  const hasActiveFilters = activeColumnFilters.length > 0 || Boolean(searchQuery);
 
   return (
     <div className="takeoff-table-wrapper">
@@ -417,13 +457,14 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             {isMergedView ? `✨ ${totalItems} ítems consolidados` : `Mostrando ${startIndex + 1}-${endIndex} de ${totalItems.toLocaleString()} ítems`}
           </span>
 
-          {filterPlano && (
+          {activeColumnFilters.map(([key, values]) => (
             <button
-              onClick={() => setFilterPlano('')}
+              key={key}
+              onClick={() => setColumnFilter(key, null)}
               style={{
-                background: 'rgba(239, 68, 68, 0.12)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                background: 'rgba(16, 124, 65, 0.12)',
+                color: '#107c41',
+                border: '1px solid rgba(16, 124, 65, 0.35)',
                 borderRadius: '4px',
                 padding: '2px 6px',
                 cursor: 'pointer',
@@ -434,36 +475,12 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                 gap: '4px',
                 marginLeft: '6px'
               }}
-              title={`Quitar filtro de Plano (${filterPlano})`}
+              title={`Quitar filtro de ${COLUMN_LABELS[key] || key}`}
             >
-              <span>PLANO: {filterPlano}</span>
+              <span>{COLUMN_LABELS[key] || key}: {values.length}</span>
               <span style={{ fontWeight: 'bold' }}>✕</span>
             </button>
-          )}
-
-          {filterDetalle && (
-            <button
-              onClick={() => setFilterDetalle('')}
-              style={{
-                background: 'rgba(239, 68, 68, 0.12)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '4px',
-                padding: '2px 6px',
-                cursor: 'pointer',
-                fontSize: '10.5px',
-                fontFamily: 'var(--mo)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                marginLeft: '6px'
-              }}
-              title={`Quitar filtro de Detalle (${filterDetalle})`}
-            >
-              <span>DETALLE: {filterDetalle}</span>
-              <span style={{ fontWeight: 'bold' }}>✕</span>
-            </button>
-          )}
+          ))}
 
           {hasActiveFilters && (
             <button
@@ -562,24 +579,18 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
       </div>
 
       <div className="takeoff-table-scroll-container" ref={scrollRef}>
-        <table
-          className={`takeoff-table${narrowFreeze ? ' is-narrow' : ''}`}
-          style={freezeVars as React.CSSProperties}
-        >
+        <table className="takeoff-table">
           <TakeoffTableHeader
-            filterPlano={filterPlano}
-            setFilterPlano={setFilterPlano}
-            availablePlanos={availablePlanos}
-            filterDetalle={filterDetalle}
-            setFilterDetalle={setFilterDetalle}
-            availableDetalles={availableDetalles}
+            columnFilters={columnFilters}
+            uniqueValues={uniqueValues}
+            onApplyColumnFilter={setColumnFilter}
             colWidths={colWidths}
             onStartResize={handleStartResize}
           />
           <tbody>
             {visibleItems.length === 0 ? (
               <tr>
-                <td colSpan={11} style={{ textAlign: 'center', padding: '30px', color: 'var(--mu)' }}>
+                <td colSpan={12} style={{ textAlign: 'center', padding: '30px', color: 'var(--mu)' }}>
                   {totalItems === 0
                     ? 'No hay ítems registrados en este paquete.'
                     : 'No se encontraron ítems que coincidan con los filtros aplicados.'}

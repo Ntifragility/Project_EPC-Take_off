@@ -80,10 +80,6 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   const handleSave = () => {
     const finalPlano = plano.toUpperCase();
     const finalTagPlano = tagPlano.trim();
-    const finalTagUnico =
-      material === 'P'
-        ? generateTagUnico(finalPlano, finalTagPlano, 'P') || tagUnico
-        : '';
 
     updateItem(
       item.id,
@@ -91,7 +87,6 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
         material,
         plano: finalPlano,
         rev: rev.toUpperCase(),
-        tagUnico: finalTagUnico,
         tagPlano: finalTagPlano,
         detalle,
         qty: isCountable(item.desc, section) ? (typeof qty === 'number' ? qty : parseFloat(String(qty)) || 0) : qty,
@@ -116,10 +111,13 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   if (isEditing) {
     return (
       <tr ref={rowRef} className={`tr-edit ${isHighlighted ? 'tr-amber-pulse' : ''}`}>
-        <td className="td-u" style={{ color: 'var(--am)', fontWeight: 700 }}>
+        <td className="td-n">{index}</td>
+        <td className="td-u" style={{ color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
           {item.partida || 'NA'}
         </td>
-        <td className="td-n">{index}</td>
+        <td className="td-u" style={{ color: item.partidaBalance && item.partidaBalance !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
+          {item.partidaBalance || 'NA'}
+        </td>
         <td>
           <input
             className="edit-input edit-input-mono"
@@ -330,6 +328,10 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
 
   const isMainItem = item.material === 'P';
   const canInteract = (colKey: string) => isMainItem || colKey === 'plano';
+  // PARTIDA SICME / PARTIDA BALANCE come from the PARTIDAS master;
+  // TAG UNICO is derived. All three are system columns (display-only).
+  const isSystemColumn = (colKey: string) =>
+    colKey === 'partida' || colKey === 'partidaBalance' || colKey === 'tagUnico';
 
   // Excel-like Cell Renderer
   const renderCell = (
@@ -339,12 +341,16 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
     customStyle: React.CSSProperties = {}
   ) => {
     const isSelected = selectedColKey === colKey;
-    const editable = canInteract(colKey);
+    const editable = canInteract(colKey) && !isSystemColumn(colKey);
     const isEditingThisCell = editable && editingColKey === colKey;
     const isTarget = isFillTarget && (isMainItem || colKey === 'plano');
     const dragValue = colKey === 'plano' ? (item.plano || '') : value;
 
-    const cellTitle = !editable
+    const cellTitle = isSystemColumn(colKey)
+      ? (colKey === 'tagUnico'
+        ? 'TAG ÚNICO se genera automáticamente'
+        : 'PARTIDA de solo lectura: proviene del maestro PARTIDAS')
+      : !editable
       ? 'Consumible derivado: se actualiza desde el ítem principal'
       : !isMainItem
       ? 'PLANO se puede editar y arrastrar. El resto del consumible sigue al ítem principal'
@@ -427,12 +433,17 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
       data-item-id={item.id}
       data-material={item.material}
     >
+      <td className="td-n" data-item-id={item.id}><span>{index}</span></td>
+
       {renderCell('partida', item.partida || 'NA', 'td-u', {
         color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)',
         fontWeight: 700
       })}
 
-      <td className="td-n" data-item-id={item.id}>{index}</td>
+      {renderCell('partidaBalance', item.partidaBalance || 'NA', 'td-u', {
+        color: item.partidaBalance && item.partidaBalance !== 'NA' ? 'var(--am)' : 'var(--mu)',
+        fontWeight: 700
+      })}
 
       {renderCell('material', item.material || '', 'td-u', {
         color: isMainItem ? 'var(--excel-green, #107c41)' : 'var(--tx)',

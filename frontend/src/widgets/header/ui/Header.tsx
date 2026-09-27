@@ -1,12 +1,10 @@
 import React from 'react';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
-import { usePackagesStore } from '../../../features/manage-packages/model/usePackagesStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
-import { exportTakeoffExcel, exportTagSummaryExcel } from '../../../shared/lib/excelExporter';
 import { isSupabaseConfigured } from '../../../shared/api/supabase';
-import { consolidateAccessories } from '../../../entities/takeoff-item/model/itemAggregation';
 import { executeSyncToDatabase } from '../../../features/sync-cloud/model/useCloudSync';
+import { ToolsPanel } from '../../actions-drawer/ui/ActionsDrawer';
 
 export interface HeaderProps {
   onOpenSummaryModal: () => void;
@@ -19,21 +17,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAreaModal,
   onOpenTagSummaryModal
 }) => {
-  const { section, tab, theme, activeArea, accessoryViewMode, setSection, setTab, toggleTheme } = useAppStore();
-  const { items, clearCache } = useItemsStore();
-  const { packages } = usePackagesStore();
+  const { section, tab, theme, activeArea, setSection, setTab, toggleTheme } = useAppStore();
+  const { items } = useItemsStore();
   const { isSyncing } = useUIStore();
-
-  const handleExport = () => {
-    const exportItems = accessoryViewMode === 'join' ? consolidateAccessories(items) : items;
-    exportTakeoffExcel(exportItems, packages, section);
-  };
-
-  const handleClear = () => {
-    if (window.confirm('¿Seguro que deseas limpiar todos los datos locales de la pantalla?')) {
-      clearCache(section);
-    }
-  };
 
   const hasSupabase = isSupabaseConfigured();
 
@@ -126,16 +112,9 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={toggleTheme}
           id="theme-btn"
           title="Alternar tema Claro / Oscuro"
+          aria-label="Alternar tema Claro / Oscuro"
         >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-        </button>
-
-        <button
-          className="btn-ghost"
-          onClick={handleClear}
-          title="Limpiar Datos Locales de la Pantalla"
-        >
-          Limpiar Data
+          {theme === 'light' ? '☾' : '☀'}
         </button>
 
         <button
@@ -175,21 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
           {String(items.length).padStart(5, '0')} ítems
         </span>
 
-        <button
-          className="btn-export"
-          onClick={handleExport}
-          title="Exportar la tabla completa de metrado a Excel"
-        >
-          📥 Exportar Excel
-        </button>
-
-        <button
-          className="btn-export"
-          onClick={() => exportTagSummaryExcel(items)}
-          title="Exportar tabla resumen 6 columnas (TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES) a Excel"
-        >
-          📊 Resumen Excel
-        </button>
+        <ToolsPanel />
       </div>
     </header>
   );

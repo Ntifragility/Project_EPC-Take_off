@@ -5,6 +5,7 @@ import { uid } from './uid';
 import { isPrimaryMaterial, getAbsoluteUnit } from '../../entities/takeoff-item/model/materialClassifier';
 import { generateTagUnico, assignTagUnicoSuffixes } from '../../entities/takeoff-item/model/tagGenerator';
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../entities/takeoff-rule/model/ruleExpander';
+import { normalizeDetalle, isKnownDetalle } from '../../entities/takeoff-rule/model/detalleRegistry';
 
 export interface RejectedRowInfo {
   fila: number;
@@ -367,14 +368,28 @@ export function parseTakeoffCsv(
       continue;
     }
 
-    const rowDetalle = (detalleRaw || (
+    const rowDetalle = normalizeDetalle(detalleRaw || (
       tagRaw.startsWith('TT') ? (activeArea === 'AREA HUMEDA' ? '008/4T2' : '167/X2') :
       tagRaw.startsWith('T') ? (activeArea === 'AREA HUMEDA' ? '008/4T1' : '167/X1') :
       tagRaw.startsWith('C') ? (activeArea === 'AREA HUMEDA' ? '008/3A' : '167/G1') :
       (tagRaw.startsWith('M') ? 'ND' :
       (tagRaw.startsWith('BP') ? (activeArea === 'AREA HUMEDA' ? '010/17A' : '166A') :
       (tagRaw.startsWith('BI') ? (activeArea === 'AREA HUMEDA' ? '010/17C' : '166C') : '')))
-    )).toUpperCase();
+    ));
+
+    if (rowDetalle && !isKnownDetalle(rowDetalle, rules)) {
+      rejectedRows.push({
+        fila: i + 1,
+        plano: planoRow,
+        tag: tagRaw,
+        longitudCable: lengthRawStr,
+        longitudTuberia: tuberiaRaw,
+        detalle: detalleRaw,
+        jumpers: jumpersRaw,
+        motivo: `DETALLE "${rowDetalle}" no existe en ninguna regla`
+      });
+      continue;
+    }
 
     const batch: TakeoffItem[] = rule.subitems
       .filter(s => !(rule.id === 'r1' && s.desc.toUpperCase().includes('CEMENTO GEM') && rowDetalle !== '008/3B'))

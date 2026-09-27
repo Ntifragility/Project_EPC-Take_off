@@ -1,11 +1,13 @@
 import { TakeoffItem, PackageGroup } from '../../entities/takeoff-item/model/types';
-import * as XLSX from 'xlsx';
+import { downloadTableXlsx } from './excelTemplates';
 
-export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[], section = 'pat', fileNamePrompt?: string): void {
+export async function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[], section = 'pat', fileNamePrompt?: string): Promise<void> {
   if (items.length === 0) return;
 
   const headers = [
-    'PARTIDA',
+    'N°',
+    'PARTIDAS SICME',
+    'PARTIDA BALANCE',
     'MATERIAL',
     'PLANO',
     'REV',
@@ -17,45 +19,31 @@ export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[
     'UNIDAD'
   ];
 
-  const data = items.map(it => {
+  const rows = items.map((it, idx) => {
     let metradoOtVal: number | string = '';
     if (it.metradoOt !== undefined && it.metradoOt !== null && String(it.metradoOt).trim() !== '') {
       const num = Number(it.metradoOt);
       metradoOtVal = !isNaN(num) ? num : it.metradoOt;
     }
 
-    return {
-      'PARTIDA': it.partida || 'NA',
-      'MATERIAL': it.material || '',
-      'PLANO': it.plano || '',
-      'REV': it.rev || '',
-      'TAG UNICO': it.tagUnico || '',
-      'TAG EN PLANO': it.tagPlano || '',
-      'DETALLE': it.detalle || '',
-      'DESCRIPCION': it.desc || '',
-      'METRADO OT': metradoOtVal,
-      'UNIDAD': it.unit || ''
-    };
+    return [
+      idx + 1,
+      it.partida || 'NA',
+      it.partidaBalance || 'NA',
+      it.material || '',
+      it.plano || '',
+      it.rev || '',
+      it.tagUnico || '',
+      it.tagPlano || '',
+      it.detalle || '',
+      it.desc || '',
+      metradoOtVal,
+      it.unit || ''
+    ] as (string | number)[];
   });
 
-  const ws = XLSX.utils.json_to_sheet(data, { header: headers });
-  
-  ws['!cols'] = [
-    { wch: 18 }, // Partida
-    { wch: 10 }, // Material
-    { wch: 25 }, // Plano
-    { wch: 6 },  // Rev
-    { wch: 20 }, // Tag Unico
-    { wch: 12 }, // Tag en plano
-    { wch: 10 }, // Detalle
-    { wch: 50 }, // Descripcion
-    { wch: 12 }, // Metrado OT
-    { wch: 8 }   // Unidad
-  ];
+  const widths = [6, 18, 18, 10, 25, 6, 20, 12, 10, 50, 12, 8];
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Metrado');
-  
   const dateStr = new Date().toISOString().slice(0, 10);
   const defaultName = `metrado_${dateStr}`;
   const userFileName = fileNamePrompt !== undefined ? fileNamePrompt : window.prompt('Ingresa el nombre del archivo Excel a exportar:', defaultName);
@@ -67,7 +55,14 @@ export function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[
     finalFileName += '.xlsx';
   }
 
-  XLSX.writeFile(wb, finalFileName);
+  await downloadTableXlsx({
+    sheetName: 'Metrado',
+    tableName: 'METRADO',
+    headers,
+    rows,
+    widths,
+    fileName: finalFileName
+  });
 }
 
 export interface TagSummaryRow {
@@ -198,7 +193,7 @@ export function generateTagSummary(items: TakeoffItem[]): TagSummaryRow[] {
   return summaryRows;
 }
 
-export function exportTagSummaryExcel(items: TakeoffItem[], defaultFileName?: string, fileNamePrompt?: string): void {
+export async function exportTagSummaryExcel(items: TakeoffItem[], defaultFileName?: string, fileNamePrompt?: string): Promise<void> {
   const summaryRows = generateTagSummary(items);
   if (summaryRows.length === 0) {
     window.alert('No hay datos en la tabla principal para generar el resumen.');
@@ -214,28 +209,16 @@ export function exportTagSummaryExcel(items: TakeoffItem[], defaultFileName?: st
     'SOPORTES'
   ];
 
-  const data = summaryRows.map(r => ({
-    'TAG': r.tag,
-    'LONGITUD_CABLE': r.longitudCable,
-    'LONGITUD_TUBERIA': r.longitudTuberia,
-    'DETALLE': r.detalle,
-    'JUMPERS': r.jumpers,
-    'SOPORTES': r.soportes
-  }));
+  const rows = summaryRows.map(r => [
+    r.tag,
+    r.longitudCable,
+    r.longitudTuberia,
+    r.detalle,
+    r.jumpers,
+    r.soportes
+  ] as (string | number)[]);
 
-  const ws = XLSX.utils.json_to_sheet(data, { header: headers });
-
-  ws['!cols'] = [
-    { wch: 15 }, // TAG
-    { wch: 18 }, // LONGITUD_CABLE
-    { wch: 20 }, // LONGITUD_TUBERIA
-    { wch: 15 }, // DETALLE
-    { wch: 12 }, // JUMPERS
-    { wch: 12 }  // SOPORTES
-  ];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Resumen_TAG');
+  const widths = [15, 18, 20, 15, 12, 12];
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const baseName = defaultFileName || `resumen_tags_${dateStr}`;
@@ -248,5 +231,12 @@ export function exportTagSummaryExcel(items: TakeoffItem[], defaultFileName?: st
     finalFileName += '.xlsx';
   }
 
-  XLSX.writeFile(wb, finalFileName);
+  await downloadTableXlsx({
+    sheetName: 'Resumen_TAG',
+    tableName: 'RESUMEN_TAG',
+    headers,
+    rows,
+    widths,
+    fileName: finalFileName
+  });
 }

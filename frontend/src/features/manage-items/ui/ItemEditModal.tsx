@@ -55,7 +55,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
     e.preventDefault();
     if (!item) return;
 
-    updateItem(
+    const applied = updateItem(
       item.id,
       {
         plano: plano.trim().toUpperCase(),
@@ -71,7 +71,9 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
       section
     );
 
-    onClose();
+    // updateItem rejects unknown/unmappable detalles with a toast: keep the
+    // modal open so the user can fix the value.
+    if (applied) onClose();
   };
 
   return (

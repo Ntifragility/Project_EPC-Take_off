@@ -97,7 +97,9 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
         if (seed001) mapped.push(seed001);
       }
 
-      return mapped;
+      // DET.001/2B-X1 lives in CANALIZADO only: drop any legacy copy stored under PAT.
+      const cleaned = section === 'canalizado' ? mapped : mapped.filter(r => r.id !== 'r-001-2b-x1');
+      return cleaned;
     }
   } catch (err) {
     console.error('Error loading rules from localStorage:', err);

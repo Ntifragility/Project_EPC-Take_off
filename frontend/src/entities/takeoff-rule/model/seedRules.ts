@@ -101,19 +101,6 @@ export const SEED_RULES: TakeoffRule[] = [
       { id: 'sbi1', desc: 'BARRA INST', qty: 1, unit: 'und' },
       { id: 'sbi2', desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und' }
     ]
-  },
-  {
-    id: 'r-001-2b-x1',
-    trigger: 'DET.001/2B-X1',
-    detalle: '001/2B-X1',
-    tagPrefix: 'SE',
-    cableTrayMatrix: DEFAULT_CABLE_TRAY_MATRIX,
-    subitems: [
-      { id: 's-001-2b-1', desc: 'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316', qty: '0.76 (según ancho)', unit: 'm' },
-      { id: 's-001-2b-2', desc: 'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316', qty: 2, unit: 'und' },
-      { id: 's-001-2b-3', desc: 'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316', qty: 2, unit: 'und' },
-      { id: 's-001-2b-4', desc: 'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316', qty: 2, unit: 'und' }
-    ]
   }
 ];
 

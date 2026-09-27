@@ -53,7 +53,10 @@ export async function loadInitialCloudConfig() {
         };
       });
 
-      setRules(enrichedRules, section);
+      setRules(
+        section === 'canalizado' ? enrichedRules : enrichedRules.filter(r => r.id !== 'r-001-2b-x1'),
+        section
+      );
     }
 
     // 2. Fetch Detalle Variants

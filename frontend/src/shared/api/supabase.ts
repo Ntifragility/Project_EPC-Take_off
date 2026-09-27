@@ -36,6 +36,7 @@ export function mapItemsToSupabasePayload(
     const qtyVal = isCountable(it.desc, 'pat') ? (typeof it.qty === 'number' ? it.qty : parseFloat(String(it.qty)) || null) : null;
     return {
       partida: it.partida || 'NA',
+      partida_balance: it.partidaBalance || 'NA',
       material: it.material || '',
       plano: it.plano || '',
       rev: it.rev || '',
@@ -299,10 +300,14 @@ export async function syncPartidasToSupabase(
 
   const payload: SupabasePartidaRecord[] = partidas.map(p => ({
     actividad: p.actividad || 'PAT',
-    area: String(p.area || '').trim(),
-    item: String(p.item || '').trim(),
+    wbs: String(p.wbs || p.area || '').trim(),
+    area: String(p.wbs || p.area || '').trim(),
+    partida_sicme: String(p.partidaSicme || p.item || '').trim(),
+    item: String(p.partidaSicme || p.item || '').trim(),
+    partida_balance: String(p.partidaBalance || 'NA').trim() || 'NA',
     forecast_desc: p.forecastDesc || '',
-    descripcion: p.descripcion || '',
+    descripcion_bm: p.descripcionBm || p.descripcion || '',
+    descripcion: p.descripcionBm || p.descripcion || '',
     und: p.und || 'UND'
   }));
 
@@ -332,17 +337,21 @@ export async function fetchPartidasFromSupabase(): Promise<{
     const { data, error } = await supabase
       .from('partidas_table')
       .select('*')
-      .order('item', { ascending: true });
+      .order('partida_sicme', { ascending: true });
 
     if (error) throw error;
 
     const mapped: PartidaRecord[] = (data || []).map((row: any) => ({
       id: row.id,
       actividad: row.actividad,
-      area: row.area,
-      item: row.item,
+      wbs: row.wbs ?? row.area ?? '',
+      area: row.wbs ?? row.area ?? '',
+      partidaSicme: row.partida_sicme ?? row.item ?? '',
+      item: row.partida_sicme ?? row.item ?? '',
+      partidaBalance: row.partida_balance || 'NA',
       forecastDesc: row.forecast_desc || '',
-      descripcion: row.descripcion || '',
+      descripcionBm: row.descripcion_bm ?? row.descripcion ?? '',
+      descripcion: row.descripcion_bm ?? row.descripcion ?? '',
       und: row.und || 'UND',
       createdAt: row.created_at
     }));

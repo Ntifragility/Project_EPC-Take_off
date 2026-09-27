@@ -1,7 +1,10 @@
 import React from 'react';
+import { ExcelColumnFilter } from './ExcelColumnFilter';
+import { BASE_COL_WIDTHS, minColumnWidth, maxColumnWidth } from './columnWidths';
 
 export type ColumnKey =
   | 'partida'
+  | 'partidaBalance'
   | 'num'
   | 'mat'
   | 'plano'
@@ -14,172 +17,70 @@ export type ColumnKey =
   | 'unit';
 
 export interface TakeoffTableHeaderProps {
-  filterPlano: string;
-  setFilterPlano: (plano: string) => void;
-  availablePlanos: string[];
-  filterDetalle: string;
-  setFilterDetalle: (detalle: string) => void;
-  availableDetalles: string[];
+  columnFilters: Record<string, string[]>;
+  uniqueValues: Record<string, string[]>;
+  onApplyColumnFilter: (column: string, values: string[] | null) => void;
   colWidths?: Record<string, number>;
   onStartResize?: (colKey: string, e: React.MouseEvent) => void;
 }
 
+const HEADER_COLUMNS: { key: ColumnKey; label: string; filterable: boolean; className: string }[] = [
+  { key: 'num', label: 'N°', filterable: false, className: 'th-n' },
+  { key: 'partida', label: 'PARTIDAS SICME', filterable: true, className: 'th-u' },
+  { key: 'partidaBalance', label: 'PARTIDA BALANCE', filterable: true, className: 'th-u' },
+  { key: 'mat', label: 'MAT', filterable: true, className: 'th-u' },
+  { key: 'plano', label: 'PLANO', filterable: true, className: 'th-u' },
+  { key: 'rev', label: 'REV', filterable: true, className: 'th-u' },
+  { key: 'tagUnico', label: 'TAG UNICO', filterable: true, className: 'th-u' },
+  { key: 'tagPlano', label: 'TAG EN PLANO', filterable: true, className: 'th-u' },
+  { key: 'detalle', label: 'DETALLE', filterable: true, className: 'th-u' },
+  { key: 'desc', label: 'DESCRIPCION', filterable: true, className: 'th-d' },
+  { key: 'metradoOt', label: 'METRADO OT', filterable: true, className: 'th-u' },
+  { key: 'unit', label: 'UND', filterable: true, className: 'th-u' }
+];
+
 export const TakeoffTableHeader: React.FC<TakeoffTableHeaderProps> = ({
-  filterPlano,
-  setFilterPlano,
-  availablePlanos,
-  filterDetalle,
-  setFilterDetalle,
-  availableDetalles,
+  columnFilters,
+  uniqueValues,
+  onApplyColumnFilter,
   colWidths = {},
   onStartResize
 }) => {
   return (
     <thead>
       <tr>
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.partida || 85, color: 'var(--am)' }}
-        >
-          <span>PARTIDA</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('partida', e)} />}
-        </th>
-
-        <th
-          className="th-n th-resizable"
-          style={{ width: colWidths.num || 40 }}
-        >
-          <span>N°</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('num', e)} />}
-        </th>
-
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.mat || 48 }}
-        >
-          <span>MAT</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('mat', e)} />}
-        </th>
-
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.plano || 140, padding: '0 4px', verticalAlign: 'middle' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-            <span style={{ fontWeight: 'bold' }}>PLANO</span>
-            {availablePlanos.length > 1 && (
-              <select
-                value={filterPlano}
-                onChange={e => setFilterPlano(e.target.value)}
-                style={{
-                  background: filterPlano ? 'var(--am, #2563eb)' : 'var(--s2)',
-                  color: filterPlano ? '#ffffff' : 'var(--tx)',
-                  border: filterPlano ? '1px solid var(--am, #2563eb)' : '1px solid var(--b1)',
-                  borderRadius: '3px',
-                  fontSize: '9px',
-                  padding: '1px 2px',
-                  cursor: 'pointer',
-                  maxWidth: '75px',
-                  fontWeight: filterPlano ? 'bold' : 'normal'
-                }}
-                title="Filtrar por Plano"
-              >
-                <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>Todos ({availablePlanos.length})</option>
-                {availablePlanos.map(p => (
-                  <option key={p} value={p} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('plano', e)} />}
-        </th>
-
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.rev || 50 }}
-        >
-          <span>REV</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('rev', e)} />}
-        </th>
-
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.tagUnico || 150 }}
-        >
-          <span>TAG UNICO</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('tagUnico', e)} />}
-        </th>
-
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.tagPlano || 130 }}
-        >
-          <span>TAG EN PLANO</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('tagPlano', e)} />}
-        </th>
-
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.detalle || 110, padding: '0 4px', verticalAlign: 'middle' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-            <span>DETALLE</span>
-            {availableDetalles.length > 1 && (
-              <select
-                value={filterDetalle}
-                onChange={e => setFilterDetalle(e.target.value)}
-                style={{
-                  background: filterDetalle ? 'var(--am, #2563eb)' : 'var(--s2)',
-                  color: filterDetalle ? '#ffffff' : 'var(--tx)',
-                  border: filterDetalle ? '1px solid var(--am, #2563eb)' : '1px solid var(--b1)',
-                  borderRadius: '3px',
-                  fontSize: '9px',
-                  padding: '1px 2px',
-                  cursor: 'pointer',
-                  maxWidth: '75px',
-                  fontWeight: filterDetalle ? 'bold' : 'normal'
-                }}
-                title="Filtrar por Detalle"
-              >
-                <option value="" style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>Todos ({availableDetalles.length})</option>
-                {availableDetalles.map(d => (
-                  <option key={d} value={d} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('detalle', e)} />}
-        </th>
-
-        <th
-          className="th-d th-resizable"
-          style={{ width: colWidths.desc || 280 }}
-        >
-          <span>DESCRIPCION</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('desc', e)} />}
-        </th>
-
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.metradoOt || 90 }}
-        >
-          <span>METRADO OT</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('metradoOt', e)} />}
-        </th>
-
-        <th
-          className="th-u th-resizable"
-          style={{ width: colWidths.unit || 75 }}
-        >
-          <span>UND</span>
-          {onStartResize && <div className="col-resizer" onMouseDown={e => onStartResize('unit', e)} />}
-        </th>
+        {HEADER_COLUMNS.map(column => {
+          const width = colWidths[column.key] || BASE_COL_WIDTHS[column.key];
+          return (
+            <th
+              key={column.key}
+              className={`${column.className} th-resizable`}
+              style={{
+                width,
+                color: column.key === 'partida' || column.key === 'partidaBalance' ? 'var(--am)' : undefined
+              }}
+            >
+              <div className="th-filter-row">
+                <span>{column.label}</span>
+                {column.filterable && (
+                  <ExcelColumnFilter
+                    values={uniqueValues[column.key] || []}
+                    selected={columnFilters[column.key]}
+                    onApply={values => onApplyColumnFilter(column.key, values)}
+                  />
+                )}
+              </div>
+              {onStartResize && (
+                <div
+                  className="col-resizer"
+                  title={`Arrastra para ajustar (entre ${minColumnWidth(column.key)} y ${maxColumnWidth(column.key)} px)`}
+                  onMouseDown={e => onStartResize(column.key, e)}
+                />
+              )}
+            </th>
+          );
+        })}
       </tr>
     </thead>
   );
 };
-

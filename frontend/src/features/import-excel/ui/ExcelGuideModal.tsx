@@ -212,7 +212,7 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
               color: 'var(--tx)'
             }}
           >
-            <strong>💡 Plantilla Multi-Pestaña y Auto-Detección:</strong> La plantilla <strong>.xlsx</strong> descargable contiene ambas pestañas (<strong>1. MECHAS</strong> y <strong>2. CABLES_BARRAS_OTROS</strong>). Puedes subir el archivo con ambas pestañas a la vez. El sistema procesa todas las hojas automáticamente reconociendo las columnas por su cabecera.
+            <strong>💡 Plantilla Multi-Pestaña y Auto-Detección:</strong> La plantilla <strong>.xlsx</strong> descargable contiene ambas pestañas (<strong>1. MECHAS</strong> y <strong>2. CABLES_BARRAS_OTROS</strong>), cada una con formato <strong>Tabla de Excel</strong> (filtros por columna y filas con bandas). Puedes subir el archivo con ambas pestañas a la vez. El sistema procesa todas las hojas automáticamente reconociendo las columnas por su cabecera.
           </div>
 
           {/* Compact Prefixes Row */}

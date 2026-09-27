@@ -35,8 +35,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     setAddMode,
     searchQuery,
     setSearchQuery,
-    filterPlano,
-    filterDetalle,
+    columnFilters,
     clearFilters,
     showToast,
     isPartidasModalOpen,
@@ -131,7 +130,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     showToast('Ítem manual agregado', 'info');
   };
 
-  const hasActiveFilters = Boolean(searchQuery || filterPlano || filterDetalle);
+  const hasActiveFilters = Boolean(searchQuery || Object.keys(columnFilters).length > 0);
 
   const availablePlanos = useMemo(() => {
     return Array.from(new Set(items.map(i => i.plano).filter(Boolean))).sort();
@@ -221,7 +220,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
       {/* Package Selector */}
       <div className="panel-section">
         <div className="panel-section-hd">
-          <span className="panel-section-title">Partida Activa</span>
+          <span className="panel-section-title">Paquete</span>
           <button
             type="button"
             className="btn-ghost"
@@ -258,14 +257,14 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
           className={`mode-btn ${addMode === 'rule' ? 'active' : ''}`}
           onClick={() => setAddMode('rule')}
         >
-          ⚡ Por Regla
+          Por Regla
         </button>
         <button
           type="button"
           className={`mode-btn ${addMode === 'custom' ? 'active' : ''}`}
           onClick={() => setAddMode('custom')}
         >
-          ✏️ Manual
+          Manual
         </button>
       </div>
 

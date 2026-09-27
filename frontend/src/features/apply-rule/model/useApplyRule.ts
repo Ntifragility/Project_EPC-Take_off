@@ -24,12 +24,14 @@ export function executeApplyRule(
     numSoportes?: number;
     numJumpers?: number;
     cableTrayWidth?: string;
+    incluirTuberia?: boolean;
   }
 ) {
   const { count, baseTag, detalleCode } = params;
   const numSoportes = params.numSoportes ?? 1;
   const numJumpers = params.numJumpers ?? 1;
   const cableTrayWidth = params.cableTrayWidth || '600 mm';
+  const incluirTuberia = params.incluirTuberia === true;
 
   const { items, customPlano, customRev, setItems, saveUndoSnapshot } = useItemsStore.getState();
   const { selPkg, packages } = usePackagesStore.getState();
@@ -197,6 +199,31 @@ export function executeApplyRule(
             plano: planoVal,
             rev: revVal,
             tagUnico: '',
+            tagPlano: currentTagPlano,
+            detalle: detalleCode,
+            metradoOt: ''
+          });
+        }
+
+        // Optional TUBERIA for horizontal runs on 008/3A (user-managed OT).
+        if (
+          currentRule.id === 'r1' &&
+          detalleCode.toUpperCase() === '008/3A' &&
+          incluirTuberia &&
+          !newItems.some(it => it.tagPlano === currentTagPlano && it.desc.toUpperCase().includes('TUBERIA'))
+        ) {
+          newItems.push({
+            id: uid(),
+            pkgId,
+            desc: 'TUBERIA PVC SCH 80 Ø3/4"',
+            qty: 'Var.',
+            unit: 'm',
+            notes: '',
+            ruleId: currentRule.id,
+            material: 'P',
+            plano: planoVal,
+            rev: revVal,
+            tagUnico: generateTagUnico(planoVal, currentTagPlano, 'P'),
             tagPlano: currentTagPlano,
             detalle: detalleCode,
             metradoOt: ''

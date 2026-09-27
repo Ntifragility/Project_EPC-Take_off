@@ -49,10 +49,11 @@ export const PackagesView: React.FC = () => {
     if (!searchFilter.trim()) return true;
     const q = searchFilter.toLowerCase();
     return (
-      p.item.toLowerCase().includes(q) ||
-      p.area.toLowerCase().includes(q) ||
+      (p.partidaSicme || p.item || '').toLowerCase().includes(q) ||
+      (p.partidaBalance || '').toLowerCase().includes(q) ||
+      (p.wbs || p.area || '').toLowerCase().includes(q) ||
       p.actividad.toLowerCase().includes(q) ||
-      p.descripcion.toLowerCase().includes(q) ||
+      (p.descripcionBm || p.descripcion || '').toLowerCase().includes(q) ||
       p.forecastDesc.toLowerCase().includes(q)
     );
   });
@@ -64,7 +65,7 @@ export const PackagesView: React.FC = () => {
         <div>
           <div className="view-title">GESTIÓN DE PARTIDAS</div>
           <div className="view-sub">
-            Carga la matriz oficial de partidas (Forecast Master) para correlacionar automáticamente la columna <strong>PARTIDA</strong>.
+            Carga la matriz oficial de partidas (Forecast Master) para correlacionar automáticamente las columnas <strong>PARTIDA SICME</strong> y <strong>PARTIDA BALANCE</strong>.
           </div>
         </div>
 
@@ -110,7 +111,7 @@ export const PackagesView: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="text"
-              placeholder="Buscar por ITEM, AREA o DESCRIPCIÓN..."
+              placeholder="Buscar por SICME, BALANCE, WBS o DESCRIPCIÓN..."
               value={searchFilter}
               onChange={e => setSearchFilter(e.target.value)}
               style={{ width: '260px', height: '28px', fontSize: '11px' }}
@@ -144,17 +145,18 @@ export const PackagesView: React.FC = () => {
               <thead>
                 <tr style={{ background: 'var(--s2)', position: 'sticky', top: 0, zIndex: 2, borderBottom: '1px solid var(--b1)' }}>
                   <th style={{ padding: '6px 8px', width: '60px', textAlign: 'center' }}>ACT</th>
-                  <th style={{ padding: '6px 8px', width: '70px', textAlign: 'center' }}>AREA</th>
-                  <th style={{ padding: '6px 8px', width: '90px', textAlign: 'center' }}>ITEM</th>
+                  <th style={{ padding: '6px 8px', width: '70px', textAlign: 'center' }}>WBS</th>
+                  <th style={{ padding: '6px 8px', width: '100px', textAlign: 'center' }}>PARTIDA SICME</th>
+                  <th style={{ padding: '6px 8px', width: '110px', textAlign: 'center' }}>PARTIDA BALANCE</th>
                   <th style={{ padding: '6px 8px', textAlign: 'center' }}>FORECAST DESCRIPTION</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'center' }}>DESCRIPCIÓN OFICIAL</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'center' }}>DESCRIPCIÓN BM</th>
                   <th style={{ padding: '6px 8px', width: '60px', textAlign: 'center' }}>UND</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPartidas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '16px', color: 'var(--mu)' }}>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '16px', color: 'var(--mu)' }}>
                       Sin coincidencias para la búsqueda
                     </td>
                   </tr>
@@ -162,10 +164,11 @@ export const PackagesView: React.FC = () => {
                   filteredPartidas.map((p, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid var(--b1)' }}>
                       <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--mu)' }}>{p.actividad}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>{p.area}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 700 }}>{p.item}</td>
+                      <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>{p.wbs || p.area}</td>
+                      <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 700 }}>{p.partidaSicme || p.item}</td>
+                      <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 700 }}>{p.partidaBalance || 'NA'}</td>
                       <td style={{ padding: '5px 8px', textAlign: 'center' }}>{p.forecastDesc}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'center' }}>{p.descripcion}</td>
+                      <td style={{ padding: '5px 8px', textAlign: 'center' }}>{p.descripcionBm || p.descripcion}</td>
                       <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>{p.und}</td>
                     </tr>
                   ))

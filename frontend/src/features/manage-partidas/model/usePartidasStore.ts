@@ -31,13 +31,15 @@ export const usePartidasStore = createStore<PartidasStore>((set, get) => ({
       throw new Error(res.error || 'Error al guardar partidas en Supabase');
     }
 
+    const keyOf = (p: PartidaRecord) =>
+      `${(p.wbs || p.area || '').trim().toUpperCase()}|${(p.forecastDesc || '').trim().toUpperCase()}|${(p.partidaSicme || p.item || '').trim().toUpperCase()}`;
     const current = get().partidas;
     const itemMap = new Map<string, PartidaRecord>();
-    current.forEach(p => itemMap.set(p.item, p));
-    newPartidas.forEach(p => itemMap.set(p.item, p));
+    current.forEach(p => itemMap.set(keyOf(p), p));
+    newPartidas.forEach(p => itemMap.set(keyOf(p), p));
 
     const merged = Array.from(itemMap.values()).sort((a, b) =>
-      a.item.localeCompare(b.item, undefined, { numeric: true })
+      (a.partidaSicme || a.item || '').localeCompare(b.partidaSicme || b.item || '', undefined, { numeric: true })
     );
 
     saveStoredPartidas(merged);

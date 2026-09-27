@@ -32,69 +32,89 @@ export function extractAreaFromPlanoOrText(planoOrText: string | undefined | nul
   return clean;
 }
 
+export interface PartidaMatch {
+  sicme: string;
+  balance: string;
+}
+
+function recordWbs(p: PartidaRecord): string {
+  return (p.wbs || p.area || '').trim();
+}
+
+function recordSicme(p: PartidaRecord): string {
+  return (p.partidaSicme || p.item || '').trim();
+}
+
+function recordForecast(p: PartidaRecord): string {
+  return p.forecastDesc || '';
+}
+
 /**
- * Finds the matching Partida item code for a given takeoff item.
- * Matches based on AREA + (DESCRIPCIÓN or FORECAST DESCRIPTION).
- * Returns 'NA' if no match is found.
+ * Finds the matching Partida row for a given takeoff item.
+ * Primary key: FORECAST DESCRIPTION == item description.
+ * Secondary filter: WBS == area code extracted from the plano.
+ * Returns both PARTIDA SICME and PARTIDA BALANCE.
+ */
+export function findMatchingPartida(
+  item: TakeoffItem,
+  partidas: PartidaRecord[],
+  activeArea?: string
+): PartidaMatch | null {
+  if (!partidas || partidas.length === 0) {
+    return null;
+  }
+
+  const itemDescNorm = normalizeMatchString(item.desc);
+  if (!itemDescNorm) return null;
+  const itemPlanoArea = extractAreaFromPlanoOrText(item.plano);
+  const activeAreaNorm = normalizeMatchString(activeArea);
+  const activeAreaExtract = extractAreaFromPlanoOrText(activeArea);
+
+  const toMatch = (p: PartidaRecord): PartidaMatch => ({
+    sicme: recordSicme(p) || 'NA',
+    balance: (p.partidaBalance || '').trim() || 'NA'
+  });
+
+  // Pass 1: exact FORECAST DESCRIPTION + WBS match
+  for (const p of partidas) {
+    const pForecastNorm = normalizeMatchString(recordForecast(p));
+    if (!pForecastNorm || pForecastNorm !== itemDescNorm) continue;
+    const pWbsNorm = normalizeMatchString(recordWbs(p));
+    const isWbsMatch =
+      !pWbsNorm ||
+      pWbsNorm === itemPlanoArea ||
+      pWbsNorm === activeAreaNorm ||
+      pWbsNorm === activeAreaExtract ||
+      (itemPlanoArea && itemPlanoArea.includes(pWbsNorm)) ||
+      (activeAreaNorm && activeAreaNorm.includes(pWbsNorm));
+    if (isWbsMatch) return toMatch(p);
+  }
+
+  // Pass 2: exact FORECAST DESCRIPTION regardless of WBS
+  for (const p of partidas) {
+    const pForecastNorm = normalizeMatchString(recordForecast(p));
+    if (pForecastNorm && pForecastNorm === itemDescNorm) {
+      return toMatch(p);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Legacy single-code lookup. Kept for callers that only need SICME.
  */
 export function findMatchingPartidaItem(
   item: TakeoffItem,
   partidas: PartidaRecord[],
   activeArea?: string
 ): string {
-  if (!partidas || partidas.length === 0) {
-    return 'NA';
-  }
-
-  const itemDescNorm = normalizeMatchString(item.desc);
-  const itemPlanoArea = extractAreaFromPlanoOrText(item.plano);
-  const activeAreaNorm = normalizeMatchString(activeArea);
-  const activeAreaExtract = extractAreaFromPlanoOrText(activeArea);
-
-  for (const p of partidas) {
-    const pAreaNorm = normalizeMatchString(p.area);
-    const pDescNorm = normalizeMatchString(p.descripcion);
-    const pForecastNorm = normalizeMatchString(p.forecastDesc);
-
-    const isAreaMatch =
-      !pAreaNorm ||
-      pAreaNorm === itemPlanoArea ||
-      pAreaNorm === activeAreaNorm ||
-      pAreaNorm === activeAreaExtract ||
-      (itemPlanoArea && itemPlanoArea.includes(pAreaNorm)) ||
-      (activeAreaNorm && activeAreaNorm.includes(pAreaNorm));
-
-    if (isAreaMatch) {
-      const isDescMatch =
-        (pDescNorm && pDescNorm === itemDescNorm) ||
-        (pForecastNorm && pForecastNorm === itemDescNorm) ||
-        (pForecastNorm && itemDescNorm.includes(pForecastNorm)) ||
-        (pDescNorm && itemDescNorm.includes(pDescNorm));
-
-      if (isDescMatch && p.item) {
-        return p.item.trim();
-      }
-    }
-  }
-
-  for (const p of partidas) {
-    const pDescNorm = normalizeMatchString(p.descripcion);
-    const pForecastNorm = normalizeMatchString(p.forecastDesc);
-
-    if (
-      (pDescNorm && pDescNorm === itemDescNorm) ||
-      (pForecastNorm && pForecastNorm === itemDescNorm)
-    ) {
-      if (p.item) return p.item.trim();
-    }
-  }
-
-  return 'NA';
+  return findMatchingPartida(item, partidas, activeArea)?.sicme || 'NA';
 }
 
 /**
  * Correlates all items in the takeoff table with the partidas master list.
- * Updates item.partida on each item.
+ * Updates item.partida (SICME) and item.partidaBalance on each item.
  */
 export function correlateItemsWithPartidas(
   items: TakeoffItem[],
@@ -104,10 +124,11 @@ export function correlateItemsWithPartidas(
   if (!items || items.length === 0) return [];
 
   return items.map(it => {
-    const matchedCode = findMatchingPartidaItem(it, partidas, activeArea);
+    const matched = findMatchingPartida(it, partidas, activeArea);
     return {
       ...it,
-      partida: matchedCode || 'NA'
+      partida: matched?.sicme || 'NA',
+      partidaBalance: matched?.balance || 'NA'
     };
   });
 }

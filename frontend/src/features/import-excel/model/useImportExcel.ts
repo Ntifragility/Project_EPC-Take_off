@@ -1,5 +1,5 @@
-import * as XLSX from 'xlsx';
 import { parseTakeoffCsv } from '../../../shared/lib/csvParser';
+import { downloadTableXlsx } from '../../../shared/lib/excelTemplates';
 import { correlateItemsWithPartidas } from '../../../entities/partida/model/partidaMatcher';
 import { useItemsStore } from '../../manage-items/model/useItemsStore';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
@@ -32,32 +32,26 @@ export function executeImportExcel(csvText: string) {
   // If there are rejected rows, generate and download an Excel report
   if (rejectedRows && rejectedRows.length > 0) {
     const reportHeaders = ['FILA_EXCEL', 'PLANO', 'TAG', 'LONGITUD_CABLE', 'LONGITUD_TUBERIA', 'DETALLE', 'JUMPERS', 'MOTIVO_RECHAZO'];
-    const reportData = rejectedRows.map(r => ({
-      FILA_EXCEL: r.fila,
-      PLANO: r.plano || '',
-      TAG: r.tag,
-      LONGITUD_CABLE: r.longitudCable,
-      LONGITUD_TUBERIA: r.longitudTuberia,
-      DETALLE: r.detalle,
-      JUMPERS: r.jumpers,
-      MOTIVO_RECHAZO: r.motivo
-    }));
+    const reportRows = rejectedRows.map(r => [
+      r.fila,
+      r.plano || '',
+      r.tag,
+      r.longitudCable,
+      r.longitudTuberia,
+      r.detalle,
+      r.jumpers,
+      r.motivo
+    ] as (string | number)[]);
+    const reportWidths = [12, 22, 12, 16, 18, 12, 10, 55];
 
-    const ws = XLSX.utils.json_to_sheet(reportData, { header: reportHeaders });
-    ws['!cols'] = [
-      { wch: 12 },
-      { wch: 22 },
-      { wch: 12 },
-      { wch: 16 },
-      { wch: 18 },
-      { wch: 12 },
-      { wch: 10 },
-      { wch: 55 }
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Filas_Rechazadas');
-    XLSX.writeFile(wb, 'filas_rechazadas_metrado.xlsx');
+    void downloadTableXlsx({
+      sheetName: 'Filas_Rechazadas',
+      tableName: 'RECHAZADAS',
+      headers: reportHeaders,
+      rows: reportRows,
+      widths: reportWidths,
+      fileName: 'filas_rechazadas_metrado.xlsx'
+    });
   }
 
   const correlatedItems = correlateItemsWithPartidas(newItems, partidas, activeArea);

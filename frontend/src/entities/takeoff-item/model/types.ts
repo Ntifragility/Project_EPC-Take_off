@@ -9,6 +9,7 @@ export interface PackageGroup {
 export interface TakeoffItem {
   id: string;
   partida?: string;
+  partidaBalance?: string;
   pkgId: string;
   material: MaterialType;
   plano: string;

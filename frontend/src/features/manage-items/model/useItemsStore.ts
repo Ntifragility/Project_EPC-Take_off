@@ -7,8 +7,16 @@ import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico, assignTagUnicoSuffixes } from '../../../entities/takeoff-item/model/tagGenerator';
 import { isPrimaryMaterial } from '../../../entities/takeoff-item/model/materialClassifier';
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../../entities/takeoff-rule/model/ruleExpander';
-import { findMatchingPartidaItem, correlateItemsWithPartidas } from '../../../entities/partida/model/partidaMatcher';
-import { DEFAULT_PLANO, DEFAULT_REV, STORAGE_KEYS } from '../../../shared/config/constants';
+import {
+  normalizeDetalle,
+  isKnownDetalle,
+  SOLDADURA_DETALLE_SPECS,
+  applySoldaduraDetalleTransition
+} from '../../../entities/takeoff-rule/model/detalleRegistry';
+import { useRulesStore } from '../../manage-rules/model/useRulesStore';
+import { useUIStore } from '../../filter-takeoff/model/useUIStore';
+import { findMatchingPartida, correlateItemsWithPartidas } from '../../../entities/partida/model/partidaMatcher';
+import { DEFAULT_PLANO, DEFAULT_REV, DEFAULT_AREA, STORAGE_KEYS } from '../../../shared/config/constants';
 
 export interface ItemsState {
   items: TakeoffItem[];
@@ -37,13 +45,13 @@ export interface ItemsActions {
     id: string,
     updates: Partial<TakeoffItem> & { numSoportes?: number; numJumpers?: number },
     section: SectionType
-  ) => void;
+  ) => boolean;
   batchUpdateField: (
     itemIds: string[],
     field: keyof TakeoffItem,
     value: any,
     section: SectionType
-  ) => void;
+  ) => boolean;
   deleteItem: (id: string, section: SectionType) => void;
   setItems: (items: TakeoffItem[], section: SectionType) => void;
   saveUndoSnapshot: () => void;
@@ -136,7 +144,9 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       metradoOt: ''
     };
 
-    newItem.partida = findMatchingPartidaItem(newItem, partidas, activeArea);
+    const matchedPartida = findMatchingPartida(newItem, partidas, activeArea);
+    newItem.partida = matchedPartida?.sicme || 'NA';
+    newItem.partidaBalance = matchedPartida?.balance || 'NA';
 
     const updated = [...items, newItem];
     saveStoredItems(section, updated);
@@ -150,7 +160,45 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   ) => {
     const { items, setHighlightedTag } = get();
     const oldItem = items.find(i => i.id === id);
-    if (!oldItem) return;
+    if (!oldItem) return false;
+
+    const showToast = useUIStore.getState().showToast;
+    const knownRules = useRulesStore.getState().rules;
+
+    // PARTIDA SICME / PARTIDA BALANCE are read-only: they come from the
+    // PARTIDAS master and change only via master re-upload + recorrelate.
+    // TAG UNICO is derived and regenerated below.
+    if (updates.partida !== undefined || updates.partidaBalance !== undefined) {
+      showToast('PARTIDA es de solo lectura: se actualiza desde el maestro PARTIDAS', 'warn');
+      return false;
+    }
+    if (updates.tagUnico !== undefined) {
+      showToast('TAG ÚNICO se genera automáticamente', 'warn');
+      return false;
+    }
+
+    // Normalize + validate DETALLE before touching anything.
+    if (updates.detalle !== undefined) {
+      updates = { ...updates, detalle: normalizeDetalle(updates.detalle) };
+      if (!isKnownDetalle(updates.detalle, knownRules)) {
+        showToast(`DETALLE "${updates.detalle}" no existe en ninguna regla: cambio rechazado`, 'warn');
+        return false;
+      }
+      // Soldadura groups (r5/r6) must be fully mappable to the new detalle,
+      // otherwise the whole change is rejected without mutating anything.
+      if (
+        (oldItem.ruleId === 'r5' || oldItem.ruleId === 'r6') &&
+        SOLDADURA_DETALLE_SPECS[updates.detalle as string] &&
+        (updates.detalle as string) !== (oldItem.detalle || '').trim().toUpperCase() &&
+        applySoldaduraDetalleTransition(items, oldItem.tagPlano, oldItem.pkgId, updates.detalle as string) === null
+      ) {
+        showToast(
+          `DETALLE "${updates.detalle}": hay ítems del grupo que no se pueden actualizar, cambio rechazado`,
+          'warn'
+        );
+        return false;
+      }
+    }
 
     const oldTagPlano = (oldItem.tagPlano || '').trim();
     const newTagPlano = (updates.tagPlano || '').trim();
@@ -246,7 +294,24 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     });
 
     const target = updated.find(i => i.id === id);
-    if (!target) return;
+    if (!target) return false;
+
+    // DETALLE change on a soldadura group (r5 / r6): swap every sibling
+    // description to its counterpart (pre-validated above, cannot fail here).
+    if (
+      updates.detalle !== undefined &&
+      (target.ruleId === 'r5' || target.ruleId === 'r6') &&
+      SOLDADURA_DETALLE_SPECS[target.detalle]
+    ) {
+      const transitioned = applySoldaduraDetalleTransition(
+        updated,
+        target.tagPlano,
+        target.pkgId,
+        target.detalle
+      );
+      if (transitioned === null) return false;
+      updated = transitioned;
+    }
 
     // Check DETALLE modification on r1 or r2
     if (updates.detalle !== undefined && (target.ruleId === 'r1' || target.ruleId === 'r2')) {
@@ -358,6 +423,7 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     const result = assignTagUnicoSuffixes(updated);
     saveStoredItems(section, result);
     set({ items: result, editingItemId: null });
+    return true;
   },
 
   batchUpdateField: (
@@ -366,8 +432,61 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     value: any,
     section: SectionType
   ) => {
-    if (!itemIds || itemIds.length === 0) return;
-    const { items, saveUndoSnapshot } = get();
+    if (!itemIds || itemIds.length === 0) return false;
+    const { items } = get();
+    const showToast = useUIStore.getState().showToast;
+    const knownRules = useRulesStore.getState().rules;
+
+    // PARTIDA SICME / PARTIDA BALANCE are read-only (master-driven).
+    // TAG UNICO is derived (regenerated on every save).
+    if (field === 'partida' || field === 'partidaBalance') {
+      showToast('PARTIDA es de solo lectura: se actualiza desde el maestro PARTIDAS', 'warn');
+      return false;
+    }
+    if (field === 'tagUnico') {
+      showToast('TAG ÚNICO se genera automáticamente', 'warn');
+      return false;
+    }
+
+    // Normalize + validate DETALLE once, before the undo snapshot and any mutation.
+    let normDetalle = '';
+    if (field === 'detalle') {
+      normDetalle = normalizeDetalle(value);
+      if (!isKnownDetalle(normDetalle, knownRules)) {
+        showToast(`DETALLE "${normDetalle}" no existe en ninguna regla: cambio rechazado`, 'warn');
+        return false;
+      }
+      // Pre-validate soldadura groups: every sibling must be mappable,
+      // otherwise the whole batch is rejected without mutating anything.
+      for (const targetId of itemIds) {
+        const t = items.find(i => i.id === targetId);
+        if (!t) continue;
+        if (
+          (t.ruleId === 'r5' || t.ruleId === 'r6') &&
+          SOLDADURA_DETALLE_SPECS[normDetalle] &&
+          normDetalle !== (t.detalle || '').trim().toUpperCase() &&
+          applySoldaduraDetalleTransition(items, t.tagPlano, t.pkgId, normDetalle) === null
+        ) {
+          showToast(
+            `DETALLE "${normDetalle}": hay ítems del grupo que no se pueden actualizar, cambio rechazado`,
+            'warn'
+          );
+          return false;
+        }
+      }
+      value = normDetalle;
+    }
+
+    // Normalize DESCRIPCION (uppercase, trimmed, non-empty).
+    if (field === 'desc') {
+      value = String(value).toUpperCase().trim();
+      if (!value) {
+        showToast('La descripción no puede estar vacía', 'warn');
+        return false;
+      }
+    }
+
+    const { saveUndoSnapshot } = get();
     saveUndoSnapshot();
     const idSet = new Set(itemIds);
 
@@ -460,6 +579,57 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
           cOt,
           true
         );
+
+        // CABLE 4/0 (r1): 008/3B carries CEMENTO GEM, any other detalle drops it.
+        // TUBERIA rows (optional, 008/3A) are preserved in both directions.
+        if (target.ruleId === 'r1') {
+          const isDetalle3B = newDetalle.toUpperCase() === '008/3B';
+          const siblings = currentItems.filter(
+            i => i.tagPlano === target.tagPlano && i.pkgId === target.pkgId && i.ruleId === 'r1'
+          );
+          const cemento = siblings.find(i => i.desc.toUpperCase().includes('CEMENTO GEM'));
+          if (isDetalle3B && !cemento) {
+            const cable = siblings.find(i => i.desc.toUpperCase().includes('CABLE DESNUDO 4/0 AWG'));
+            const cableVal = parseFloat(cable?.metradoOt || '') || 0;
+            const ref = cable || { ...target, tagPlano: target.tagPlano, pkgId: target.pkgId };
+            currentItems.push({
+              ...ref,
+              id: uid(),
+              desc: 'CEMENTO GEM (11.3 Kg x bls)',
+              qty: 'length x 11.3 / 2',
+              unit: 'kg',
+              material: 'C',
+              tagUnico: '',
+              detalle: newDetalle,
+              metradoOt: String(parseFloat((cableVal * 11.3 / 2).toFixed(4)))
+            });
+          } else if (!isDetalle3B && cemento) {
+            currentItems = currentItems.filter(i => i.id !== cemento.id);
+          }
+        }
+      }
+
+      // If DETALLE changed on a soldadura group (r5 / r6), swap every sibling
+      // description to its counterpart (pre-validated above).
+      if (
+        field === 'detalle' &&
+        (target.ruleId === 'r5' || target.ruleId === 'r6') &&
+        SOLDADURA_DETALLE_SPECS[newDetalle]
+      ) {
+        const transitioned = applySoldaduraDetalleTransition(
+          currentItems,
+          target.tagPlano,
+          target.pkgId,
+          newDetalle
+        );
+        if (transitioned === null) {
+          showToast(
+            `DETALLE "${newDetalle}": hay ítems del grupo que no se pueden actualizar, cambio rechazado`,
+            'warn'
+          );
+          return false;
+        }
+        currentItems = transitioned;
       }
 
       // If DETALLE changed on BARRA, expand dynamic variants
@@ -478,9 +648,42 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       }
     }
 
+    // DESCRIPCION stays local to each edited row (companions keep theirs),
+    // but its PARTIDA match must be recorrelated since partidas are read-only.
+    if (field === 'desc') {
+      const partidas = loadStoredPartidas();
+      const area = localStorage.getItem(STORAGE_KEYS.ACTIVE_AREA) || DEFAULT_AREA;
+      let firstSicme = 'NA';
+      let firstBalance = 'NA';
+      let recounted = 0;
+      currentItems = currentItems.map(it => {
+        if (!idSet.has(it.id)) return it;
+        const m = findMatchingPartida(it, partidas, area);
+        const sicme = m?.sicme || 'NA';
+        const balance = m?.balance || 'NA';
+        if (recounted === 0) {
+          firstSicme = sicme;
+          firstBalance = balance;
+        }
+        recounted += 1;
+        return { ...it, partida: sicme, partidaBalance: balance };
+      });
+      if (recounted === 1) {
+        showToast(
+          firstSicme === 'NA' && firstBalance === 'NA'
+            ? 'Descripción actualizada — sin match en maestro (NA)'
+            : `Descripción actualizada — PARTIDA recorrelacionada: ${firstSicme} / ${firstBalance}`,
+          'info'
+        );
+      } else if (recounted > 1) {
+        showToast(`Descripción actualizada en ${recounted} ítems — PARTIDAS recorrelacionadas`, 'info');
+      }
+    }
+
     const result = assignTagUnicoSuffixes(currentItems);
     saveStoredItems(section, result);
     set({ items: result });
+    return true;
   },
 
   deleteItem: (id: string, section: SectionType) => {

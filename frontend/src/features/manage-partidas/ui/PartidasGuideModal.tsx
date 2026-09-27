@@ -80,7 +80,7 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
               GESTIÓN Y CARGA DE PARTIDAS (FORECAST MASTER)
             </div>
             <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
-              Sube el archivo Excel para correlacionar automáticamente la columna <strong>PARTIDA (ITEM)</strong> con el metrado.
+              Sube el archivo Excel para correlacionar automáticamente las columnas <strong>PARTIDAS SICME</strong> y <strong>PARTIDA BALANCE</strong> con el metrado.
             </div>
           </div>
           <button
@@ -131,22 +131,24 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
               >
                 <thead>
                   <tr style={{ background: 'var(--s2)', borderBottom: '1px solid var(--b1)' }}>
-                    <th style={{ padding: '6px 8px', width: '15%', textAlign: 'center', color: 'var(--mu)' }}>ACTIVIDAD</th>
-                    <th style={{ padding: '6px 8px', width: '15%', textAlign: 'center', color: 'var(--mu)' }}>AREA</th>
-                    <th style={{ padding: '6px 8px', width: '15%', textAlign: 'center', color: 'var(--mu)' }}>ITEM</th>
+                    <th style={{ padding: '6px 8px', width: '11%', textAlign: 'center', color: 'var(--mu)' }}>ACTIVIDAD</th>
+                    <th style={{ padding: '6px 8px', width: '9%', textAlign: 'center', color: 'var(--mu)' }}>WBS</th>
+                    <th style={{ padding: '6px 8px', width: '12%', textAlign: 'center', color: 'var(--mu)' }}>PARTIDA SICME</th>
+                    <th style={{ padding: '6px 8px', width: '12%', textAlign: 'center', color: 'var(--mu)' }}>PARTIDA BALANCE</th>
                     <th style={{ padding: '6px 8px', width: '25%', textAlign: 'center', color: 'var(--mu)' }}>FORECAST DESCRIPTION</th>
-                    <th style={{ padding: '6px 8px', width: '20%', textAlign: 'center', color: 'var(--mu)' }}>DESCRIPCIÓN</th>
+                    <th style={{ padding: '6px 8px', width: '21%', textAlign: 'center', color: 'var(--mu)' }}>DESCRIPCIÓN BM</th>
                     <th style={{ padding: '6px 8px', width: '10%', textAlign: 'center', color: 'var(--mu)' }}>UND</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr style={{ borderBottom: '1px solid var(--b1)' }}>
-                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>PAT / INST / BD</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>300, 3300, 3400...</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 600 }}>01.01.01</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'center' }}>Descripción en tabla</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'center' }}>Descripción Oficial</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>UND / M</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>PAT</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>3000</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 600 }}>6.3</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 600 }}>2.1.25</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center' }}>CABLE DESNUDO 4/0 AWG</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center' }}>Malla de Tierra - Cable Cu desnudo # 4/0 AWG</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'center', fontFamily: 'var(--mo)' }}>M</td>
                   </tr>
                 </tbody>
               </table>
@@ -184,10 +186,11 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
                   <thead>
                     <tr style={{ background: 'var(--s2)', position: 'sticky', top: 0 }}>
                       <th style={{ padding: '4px', textAlign: 'center' }}>ACT</th>
-                      <th style={{ padding: '4px', textAlign: 'center' }}>AREA</th>
-                      <th style={{ padding: '4px', textAlign: 'center' }}>ITEM</th>
+                      <th style={{ padding: '4px', textAlign: 'center' }}>WBS</th>
+                      <th style={{ padding: '4px', textAlign: 'center' }}>SICME</th>
+                      <th style={{ padding: '4px', textAlign: 'center' }}>BALANCE</th>
                       <th style={{ padding: '4px', textAlign: 'center' }}>FORECAST DESC</th>
-                      <th style={{ padding: '4px', textAlign: 'center' }}>DESCRIPCIÓN</th>
+                      <th style={{ padding: '4px', textAlign: 'center' }}>DESCRIPCIÓN BM</th>
                       <th style={{ padding: '4px', textAlign: 'center' }}>UND</th>
                     </tr>
                   </thead>
@@ -195,10 +198,11 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
                     {parsedPartidas.slice(0, 50).map((p, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid var(--b1)' }}>
                         <td style={{ padding: '3px 6px', textAlign: 'center', fontFamily: 'var(--mo)' }}>{p.actividad}</td>
-                        <td style={{ padding: '3px 6px', textAlign: 'center', fontFamily: 'var(--mo)' }}>{p.area}</td>
-                        <td style={{ padding: '3px 6px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 600 }}>{p.item}</td>
+                        <td style={{ padding: '3px 6px', textAlign: 'center', fontFamily: 'var(--mo)' }}>{p.wbs || p.area}</td>
+                        <td style={{ padding: '3px 6px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 600 }}>{p.partidaSicme || p.item}</td>
+                        <td style={{ padding: '3px 6px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 600 }}>{p.partidaBalance}</td>
                         <td style={{ padding: '3px 6px', textAlign: 'center' }}>{p.forecastDesc}</td>
-                        <td style={{ padding: '3px 6px', textAlign: 'center' }}>{p.descripcion}</td>
+                        <td style={{ padding: '3px 6px', textAlign: 'center' }}>{p.descripcionBm || p.descripcion}</td>
                         <td style={{ padding: '3px 6px', textAlign: 'center', fontFamily: 'var(--mo)' }}>{p.und}</td>
                       </tr>
                     ))}

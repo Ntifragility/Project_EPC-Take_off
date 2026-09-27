@@ -22,7 +22,8 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
       items: [
         { desc: 'CABLE DESNUDO 4/0 AWG', metrado: 'Var.', formula: 'Valor ingresado por el usuario', unit: 'm' },
         { desc: 'CINTA AMARILLA', metrado: 'Var.', formula: 'Igual al valor de CABLE DESNUDO 4/0 AWG', unit: 'm' },
-        { desc: 'TIERRA DE CULTIVO', metrado: 'length x 0.375 x 0.5', formula: 'CABLE DESNUDO × 0.375 × 0.5', unit: 'm3' }
+        { desc: 'TIERRA DE CULTIVO', metrado: 'length x 0.375 x 0.5', formula: 'CABLE DESNUDO × 0.375 × 0.5', unit: 'm3' },
+        { desc: 'TUBERIA PVC SCH 80 Ø3/4" (OPCIONAL)', metrado: 'Var.', formula: 'Tramo horizontal, se incluye a pedido al aplicar la regla', unit: 'm' }
       ]
     },
     {

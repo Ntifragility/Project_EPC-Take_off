@@ -4,6 +4,7 @@ import { ItemEditModal } from '../../../features/manage-items/ui/ItemEditModal';
 import { MaterialSummaryModal } from '../../../features/export-takeoff/ui/MaterialSummaryModal';
 import { TagSummaryModal } from '../../../features/export-takeoff/ui/TagSummaryModal';
 import { AreaSelectModal } from '../../../features/filter-takeoff/ui/AreaSelectModal';
+import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { Toast } from '../../../shared/ui/Toast';
 
 export interface ModalsHostProps {
@@ -28,6 +29,7 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
   const setEditingItemId = useItemsStore(state => state.setEditingItemId);
 
   const editingItem = editingItemId ? items.find(i => i.id === editingItemId) || null : null;
+  const toast = useUIStore(state => state.toast);
 
   return (
     <>
@@ -53,7 +55,7 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
         canClose={true}
       />
 
-      <Toast />
+      <Toast toast={toast} />
     </>
   );
 };
