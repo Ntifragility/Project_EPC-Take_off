@@ -90,6 +90,7 @@ export interface ItemsActions {
   undoLastAction: (section: SectionType) => boolean;
   clearCache: (section: SectionType) => void;
   syncGlobalContext: (section: SectionType) => void;
+  syncContextToItemIds: (itemIds: string[], section: SectionType) => boolean;
   correlateAll: (partidas: PartidaRecord[], activeArea: string, section: SectionType) => void;
 }
 
@@ -619,6 +620,40 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     const finalItems = assignTagUnicoSuffixes(updated);
     saveStoredItems(section, finalItems);
     set({ items: finalItems });
+  },
+
+  syncContextToItemIds: (itemIds: string[], section: SectionType) => {
+    if (!itemIds || itemIds.length === 0) return false;
+    const { customPlano, customRev, items, saveUndoSnapshot } = get();
+    saveUndoSnapshot();
+    const instanceIds = instanceIdsForItemIds(items, itemIds);
+    let updated = items;
+    for (const instanceId of instanceIds) {
+      const sample = updated.find(it => (it.instanceId || it.id) === instanceId);
+      if (!sample) continue;
+      if (sample.instanceId) {
+        updated = syncInstanceFields(updated, sample.instanceId, {
+          plano: customPlano,
+          rev: customRev
+        });
+      } else {
+        updated = updated.map(it =>
+          it.id === instanceId
+            ? {
+                ...it,
+                plano: customPlano,
+                rev: customRev,
+                tagUnico:
+                  it.material === 'P' ? generateTagUnico(customPlano, it.tagPlano, 'P') : ''
+              }
+            : it
+        );
+      }
+    }
+    const finalItems = assignTagUnicoSuffixes(updated);
+    saveStoredItems(section, finalItems);
+    set({ items: finalItems });
+    return true;
   },
 
   correlateAll: (partidas: PartidaRecord[], activeArea: string, section: SectionType) => {

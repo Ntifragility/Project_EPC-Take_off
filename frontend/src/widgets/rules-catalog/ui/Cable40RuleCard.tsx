@@ -1,5 +1,6 @@
 import React from 'react';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
+import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
 
 interface Cable40RuleCardProps {
   rule: TakeoffRule;
@@ -101,8 +102,10 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
         </div>
 
         <div className="rule-card-acts">
-          <button className="btn-ghost btn-sm" onClick={() => onEdit(rule)}>EDITAR</button>
-          <button className="btn-ghost btn-sm btn-danger" onClick={() => onDelete(rule.id)}>ELIMINAR</button>
+          <IconActionGroup>
+            <IconActionButton kind="edit" title="Editar regla" onClick={() => onEdit(rule)} />
+            <IconActionButton kind="delete" title="Eliminar regla" onClick={() => onDelete(rule.id)} />
+          </IconActionGroup>
         </div>
       </div>
     </div>

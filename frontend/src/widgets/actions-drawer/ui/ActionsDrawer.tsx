@@ -48,7 +48,7 @@ export const ToolsPanel: React.FC = () => {
         onClick={() => setOpen(true)}
         title="Metadatos e ingreso, exportar y acciones de tabla"
       >
-        ☰ Panel
+        Panel
       </button>
 
       {open && (
@@ -57,7 +57,7 @@ export const ToolsPanel: React.FC = () => {
             className="tools-panel"
             onClick={e => e.stopPropagation()}
           >
-            <div className="actions-drawer-head">
+            <div className="modal-hd tools-panel-hd">
               <div className="tools-tabs">
                 <button
                   type="button"
@@ -76,11 +76,10 @@ export const ToolsPanel: React.FC = () => {
               </div>
               <button
                 type="button"
-                className="actions-drawer-close"
+                className="modal-close"
                 onClick={() => setOpen(false)}
-                title="Cerrar"
               >
-                ✕
+                Cerrar
               </button>
             </div>
 
@@ -177,7 +176,7 @@ export const ToolsPanel: React.FC = () => {
                       requestFitTable();
                       setOpen(false);
                     }}
-                    title="Encoge o estira las columnas para que la tabla quepa completa"
+                    title="Vuelve a encajar las columnas al ancho actual (también se ajusta solo al cambiar el panel)"
                   >
                     Ajustar a pantalla
                   </button>

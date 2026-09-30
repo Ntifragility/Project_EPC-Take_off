@@ -1,21 +1,47 @@
 import React from 'react';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
+import { AreaType } from '../../../shared/types/common';
+import { getRuleCatalogDetalles, getDefaultDetalleByRule } from '../../../entities/takeoff-rule/model/seedRules';
+import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
 
 interface GenericRuleCardProps {
   rule: TakeoffRule;
+  activeArea: AreaType;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onEdit: (rule: TakeoffRule) => void;
   onDelete: (id: string) => void;
 }
 
+const thStyle: React.CSSProperties = {
+  borderRight: '1px solid var(--b1)',
+  borderBottom: '1px solid var(--b1)',
+  padding: '8px',
+  textAlign: 'center',
+  color: 'var(--tx)',
+  fontWeight: 'bold'
+};
+
+const tdStyle: React.CSSProperties = {
+  borderRight: '1px solid var(--b1)',
+  padding: '8px 10px',
+  fontFamily: 'var(--mo)',
+  fontSize: '11px',
+  color: 'var(--tx)',
+  verticalAlign: 'middle'
+};
+
 export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
   rule,
+  activeArea,
   isExpanded,
   onToggleExpand,
   onEdit,
   onDelete
 }) => {
+  const detalleCodes = getRuleCatalogDetalles(rule.trigger, activeArea, rule.detalle);
+  const currentDetalle = getDefaultDetalleByRule(rule.trigger, activeArea) || detalleCodes[0] || '';
+
   return (
     <div className="rule-card" key={rule.id}>
       <div className="rule-card-row">
@@ -46,7 +72,6 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
             </span>
           </div>
 
-          {/* Foldable Row / Banner */}
           <div
             onClick={onToggleExpand}
             style={{
@@ -87,67 +112,24 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
               <table
                 style={{
                   width: '100%',
-                  minWidth: '500px',
+                  minWidth: '560px',
                   borderCollapse: 'collapse',
                   fontFamily: 'var(--mo)',
                   fontSize: '11px'
                 }}
               >
                 <colgroup>
-                  <col style={{ width: '45px' }} />
+                  <col style={{ width: '110px' }} />
                   <col style={{ width: 'auto' }} />
                   <col style={{ width: '120px' }} />
                   <col style={{ width: '110px' }} />
                 </colgroup>
                 <thead>
                   <tr style={{ background: 'var(--s1)' }}>
-                    <th
-                      style={{
-                        borderRight: '1px solid var(--b1)',
-                        borderBottom: '1px solid var(--b1)',
-                        padding: '8px',
-                        textAlign: 'center',
-                        color: 'var(--tx)',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      #
-                    </th>
-                    <th
-                      style={{
-                        borderRight: '1px solid var(--b1)',
-                        borderBottom: '1px solid var(--b1)',
-                        padding: '8px',
-                        textAlign: 'left',
-                        color: 'var(--tx)',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      DESCRIPCIÓN
-                    </th>
-                    <th
-                      style={{
-                        borderRight: '1px solid var(--b1)',
-                        borderBottom: '1px solid var(--b1)',
-                        padding: '8px',
-                        textAlign: 'center',
-                        color: 'var(--tx)',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      METRADO OT / CANT.
-                    </th>
-                    <th
-                      style={{
-                        borderBottom: '1px solid var(--b1)',
-                        padding: '8px',
-                        textAlign: 'center',
-                        color: 'var(--tx)',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      UNIDAD
-                    </th>
+                    <th style={thStyle}>DETALLE</th>
+                    <th style={{ ...thStyle, textAlign: 'left' }}>DESCRIPCIÓN</th>
+                    <th style={thStyle}>METRADO OT / CANT.</th>
+                    <th style={{ ...thStyle, borderRight: 'none' }}>UNIDAD</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -161,25 +143,40 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                           background: i % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent'
                         }}
                       >
+                        {i === 0 && (
+                          <td
+                            rowSpan={rule.subitems.length}
+                            style={{
+                              ...tdStyle,
+                              textAlign: 'center',
+                              borderBottom: 'none',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+                              {(detalleCodes.length > 0 ? detalleCodes : ['—']).map(code => (
+                                <span
+                                  key={code}
+                                  style={{
+                                    background: code === currentDetalle ? 'var(--ad)' : 'var(--s1)',
+                                    border: '1px solid var(--b1)',
+                                    borderRadius: '4px',
+                                    padding: '4px 8px',
+                                    fontWeight: 'bold',
+                                    whiteSpace: 'nowrap',
+                                    opacity: code === currentDetalle || code === '—' ? 1 : 0.85
+                                  }}
+                                >
+                                  {code}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                        )}
                         <td
                           style={{
-                            borderRight: '1px solid var(--b1)',
-                            padding: '8px 10px',
-                            textAlign: 'center',
-                            color: 'var(--di)',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          {i + 1}
-                        </td>
-                        <td
-                          style={{
-                            borderRight: '1px solid var(--b1)',
-                            padding: '8px 10px',
-                            fontFamily: 'var(--mo)',
+                            ...tdStyle,
                             fontSize: '11.5px',
-                            color: 'var(--tx)',
-                            verticalAlign: 'middle',
                             lineHeight: 1.4
                           }}
                         >
@@ -187,13 +184,8 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                         </td>
                         <td
                           style={{
-                            borderRight: '1px solid var(--b1)',
-                            padding: '8px 10px',
-                            fontFamily: 'var(--mo)',
-                            fontSize: '11px',
-                            color: 'var(--tx)',
+                            ...tdStyle,
                             fontWeight: 'bold',
-                            verticalAlign: 'middle',
                             textAlign: 'center'
                           }}
                         >
@@ -201,12 +193,9 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                         </td>
                         <td
                           style={{
-                            padding: '8px 10px',
-                            fontFamily: 'var(--mo)',
-                            fontSize: '11px',
-                            color: 'var(--tx)',
+                            ...tdStyle,
+                            borderRight: 'none',
                             fontWeight: 600,
-                            verticalAlign: 'middle',
                             textAlign: 'center',
                             whiteSpace: 'nowrap'
                           }}
@@ -222,15 +211,10 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
           )}
         </div>
         <div className="rule-card-acts">
-          <button className="btn-ghost btn-sm" onClick={() => onEdit(rule)}>
-            EDITAR
-          </button>
-          <button
-            className="btn-ghost btn-sm btn-danger"
-            onClick={() => onDelete(rule.id)}
-          >
-            ELIMINAR
-          </button>
+          <IconActionGroup>
+            <IconActionButton kind="edit" title="Editar regla" onClick={() => onEdit(rule)} />
+            <IconActionButton kind="delete" title="Eliminar regla" onClick={() => onDelete(rule.id)} />
+          </IconActionGroup>
         </div>
       </div>
     </div>

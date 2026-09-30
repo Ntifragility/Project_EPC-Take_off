@@ -177,6 +177,29 @@ export function getDefaultDetalleByRule(trigger: string, activeArea = 'AREA SECA
   return '';
 }
 
+export function getRuleCatalogDetalles(
+  trigger: string,
+  activeArea = 'AREA SECA',
+  fallbackDetalle = ''
+): string[] {
+  const up = (trigger || '').toUpperCase().trim();
+  if (
+    up.includes('SOLDADURA T 4/0 -2/0') ||
+    up.includes('SOLDADURA T 4/0-2/0') ||
+    up.includes('SOLDADURA T 4/0  - 2/0') ||
+    up.includes('SOLDADURA T 4/0 - 2/0')
+  ) {
+    return ['008/4T2', '167/X2'];
+  }
+  if (up === 'SOLDADURA T 4/0' || up.startsWith('SOLDADURA T 4/0')) {
+    return ['008/4T1', '167/X1'];
+  }
+  const mapped = getDefaultDetalleByRule(trigger, activeArea);
+  if (mapped) return [mapped];
+  const fallback = (fallbackDetalle || '').trim();
+  return fallback ? [fallback] : [];
+}
+
 export const SEED_CANALIZADO_RULES: TakeoffRule[] = [
   {
     id: 'can-r001-ext',

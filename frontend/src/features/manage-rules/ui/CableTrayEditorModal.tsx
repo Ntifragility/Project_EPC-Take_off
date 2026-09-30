@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TakeoffRule, CableTrayMatrixItem } from '../../../entities/takeoff-rule/model/types';
 import { DEFAULT_CABLE_TRAY_MATRIX } from '../../../entities/takeoff-rule/model/cableTrayRules';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 import { AVAILABLE_CUSTOM_ITEMS } from '../../../entities/takeoff-rule/model/detalleVariants';
 
 export interface CableTrayEditorModalProps {
@@ -101,49 +102,14 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
   };
 
   return (
-    <div
-      className="modal-overlay"
-      id="cable-tray-editor-overlay"
-      style={{ display: 'flex', zIndex: 1100 }}
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <ModalShell
+      title="Matriz de escalerilla"
+      subtitle="Materiales y valores para 900, 600, 450 y 300 mm."
+      onClose={onClose}
+      maxWidth="960px"
     >
-      <div
-        className="modal"
-        style={{
-          maxWidth: '960px',
-          width: '95%',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'var(--s1)',
-          border: '1px solid var(--b1)',
-          borderRadius: '12px',
-          padding: '24px'
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--tx)', letterSpacing: '0.5px' }}>
-              EDITAR MATRIZ DE ESCALERILLA &bull; ANCHO DE BANDEJA
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--mu)', marginTop: '4px' }}>
-              Define los materiales y los valores correspondientes a los 4 anchos (900 mm, 600 mm, 450 mm, 300 mm).
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn-icon"
-            onClick={onClose}
-            style={{ fontSize: '14px', width: '28px', height: '28px' }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div className="modal-body">
           {/* Metadata Row */}
           <div
             style={{
@@ -222,7 +188,7 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                 {matrixItems.length === 0 ? (
                   <tr>
                     <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--mu)' }}>
-                      Sin materiales en la matriz. Haz clic en "+ AGREGAR MATERIAL".
+                      Sin materiales en la matriz. Usa Agregar material.
                     </td>
                   </tr>
                 ) : (
@@ -308,12 +274,11 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                       <td style={{ textAlign: 'center', padding: '4px' }}>
                         <button
                           type="button"
-                          className="btn-icon btn-danger"
+                          className="btn-ghost btn-sm"
                           onClick={() => handleRemoveItem(idx)}
-                          style={{ fontSize: '11px', width: '22px', height: '22px' }}
                           title="Eliminar fila"
                         >
-                          ✕
+                          Quitar
                         </button>
                       </td>
                     </tr>
@@ -329,64 +294,37 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
             ))}
           </datalist>
 
-          {/* Footer Controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        </div>
+          <div className="modal-ft" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={handleAddItem}
-                style={{ fontSize: '11px', padding: '6px 14px', fontWeight: 600 }}
-              >
-                + AGREGAR MATERIAL
+              <button type="button" className="btn-ghost" onClick={handleAddItem}>
+                Agregar material
               </button>
-
               {rule?.id && onDelete && (
                 <button
                   type="button"
-                  className="btn"
+                  className="btn-danger"
                   onClick={() => {
                     if (window.confirm(`¿Estás seguro de que deseas eliminar completamente la regla "${trigger || rule.trigger}"?`)) {
                       onDelete(rule.id);
                       onClose();
                     }
                   }}
-                  style={{
-                    fontSize: '11px',
-                    padding: '6px 14px',
-                    fontWeight: 700,
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderColor: '#ef4444',
-                    color: '#ef4444',
-                    cursor: 'pointer'
-                  }}
-                  title="Elimina esta regla completa del catálogo y de la base de datos"
                 >
-                  🗑️ ELIMINAR ESTA REGLA COMPLETA
+                  Eliminar regla
                 </button>
               )}
             </div>
-
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={onClose}
-                style={{ fontSize: '11px', padding: '6px 16px' }}
-              >
+              <button type="button" className="btn-ghost" onClick={onClose}>
                 Cancelar
               </button>
-              <button
-                type="submit"
-                className="btn-primary"
-                style={{ fontSize: '11px', padding: '6px 20px', fontWeight: 700 }}
-              >
-                GUARDAR MATRIZ
+              <button type="submit" className="btn-primary">
+                Guardar matriz
               </button>
             </div>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

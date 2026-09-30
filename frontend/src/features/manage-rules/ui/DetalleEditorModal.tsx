@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DetalleVariantItem } from '../../../entities/takeoff-rule/model/types';
 import { AVAILABLE_CUSTOM_ITEMS } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface DetalleEditorModalProps {
   isOpen: boolean;
@@ -186,70 +187,42 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   };
 
   return (
-    <div
-      className="modal-overlay"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.7)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999
-      }}
-      onClick={e => {
-        if (e.target === e.currentTarget && !isSaving) onClose();
-      }}
+    <ModalShell
+      title={isCreatingNew ? 'Nuevo detalle' : 'Editar detalle'}
+      subtitle={`${area} · ${category}. Materiales, cantidades y unidades se guardan en Supabase.`}
+      onClose={onClose}
+      closeDisabled={isSaving}
+      maxWidth="900px"
     >
-      <div
-        className="modal"
-        style={{
-          background: 'var(--s1)',
-          color: 'var(--tx)',
-          border: '1px solid var(--b1)',
-          borderRadius: '8px',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
-          maxWidth: '900px',
-          width: '95%',
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        {/* Header */}
-        <div
-          className="modal-hd"
-          style={{
-            padding: '16px 22px',
-            borderBottom: '1px solid var(--b1)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start'
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '15px', fontWeight: 'bold' }}>EDITAR DETALLE:</span>
-
+        <div className="modal-body">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              marginBottom: '16px',
+              padding: '12px',
+              background: 'var(--s2)',
+              border: '1px solid var(--b1)',
+              borderRadius: '8px'
+            }}
+          >
               {!isCreatingNew && !isRenaming ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   {availableCodes.length > 0 ? (
                     <select
                       value={activeCode}
                       onChange={e => handleCodeChange(e.target.value)}
                       style={{
-                        background: 'var(--ad)',
+                        background: 'var(--s1)',
                         color: 'var(--tx)',
                         border: '1px solid var(--b1)',
-                        padding: '4px 10px',
-                        borderRadius: '4px',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
                         fontFamily: 'var(--mo)',
                         fontSize: '13px',
-                        fontWeight: 'bold',
+                        fontWeight: 700,
                         cursor: 'pointer'
                       }}
                       title="Cambiar de detalle para editar"
@@ -259,19 +232,19 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                           Detalle: {code}
                         </option>
                       ))}
-                      <option value="__NEW__">+ Crear Nuevo Detalle...</option>
+                      <option value="__NEW__">Crear nuevo detalle...</option>
                     </select>
                   ) : (
                     <span
                       style={{
-                        background: 'var(--ad)',
+                        background: 'var(--s1)',
                         color: 'var(--tx)',
                         border: '1px solid var(--b1)',
-                        padding: '3px 10px',
-                        borderRadius: '4px',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
                         fontFamily: 'var(--mo)',
                         fontSize: '13px',
-                        fontWeight: 'bold'
+                        fontWeight: 700
                       }}
                     >
                       {activeCode}
@@ -285,39 +258,28 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       setIsRenaming(true);
                       setRenamedCode(activeCode);
                     }}
-                    style={{
-                      fontSize: '11px',
-                      padding: '4px 10px',
-                      border: '1px solid var(--b1)',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      background: 'var(--s2)'
-                    }}
                     title="Cambiar el nombre / código de este detalle constructivo"
                   >
-                    ✏️ Renombrar Código
+                    Renombrar código
                   </button>
                 </div>
               ) : isRenaming ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--mu)', fontWeight: 600 }}>CÓDIGO:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--mu)', fontWeight: 600 }}>CÓDIGO</span>
                   <input
                     type="text"
                     value={renamedCode}
                     onChange={e => setRenamedCode(e.target.value)}
                     placeholder="NUEVO CÓDIGO (ej. 010/17B)"
                     style={{
-                      background: 'var(--s2)',
+                      background: 'var(--s1)',
                       color: 'var(--tx)',
-                      border: '1px solid #3b82f6',
-                      padding: '4px 10px',
-                      borderRadius: '4px',
+                      border: '1px solid var(--b1)',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
                       fontFamily: 'var(--mo)',
                       fontSize: '13px',
-                      fontWeight: 'bold',
+                      fontWeight: 700,
                       width: '210px',
                       textTransform: 'uppercase'
                     }}
@@ -333,27 +295,26 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       setIsRenaming(false);
                       setRenamedCode('');
                     }}
-                    style={{ fontSize: '10px', padding: '4px 8px' }}
                   >
                     Cancelar
                   </button>
                 </div>
               ) : isCreatingNew ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <input
                     type="text"
                     value={customNewCode}
                     onChange={e => setCustomNewCode(e.target.value)}
                     placeholder="CÓDIGO (ej. 009/13 o 010/19)"
                     style={{
-                      background: 'var(--s2)',
+                      background: 'var(--s1)',
                       color: 'var(--tx)',
                       border: '1px solid var(--b1)',
-                      padding: '4px 10px',
-                      borderRadius: '4px',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
                       fontFamily: 'var(--mo)',
                       fontSize: '13px',
-                      fontWeight: 'bold',
+                      fontWeight: 700,
                       width: '200px'
                     }}
                     autoFocus
@@ -365,53 +326,12 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       setIsCreatingNew(false);
                       setActiveCode(initialCode);
                     }}
-                    style={{ fontSize: '10px', padding: '4px 8px' }}
                   >
                     Volver a existentes
                   </button>
                 </div>
               ) : null}
-
-              <span
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--tx2)',
-                  fontWeight: 'normal',
-                  background: 'var(--s2)',
-                  padding: '3px 8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--b1)'
-                }}
-              >
-                {area} &bull; {category}
-              </span>
-            </div>
-
-            <div style={{ fontSize: '11px', color: 'var(--tx2)', marginTop: '6px' }}>
-              Modifica los materiales, cantidades y unidades. Al guardar, se actualiza directamente en Supabase y en los cálculos del metrado.
-            </div>
           </div>
-
-          <button
-            className="modal-close"
-            onClick={onClose}
-            disabled={isSaving}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '18px',
-              cursor: 'pointer',
-              color: 'var(--tx2)',
-              padding: '2px 8px',
-              fontWeight: 'bold'
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '18px 22px' }}>
           <datalist id="detalle-materials-list">
             {suggestedMaterials.map((mat: string, i: number) => (
               <option key={i} value={mat} />
@@ -545,19 +465,11 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                   <td style={{ padding: '8px', textAlign: 'center' }}>
                     <button
                       type="button"
+                      className="btn-ghost btn-sm"
                       onClick={() => handleRemoveItem(it.id)}
                       title="Eliminar este ítem"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#ef4444',
-                        fontSize: '16px',
-                        padding: '4px 6px',
-                        borderRadius: '4px'
-                      }}
                     >
-                      ✕
+                      Quitar
                     </button>
                   </td>
                 </tr>
@@ -581,32 +493,19 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
               borderRadius: '4px'
             }}
           >
-            <span style={{ fontSize: '14px', fontWeight: 'bold' }}>+</span> AGREGAR MATERIAL
+            Agregar material
           </button>
         </div>
 
-        {/* Footer */}
-        <div
-          className="modal-footer"
-          style={{
-            padding: '14px 22px',
-            borderTop: '1px solid var(--b1)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--s2)',
-            borderBottomLeftRadius: '8px',
-            borderBottomRightRadius: '8px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--tx2)' }}>
-              Ítems configurados: <strong>{items.length}</strong>
+        <div className="modal-ft" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--mu)' }}>
+              Ítems configurados: <strong style={{ color: 'var(--tx)' }}>{items.length}</strong>
             </span>
             {onDelete && !isCreatingNew && (
               <button
                 type="button"
-                className="btn"
+                className="btn-danger"
                 onClick={async () => {
                   if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el detalle "${activeCode}"? Esta acción borrará todas sus partidas asignadas.`)) {
                     setIsSaving(true);
@@ -621,54 +520,20 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                   }
                 }}
                 disabled={isSaving}
-                style={{
-                  fontSize: '11px',
-                  padding: '6px 14px',
-                  fontWeight: 700,
-                  backgroundColor: '#fee2e2',
-                  border: '1px solid #ef4444',
-                  color: '#b91c1c',
-                  cursor: isSaving ? 'not-allowed' : 'pointer',
-                  borderRadius: '4px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
               >
-                🗑️ ELIMINAR ESTE DETALLE COMPLETO
+                Eliminar detalle
               </button>
             )}
           </div>
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={onClose}
-              disabled={isSaving}
-              style={{ fontSize: '11px', padding: '8px 18px', cursor: 'pointer' }}
-            >
-              CANCELAR
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button type="button" className="btn-ghost" onClick={onClose} disabled={isSaving}>
+              Cancelar
             </button>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={handleSave}
-              disabled={isSaving}
-              style={{
-                fontSize: '11px',
-                padding: '8px 22px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: isSaving ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {isSaving ? 'GUARDANDO EN SUPABASE...' : 'GUARDAR EN BASE DE DATOS'}
+            <button type="button" className="btn-primary" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Guardando...' : 'Guardar'}
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

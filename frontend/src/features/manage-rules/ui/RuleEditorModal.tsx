@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TakeoffRule, RuleSubitem } from '../../../entities/takeoff-rule/model/types';
 import { uid } from '../../../shared/lib/uid';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface RuleEditorModalProps {
   isOpen: boolean;
@@ -71,25 +72,8 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   };
 
   return (
-    <div
-      className="modal-overlay"
-      id="modal-overlay"
-      style={{ display: 'flex' }}
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal" id="modal-box" style={{ maxWidth: '640px' }}>
-        <div className="modal-hd">
-          <span className="modal-hd-title" id="modal-title">
-            {isNew ? 'NUEVA REGLA' : 'EDITAR REGLA'}
-          </span>
-          <button className="btn-ghost btn-sm" onClick={onClose}>
-            ESC
-          </button>
-        </div>
-
-        <div className="modal-body" id="modal-body">
+    <ModalShell title={isNew ? 'Nueva regla' : 'Editar regla'} onClose={onClose} maxWidth="640px">
+        <div className="modal-body">
           <div className="mb-16">
             <div className="field-label" style={{ marginBottom: '6px' }}>
               DISPARADOR
@@ -148,11 +132,12 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
                       onChange={e => handleUpdateSubitem(s.id, 'unit', e.target.value.toUpperCase())}
                     />
                     <button
-                      className="sub-del"
+                      type="button"
+                      className="btn-ghost btn-sm"
                       onClick={() => handleRemoveSubitem(s.id)}
                       title="Eliminar ítem"
                     >
-                      ✕
+                      Quitar
                     </button>
                   </div>
                 ))
@@ -165,40 +150,29 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
           {!isNew && initialRule && onDelete ? (
             <button
               type="button"
-              className="btn"
+              className="btn-danger"
               onClick={() => {
                 if (window.confirm(`¿Estás seguro de que deseas eliminar completamente la regla "${initialRule.trigger}"?`)) {
                   onDelete(initialRule.id);
                   onClose();
                 }
               }}
-              style={{
-                fontSize: '11px',
-                padding: '6px 14px',
-                fontWeight: 700,
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                borderColor: '#ef4444',
-                color: '#ef4444',
-                cursor: 'pointer'
-              }}
-              title="Elimina esta regla completa del catálogo y de la base de datos"
             >
-              🗑️ ELIMINAR ESTA REGLA COMPLETA
+              Eliminar regla
             </button>
           ) : (
             <div />
           )}
 
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn-ghost" onClick={onClose} style={{ fontSize: '11px', padding: '6px 16px' }}>
-              CANCELAR
+            <button className="btn-ghost" onClick={onClose}>
+              Cancelar
             </button>
-            <button className="btn-primary" id="modal-save" onClick={handleSave} style={{ fontSize: '11px', padding: '6px 20px', fontWeight: 700 }}>
-              GUARDAR REGLA
+            <button className="btn-primary" id="modal-save" onClick={handleSave}>
+              Guardar regla
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

@@ -7,6 +7,8 @@ import { executeApplyRule } from '../model/useApplyRule';
 import { getSequentialTagsExample } from '../../../entities/takeoff-item/model/tagGenerator';
 import { hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
+import { getRuleInsertPreview } from '../../../entities/takeoff-rule/model/ruleInsertPreview';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface RuleTriggerModalProps {
   isOpen: boolean;
@@ -80,27 +82,25 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   };
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal" style={{ maxWidth: '600px', width: '94vw' }}>
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span style={{ fontSize: '1.35rem' }}>⚡</span>
-            <div>
-              <h3 style={{ margin: 0 }}>Aplicar Regla</h3>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{activeRule.trigger}</div>
-            </div>
+    <ModalShell title="Aplicar regla" subtitle={activeRule.trigger} onClose={onClose} maxWidth="600px">
+        <form onSubmit={handleSubmit}>
+        <div className="modal-body">
+          <div
+            style={{
+              marginBottom: '1.2rem',
+              padding: '0.55rem 0.75rem',
+              border: '1px solid var(--b1)',
+              borderRadius: '6px',
+              background: 'var(--s2)',
+              fontSize: '0.8rem',
+              color: 'var(--mu)',
+              lineHeight: 1.4
+            }}
+          >
+            <div style={{ fontWeight: 700, color: 'var(--tx-hd)', marginBottom: '2px' }}>Se insertará</div>
+            {getRuleInsertPreview(activeRule, activeArea)}
           </div>
-          <button className="btn btn-icon modal-close" onClick={onClose}>
-            ✕
-          </button>
-        </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
           {/* CABLE TRAY WIDTH SELECTION */}
           {req.isCableTray && (
             <div style={{ marginBottom: '1.35rem' }}>
@@ -119,14 +119,10 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                       key={w}
                       type="button"
                       onClick={() => setCableTrayWidth(w)}
-                      className="btn"
+                      className={`modal-choice${cableTrayWidth === w ? ' is-active' : ''}`}
                       style={{
                         padding: '0.5rem 0.2rem',
                         fontSize: '0.82rem',
-                        fontWeight: cableTrayWidth === w ? 'bold' : 'normal',
-                        borderColor: cableTrayWidth === w ? 'var(--accent)' : 'var(--border)',
-                        backgroundColor: cableTrayWidth === w ? 'var(--accent-dim)' : 'transparent',
-                        color: cableTrayWidth === w ? 'var(--accent)' : 'var(--text)',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
@@ -156,14 +152,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                     key={d}
                     type="button"
                     onClick={() => setDetalleCode(d)}
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      padding: '0.5rem',
-                      borderColor: detalleCode === d ? 'var(--accent)' : 'var(--border)',
-                      backgroundColor: detalleCode === d ? 'var(--accent-dim)' : 'transparent',
-                      color: detalleCode === d ? 'var(--accent)' : 'var(--text)'
-                    }}
+                    className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
+                    style={{ flex: 1, padding: '0.5rem' }}
                   >
                     {d} {d === '008/4T2' ? '(Área Húmeda)' : '(Área Seca)'}
                   </button>
@@ -183,14 +173,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                     key={d}
                     type="button"
                     onClick={() => setDetalleCode(d)}
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      padding: '0.5rem',
-                      borderColor: detalleCode === d ? 'var(--accent)' : 'var(--border)',
-                      backgroundColor: detalleCode === d ? 'var(--accent-dim)' : 'transparent',
-                      color: detalleCode === d ? 'var(--accent)' : 'var(--text)'
-                    }}
+                    className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
+                    style={{ flex: 1, padding: '0.5rem' }}
                   >
                     {d} {d === '008/4T1' ? '(Área Húmeda)' : '(Área Seca)'}
                   </button>
@@ -213,14 +197,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                       setDetalleCode(d);
                       if (d !== '008/3A') setIncluirTuberia(false);
                     }}
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      padding: '0.5rem',
-                      borderColor: detalleCode === d ? 'var(--accent)' : 'var(--border)',
-                      backgroundColor: detalleCode === d ? 'var(--accent-dim)' : 'transparent',
-                      color: detalleCode === d ? 'var(--accent)' : 'var(--text)'
-                    }}
+                    className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
+                    style={{ flex: 1, padding: '0.5rem' }}
                   >
                     {d} {d === '008/3B' ? '(Con Cemento)' : ''}
                   </button>
@@ -237,7 +215,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                 gap: '0.6rem',
                 marginBottom: '1.35rem',
                 padding: '0.6rem 0.75rem',
-                border: '1px solid var(--border)',
+                border: '1px solid var(--b1)',
                 borderRadius: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
@@ -284,14 +262,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                     key={d}
                     type="button"
                     onClick={() => setDetalleCode(d)}
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      padding: '0.5rem',
-                      borderColor: detalleCode === d ? 'var(--accent)' : 'var(--border)',
-                      backgroundColor: detalleCode === d ? 'var(--accent-dim)' : 'transparent',
-                      color: detalleCode === d ? 'var(--accent)' : 'var(--text)'
-                    }}
+                    className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
+                    style={{ flex: 1, padding: '0.5rem' }}
                   >
                     {d}
                   </button>
@@ -398,16 +370,16 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-            <button type="button" className="btn" onClick={onClose}>
+        </div>
+          <div className="modal-ft">
+            <button type="button" className="btn-ghost" onClick={onClose}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '0.6rem 1.4rem' }}>
-              Insertar {effCount > 1 ? `${effCount} Ítems` : 'Ítem'}
+            <button type="submit" className="btn-primary">
+              Insertar {effCount > 1 ? `${effCount} ítems` : 'ítem'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

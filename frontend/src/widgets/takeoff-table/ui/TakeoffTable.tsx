@@ -7,9 +7,7 @@ import {
   COL_WIDTHS_STORAGE_KEY,
   clampColumnWidth,
   defaultWidths,
-  fitWidthsToPane,
-  screenCategory,
-  sumWidths
+  fitWidthsToPane
 } from './columnWidths';
 import { COLUMN_LABELS, uniqueColumnValues } from '../model/columnValue';
 import { SELECTABLE_COLS, cellKey, cellsInRect, isSingleCell, type CellRef } from '../model/cellRange';
@@ -22,6 +20,8 @@ import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 export interface TakeoffTableProps {
   items: TakeoffItem[];
 }
+
+const EMPTY_SELECTED_IDS: string[] = [];
 
 function idsInFillRange(
   rows: TakeoffItem[],
@@ -57,7 +57,10 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     editingItemId,
     setEditingItemId,
     highlightedTag,
-    batchUpdateField
+    batchUpdateField,
+    customPlano,
+    customRev,
+    syncContextToItemIds
   } = useItemsStore();
 
   const section = useAppStore(state => state.section);
@@ -69,17 +72,14 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
     searchQuery,
     clearFilters,
     fitTableNonce,
-    isMergedView
+    isMergedView,
+    setSelectedItemIds
   } = useUIStore();
 
-  // Manual drag only. Defaults fill the pane once at load; window resize
-  // never touches them. A new storage key drops the broken v1/v2 widths.
-  const hasSavedWidths = useRef<boolean>(false);
   const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
     try {
       const saved = localStorage.getItem(COL_WIDTHS_STORAGE_KEY);
       if (saved) {
-        hasSavedWidths.current = true;
         const widths = { ...BASE_COL_WIDTHS, ...JSON.parse(saved) };
         return Object.fromEntries(
           Object.keys(BASE_COL_WIDTHS).map(key => [key, clampColumnWidth(key, widths[key])])
@@ -91,14 +91,17 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
 
   const resizingRef = useRef<{ colKey: string; startX: number; startWidth: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastCategoryRef = useRef<string>(
-    typeof window !== 'undefined' ? screenCategory(window.innerWidth) : '22'
-  );
+  const lastPaneWidthRef = useRef(0);
+  const applyFitRef = useRef<(persist: boolean, force?: boolean) => void>(() => {});
 
-  const applyFit = (persist: boolean) => {
+  const applyFit = (persist: boolean, force = false) => {
     const el = scrollRef.current;
     if (!el || !el.clientWidth) return;
-    const next = fitWidthsToPane(el.clientWidth);
+    if (resizingRef.current) return;
+    const pane = el.clientWidth;
+    if (!force && Math.abs(pane - lastPaneWidthRef.current) < 2) return;
+    lastPaneWidthRef.current = pane;
+    const next = fitWidthsToPane(pane);
     setColWidths(next);
     if (persist) {
       try {
@@ -106,31 +109,28 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
       } catch (e) {}
     }
   };
+  applyFitRef.current = applyFit;
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || !el.clientWidth) return;
-    if (hasSavedWidths.current && sumWidths(colWidths) <= el.clientWidth) {
-      return;
-    }
-    applyFit(!hasSavedWidths.current);
-  }, []);
-
-  // Refit when the screen category changes (27" ↔ 22" ↔ 15.6"), not on every pixel.
-  useEffect(() => {
-    const onResize = () => {
-      const next = screenCategory(window.innerWidth);
-      if (next === lastCategoryRef.current) return;
-      lastCategoryRef.current = next;
-      applyFit(true);
+    if (!el) return;
+    let timer: number | undefined;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => applyFitRef.current(true), 80);
     };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const observer = new ResizeObserver(schedule);
+    observer.observe(el);
+    schedule();
+    return () => {
+      window.clearTimeout(timer);
+      observer.disconnect();
+    };
   }, []);
 
   useEffect(() => {
     if (fitTableNonce === 0) return;
-    applyFit(true);
+    applyFit(true, true);
     showToast('Columnas ajustadas al ancho de la pantalla', 'success');
   }, [fitTableNonce]);
 
@@ -392,6 +392,46 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
 
   const rangeIsSingle = Boolean(selectedCell && isSingleCell(selectedCell, rangeFocus));
 
+  const selectedItemIds = useMemo(() => {
+    if (!selectedCell) return EMPTY_SELECTED_IDS;
+    const ids = new Set<string>();
+    rangeKeys.forEach(key => {
+      const id = key.split('::')[0];
+      if (id) ids.add(id);
+    });
+    return Array.from(ids);
+  }, [selectedCell, rangeKeys]);
+
+  useEffect(() => {
+    const prev = useUIStore.getState().selectedItemIds;
+    const same =
+      prev.length === selectedItemIds.length &&
+      prev.every((id, i) => id === selectedItemIds[i]);
+    if (same) return;
+    setSelectedItemIds(selectedItemIds);
+  }, [selectedItemIds, setSelectedItemIds]);
+
+  useEffect(() => {
+    return () => {
+      if (useUIStore.getState().selectedItemIds.length === 0) return;
+      setSelectedItemIds(EMPTY_SELECTED_IDS);
+    };
+  }, [setSelectedItemIds]);
+
+  const handleSyncPlanoRev = () => {
+    if (selectedItemIds.length === 0) {
+      showToast('Selecciona celdas para sincronizar plano y rev', 'warn');
+      return;
+    }
+    const applied = syncContextToItemIds(selectedItemIds, section);
+    if (applied) {
+      showToast(
+        `Plano "${customPlano || '—'}" / Rev "${customRev || '—'}" aplicado a la selección`,
+        'success'
+      );
+    }
+  };
+
   const handleSaveInlineCell = (itemId: string, colKey: string, newValue: any) => {
     setEditingCell(null);
     // System columns are display-only (the store also rejects them).
@@ -499,6 +539,17 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
               <span style={{ fontWeight: 'bold' }}>✕</span>
             </button>
           ))}
+
+          {selectedItemIds.length > 0 && (
+            <button
+              type="button"
+              className="btn-sync-selection"
+              onClick={handleSyncPlanoRev}
+              title={`Aplicar plano ${customPlano || '(vacío)'} y rev ${customRev || '(vacío)'} del panel a las filas seleccionadas`}
+            >
+              ↻ Plano / Rev
+            </button>
+          )}
 
           {hasActiveFilters && (
             <button

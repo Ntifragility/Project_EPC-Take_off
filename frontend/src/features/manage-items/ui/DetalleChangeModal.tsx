@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useItemsStore } from '../model/useItemsStore';
 import { useAppStore } from '../../app-config/model/useAppStore';
 import { type BomLine } from '../../../entities/takeoff-rule/model/instanceRebuild';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export const DetalleChangeModal: React.FC = () => {
   const pending = useItemsStore(state => state.pendingDetalleEdit);
@@ -41,23 +42,11 @@ export const DetalleChangeModal: React.FC = () => {
   };
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={e => {
-        if (e.target === e.currentTarget) cancelDetalleChange();
-      }}
-    >
-      <div className="modal" style={{ maxWidth: '760px', width: '96vw' }}>
-        <div className="modal-hd">
-          <div className="modal-hd-title">Actualizar implementación</div>
-          <button type="button" className="modal-close" onClick={cancelDetalleChange}>
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="modal-body" style={{ padding: 0 }}>
-          <div style={{ padding: '1.15rem 1.25rem 0' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+    <ModalShell title="Actualizar implementación" onClose={cancelDetalleChange} maxWidth="760px">
+        <form onSubmit={handleSubmit}>
+        <div className="modal-body">
+          <div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--mu)', marginBottom: '1rem' }}>
               DETALLE {pending.currentDetalle || '—'} → <strong>{pending.newDetalle}</strong>
               {extraCount > 0 ? ` · ${extraCount + 1} implementaciones` : ''}
             </div>
@@ -73,7 +62,7 @@ export const DetalleChangeModal: React.FC = () => {
               <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 700 }}>
                 ¿Actualizar TAG EN PLANO?
               </label>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.55rem' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--mu)', marginBottom: '0.55rem' }}>
                 El TAG actual es <strong>{pending.currentTag || '(vacío)'}</strong>. Puedes dejarlo o escribir
                 uno nuevo. Se permite repetir.
                 {extraCount > 0
@@ -92,13 +81,13 @@ export const DetalleChangeModal: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '0.45rem', fontWeight: 700 }}>Valores de las filas</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.55rem' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--mu)', marginBottom: '0.55rem' }}>
               La primera fila actualiza el ítem principal. Las demás se insertan justo debajo.
               Completa cantidad, unidad y metrado si vienen vacíos.
             </div>
           </div>
 
-          <div className="detalle-change-table-wrap" style={{ margin: '0 1.25rem' }}>
+          <div className="detalle-change-table-wrap">
             <table className="detalle-change-table">
               <thead>
                 <tr>
@@ -149,16 +138,16 @@ export const DetalleChangeModal: React.FC = () => {
             </table>
           </div>
 
+        </div>
           <div className="modal-ft">
-            <button type="button" className="btn" onClick={cancelDetalleChange}>
+            <button type="button" className="btn-ghost" onClick={cancelDetalleChange}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-green">
+            <button type="submit" className="btn-primary">
               Confirmar
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useItemsStore } from '../../manage-items/model/useItemsStore';
 import { generateTagSummary, exportTagSummaryExcel } from '../../../shared/lib/excelExporter';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface TagSummaryModalProps {
   isOpen: boolean;
@@ -28,61 +29,13 @@ export const TagSummaryModal: React.FC<TagSummaryModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div
-      className="modal-overlay"
-      id="tag-summary-overlay"
-      style={{ display: 'flex' }}
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <ModalShell
+      title="Resumen por TAG"
+      subtitle={`${summaryData.length} TAGs`}
+      onClose={onClose}
+      maxWidth="850px"
     >
-      <div
-        className="modal"
-        id="tag-summary-box"
-        style={{ maxWidth: '850px', width: '92vw' }}
-      >
-        <div className="modal-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span className="modal-hd-title" style={{ color: 'var(--am, #eab308)' }}>
-              TABLA RESUMEN POR TAG
-            </span>
-            <span
-              style={{
-                fontSize: '11px',
-                fontFamily: 'var(--mo, monospace)',
-                background: 'var(--s2)',
-                border: '1px solid var(--b1)',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                color: 'var(--tx)'
-              }}
-            >
-              {summaryData.length} TAGs
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              className="btn btn-sm"
-              style={{
-                background: 'var(--am, #eab308)',
-                color: '#000',
-                fontWeight: 700,
-                fontSize: '11px',
-                padding: '4px 12px'
-              }}
-              onClick={() => exportTagSummaryExcel(items)}
-              title="Descargar esta tabla en formato Excel (.xlsx) con las 6 columnas"
-            >
-              DESCARGAR EXCEL
-            </button>
-            <button className="btn-ghost btn-sm" onClick={onClose}>
-              ESC
-            </button>
-          </div>
-        </div>
-
-        <div className="modal-body" style={{ padding: '14px 18px' }}>
+        <div className="modal-body">
           <div
             style={{
               display: 'flex',
@@ -202,7 +155,14 @@ export const TagSummaryModal: React.FC<TagSummaryModalProps> = ({ isOpen, onClos
             </div>
           )}
         </div>
-      </div>
-    </div>
+        <div className="modal-ft">
+          <button className="btn-ghost" onClick={() => exportTagSummaryExcel(items)}>
+            Descargar Excel
+          </button>
+          <button className="btn-primary" onClick={onClose}>
+            Cerrar
+          </button>
+        </div>
+    </ModalShell>
   );
 };

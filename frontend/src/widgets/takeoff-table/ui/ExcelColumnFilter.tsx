@@ -114,6 +114,7 @@ export const ExcelColumnFilter: React.FC<ExcelColumnFilterProps> = ({ values, se
             style={{ top: menuPos.top, left: menuPos.left }}
             onMouseDown={event => event.stopPropagation()}
           >
+            <div className="excel-filter-hd">Filtro de columna</div>
             <input
               className="excel-filter-search"
               value={query}

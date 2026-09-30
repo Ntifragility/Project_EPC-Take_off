@@ -6,6 +6,7 @@ import { getDetallesForArea, hasSoporteItems, hasJumperItems } from '../../../en
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { isDetalleTriggerRow } from '../../../entities/takeoff-rule/model/instanceRebuild';
+import { IconActionButton } from '../../../shared/ui/IconActionButton';
 
 export interface TakeoffRowProps {
   item: TakeoffItem;
@@ -525,23 +526,13 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
 
         <div className="act-row-floating">
           {isMainItem && (
-            <button
-              className="btn-icon"
-              onClick={onStartEdit}
-              title="Editar fila completa"
-              style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}
-            >
-              EDIT
-            </button>
+            <IconActionButton kind="edit" title="Editar fila completa" onClick={onStartEdit} />
           )}
-          <button
-            className="btn-icon btn-danger"
-            onClick={() => deleteItem(item.id, section)}
+          <IconActionButton
+            kind="delete"
             title="Eliminar fila"
-            style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}
-          >
-            DEL
-          </button>
+            onClick={() => deleteItem(item.id, section)}
+          />
         </div>
       </td>
     </tr>

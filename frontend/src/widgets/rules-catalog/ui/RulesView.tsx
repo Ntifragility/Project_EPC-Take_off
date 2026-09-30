@@ -278,6 +278,7 @@ export const RulesView: React.FC = () => {
             <GenericRuleCard
               key={r.id}
               rule={r}
+              activeArea={activeArea}
               isExpanded={isExpanded}
               onToggleExpand={() => toggleRuleExpand(r.id)}
               onEdit={handleOpenEdit}

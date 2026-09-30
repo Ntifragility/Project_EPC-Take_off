@@ -325,6 +325,70 @@ export async function syncPartidasToSupabase(
   }
 }
 
+function partidaToSupabasePayload(p: PartidaRecord): SupabasePartidaRecord {
+  return {
+    actividad: p.actividad || 'PAT',
+    wbs: String(p.wbs || p.area || '').trim(),
+    area: String(p.wbs || p.area || '').trim(),
+    partida_sicme: String(p.partidaSicme || p.item || '').trim(),
+    item: String(p.partidaSicme || p.item || '').trim(),
+    partida_balance: String(p.partidaBalance || 'NA').trim() || 'NA',
+    forecast_desc: p.forecastDesc || '',
+    descripcion_bm: p.descripcionBm || p.descripcion || '',
+    descripcion: p.descripcionBm || p.descripcion || '',
+    und: p.und || 'UND'
+  };
+}
+
+export function isSupabasePartidaId(id?: string): boolean {
+  return Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+}
+
+export async function updatePartidaInSupabase(
+  partida: PartidaRecord
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase || !isSupabasePartidaId(partida.id)) {
+    return { success: true };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('partidas_table')
+      .update(partidaToSupabasePayload(partida))
+      .eq('id', partida.id);
+    if (error) {
+      console.error('Supabase partida update error:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al actualizar partida en Supabase';
+    console.error('Supabase partida update exception:', err);
+    return { success: false, error: message };
+  }
+}
+
+export async function deletePartidaFromSupabase(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase || !isSupabasePartidaId(id)) {
+    return { success: true };
+  }
+
+  try {
+    const { error } = await supabase.from('partidas_table').delete().eq('id', id);
+    if (error) {
+      console.error('Supabase partida delete error:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar partida en Supabase';
+    console.error('Supabase partida delete exception:', err);
+    return { success: false, error: message };
+  }
+}
+
 export async function fetchPartidasFromSupabase(): Promise<{
   data: PartidaRecord[] | null;
   error?: string;

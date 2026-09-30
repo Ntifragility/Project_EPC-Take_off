@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../../app-config/model/useAppStore';
 import { useUIStore } from '../model/useUIStore';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 interface AreaSelectModalProps {
   isOpen: boolean;
@@ -31,246 +32,73 @@ export const AreaSelectModal: React.FC<AreaSelectModalProps> = ({
   };
 
   return (
-    <div
-      className="modal-overlay"
-      id="area-modal-overlay"
-      style={{ display: 'flex', zIndex: 1100 }}
-      onClick={e => {
-        if (canClose && e.target === e.currentTarget) onClose();
-      }}
+    <ModalShell
+      title="Seleccionar área de trabajo"
+      subtitle="Esto adapta reglas, detalles y accesorios del metrado."
+      onClose={canClose ? onClose : () => undefined}
+      closeDisabled={!canClose}
+      maxWidth="780px"
     >
-      <div
-        className="modal"
-        style={{
-          maxWidth: '780px',
-          width: '94%',
-          background: 'var(--s1)',
-          border: '1px solid var(--b1)',
-          borderRadius: '12px',
-          padding: '24px'
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--tx)', letterSpacing: '1px' }}>
-            SELECCIONAR ÁREA DE TRABAJO
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--mu)', marginTop: '6px' }}>
-            Elige el ambiente del metrado. Esto adaptará automáticamente las reglas, detalles y accesorios.
-          </div>
-        </div>
-
+      <div className="modal-body">
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px',
-            marginBottom: '20px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '12px'
           }}
         >
-          {/* Card 1: AREA SECA */}
           <div
+            className={`modal-choice${activeArea === 'AREA SECA' ? ' is-active' : ''}`}
+            style={{ display: 'flex', flexDirection: 'column', gap: '10px', cursor: 'pointer' }}
             onClick={() => handleSelectArea('AREA SECA')}
-            style={{
-              background: 'var(--s2)',
-              border: activeArea === 'AREA SECA' ? '1px solid var(--tx)' : '1px solid var(--b1)',
-              borderRadius: '10px',
-              padding: '22px',
-              cursor: 'pointer',
-              transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxShadow: activeArea === 'AREA SECA' ? '0 0 0 1px var(--tx)' : 'none'
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx)';
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor =
-                activeArea === 'AREA SECA' ? 'var(--tx)' : 'var(--b1)';
-              (e.currentTarget as HTMLElement).style.transform = 'none';
-            }}
           >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '1px', color: 'var(--mu)', fontFamily: 'var(--mo)' }}>SEC</span>
-                {activeArea === 'AREA SECA' && (
-                  <span
-                    style={{
-                      background: 'var(--tx)',
-                      color: 'var(--bg)',
-                      fontSize: '10px',
-                      fontFamily: 'var(--mo)',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      letterSpacing: '0.5px'
-                    }}
-                  >
-                    ACTIVA
-                  </span>
-                )}
-              </div>
-              <div
-                style={{
-                  fontSize: '17px',
-                  fontWeight: 700,
-                  color: 'var(--tx)',
-                  marginTop: '12px',
-                  letterSpacing: '-0.01em'
-                }}
-              >
-                ÁREA SECA
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--mu)', marginTop: '4px' }}>
-                Ambientes interiores y estándar
-              </div>
-
-              <div
-                style={{
-                  marginTop: '16px',
-                  borderTop: '1px solid var(--b2)',
-                  paddingTop: '14px',
-                  fontSize: '12px',
-                  color: 'var(--mu)',
-                  lineHeight: 1.6
-                }}
-              >
-                <div>• Detalle estándar Cable 2/0 (151, 152, 153...)</div>
-                <div>• Puesta a tierra y soldaduras convencionales</div>
-                <div>• Tuberia PVC Wheatland / SCH 80 estándar</div>
-              </div>
+            <div style={{ fontWeight: 700, fontSize: '15px' }}>ÁREA SECA</div>
+            <div style={{ fontSize: '12px', color: 'var(--mu)', lineHeight: 1.5 }}>
+              Ambientes interiores y estándar. Detalle de cable 2/0 (151, 152, 153), puesta a tierra
+              convencional y tubería PVC SCH 80.
             </div>
-
             <button
-              className="btn-primary"
-              style={{
-                marginTop: '20px',
-                width: '100%',
-                background: activeArea === 'AREA SECA' ? 'var(--tx)' : 'transparent',
-                color: activeArea === 'AREA SECA' ? 'var(--bg)' : 'var(--tx)',
-                border: '1px solid var(--tx)',
-                fontWeight: 600,
-                fontSize: '11.5px',
-                letterSpacing: '0.5px'
-              }}
+              type="button"
+              className={activeArea === 'AREA SECA' ? 'btn-primary' : 'btn-ghost'}
               onClick={e => {
                 e.stopPropagation();
                 handleSelectArea('AREA SECA');
               }}
             >
-              {activeArea === 'AREA SECA' ? 'ÁREA SELECCIONADA' : 'SELECCIONAR ÁREA SECA'}
+              {activeArea === 'AREA SECA' ? 'Área seleccionada' : 'Seleccionar área seca'}
             </button>
           </div>
 
-          {/* Card 2: AREA HUMEDA */}
           <div
+            className={`modal-choice${activeArea === 'AREA HUMEDA' ? ' is-active' : ''}`}
+            style={{ display: 'flex', flexDirection: 'column', gap: '10px', cursor: 'pointer' }}
             onClick={() => handleSelectArea('AREA HUMEDA')}
-            style={{
-              background: 'var(--s2)',
-              border: activeArea === 'AREA HUMEDA' ? '1px solid var(--tx)' : '1px solid var(--b1)',
-              borderRadius: '10px',
-              padding: '22px',
-              cursor: 'pointer',
-              transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxShadow: activeArea === 'AREA HUMEDA' ? '0 0 0 1px var(--tx)' : 'none'
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx)';
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor =
-                activeArea === 'AREA HUMEDA' ? 'var(--tx)' : 'var(--b1)';
-              (e.currentTarget as HTMLElement).style.transform = 'none';
-            }}
           >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '1px', color: 'var(--mu)', fontFamily: 'var(--mo)' }}>HUM</span>
-                {activeArea === 'AREA HUMEDA' && (
-                  <span
-                    style={{
-                      background: 'var(--tx)',
-                      color: 'var(--bg)',
-                      fontSize: '10px',
-                      fontFamily: 'var(--mo)',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      letterSpacing: '0.5px'
-                    }}
-                  >
-                    ACTIVA
-                  </span>
-                )}
-              </div>
-              <div
-                style={{
-                  fontSize: '17px',
-                  fontWeight: 700,
-                  color: 'var(--tx)',
-                  marginTop: '12px',
-                  letterSpacing: '-0.01em'
-                }}
-              >
-                ÁREA HÚMEDA
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--mu)', marginTop: '4px' }}>
-                Ambientes corrosivos / alta humedad
-              </div>
-
-              <div
-                style={{
-                  marginTop: '16px',
-                  borderTop: '1px solid var(--b2)',
-                  paddingTop: '14px',
-                  fontSize: '12px',
-                  color: 'var(--mu)',
-                  lineHeight: 1.6
-                }}
-              >
-                <div>• <strong>BARRA POT:</strong> Detalles 010/17A, 010/17B</div>
-                <div>• <strong>BARRA INST:</strong> Detalles 010/17C, 010/17D</div>
-                <div>• Soportes Omega Inox y Pernos SS316</div>
-                <div>• Detalles especiales 008/5, 009/8, 010/13...</div>
-              </div>
+            <div style={{ fontWeight: 700, fontSize: '15px' }}>ÁREA HÚMEDA</div>
+            <div style={{ fontSize: '12px', color: 'var(--mu)', lineHeight: 1.5 }}>
+              Ambientes corrosivos. BARRA POT 010/17A–B, BARRA INST 010/17C–D, soportes inox y
+              detalles 008/5, 009/8, 010/13.
             </div>
-
             <button
-              className="btn-primary"
-              style={{
-                marginTop: '20px',
-                width: '100%',
-                background: activeArea === 'AREA HUMEDA' ? 'var(--tx)' : 'transparent',
-                color: activeArea === 'AREA HUMEDA' ? 'var(--bg)' : 'var(--tx)',
-                border: '1px solid var(--tx)',
-                fontWeight: 600,
-                fontSize: '11.5px',
-                letterSpacing: '0.5px'
-              }}
+              type="button"
+              className={activeArea === 'AREA HUMEDA' ? 'btn-primary' : 'btn-ghost'}
               onClick={e => {
                 e.stopPropagation();
                 handleSelectArea('AREA HUMEDA');
               }}
             >
-              {activeArea === 'AREA HUMEDA' ? 'ÁREA SELECCIONADA' : 'SELECCIONAR ÁREA HÚMEDA'}
+              {activeArea === 'AREA HUMEDA' ? 'Área seleccionada' : 'Seleccionar área húmeda'}
             </button>
           </div>
         </div>
-
-        {canClose && (
-          <div style={{ textAlign: 'center', marginTop: '10px' }}>
-            <button className="btn-ghost" style={{ padding: '6px 20px' }} onClick={onClose}>
-              Cerrar
-            </button>
-          </div>
-        )}
       </div>
-    </div>
+      {canClose && (
+        <div className="modal-ft">
+          <button type="button" className="btn-ghost" onClick={onClose}>
+            Cerrar
+          </button>
+        </div>
+      )}
+    </ModalShell>
   );
 };

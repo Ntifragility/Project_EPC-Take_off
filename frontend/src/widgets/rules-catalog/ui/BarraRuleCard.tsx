@@ -5,6 +5,7 @@ import {
   DYNAMIC_BARRA_INST_VARIANTS,
   DetalleVariantItem
 } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
 
 interface BarraRuleCardProps {
   rule: TakeoffRule;
@@ -197,25 +198,13 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
                             >
                               {detCode}
                             </span>
-                            <button
-                              type="button"
-                              className="btn-ghost"
-                              onClick={() => onEditDetalle(detCode, vItems as any, category)}
-                              style={{
-                                fontSize: '10px',
-                                padding: '3px 8px',
-                                marginTop: '6px',
-                                display: 'block',
-                                margin: '6px auto 0 auto',
-                                cursor: 'pointer',
-                                borderRadius: '4px',
-                                border: '1px solid var(--b1)',
-                                background: 'var(--s1)'
-                              }}
-                              title={`Editar materiales de ${detCode}`}
-                            >
-                              EDITAR
-                            </button>
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+                              <IconActionButton
+                                kind="edit"
+                                title={`Editar materiales de ${detCode}`}
+                                onClick={() => onEditDetalle(detCode, vItems as any, category)}
+                              />
+                            </div>
                           </td>
                         )}
                         <td
@@ -270,15 +259,10 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
       </div>
 
       <div className="rule-card-acts">
-        <button className="btn-ghost btn-sm" onClick={() => onEdit(rule)}>
-          EDITAR
-        </button>
-        <button
-          className="btn-ghost btn-sm btn-danger"
-          onClick={() => onDelete(rule.id)}
-        >
-          ELIMINAR
-        </button>
+        <IconActionGroup>
+          <IconActionButton kind="edit" title="Editar regla" onClick={() => onEdit(rule)} />
+          <IconActionButton kind="delete" title="Eliminar regla" onClick={() => onDelete(rule.id)} />
+        </IconActionGroup>
       </div>
     </div>
   );

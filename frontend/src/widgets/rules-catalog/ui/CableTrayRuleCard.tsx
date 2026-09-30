@@ -1,6 +1,7 @@
 import React from 'react';
 import { TakeoffRule, CableTrayMatrixItem } from '../../../entities/takeoff-rule/model/types';
 import { DEFAULT_CABLE_TRAY_MATRIX } from '../../../entities/takeoff-rule/model/cableTrayRules';
+import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
 
 interface CableTrayRuleCardProps {
   rule: TakeoffRule;
@@ -221,25 +222,13 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                             >
                               {detalleCode}
                             </span>
-                            <button
-                              type="button"
-                              className="btn-ghost"
-                              onClick={() => onEdit(rule)}
-                              style={{
-                                fontSize: '10px',
-                                padding: '3px 8px',
-                                marginTop: '6px',
-                                display: 'block',
-                                margin: '6px auto 0 auto',
-                                cursor: 'pointer',
-                                borderRadius: '4px',
-                                border: '1px solid var(--b1)',
-                                background: 'var(--s1)'
-                              }}
-                              title="Editar matriz de anchos"
-                            >
-                              EDITAR
-                            </button>
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+                              <IconActionButton
+                                kind="edit"
+                                title="Editar matriz de anchos"
+                                onClick={() => onEdit(rule)}
+                              />
+                            </div>
                           </td>
                         )}
                         <td
@@ -337,15 +326,10 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
         </div>
 
         <div className="rule-card-acts">
-          <button className="btn-ghost btn-sm" onClick={() => onEdit(rule)}>
-            EDITAR
-          </button>
-          <button
-            className="btn-ghost btn-sm btn-danger"
-            onClick={() => onDelete(rule.id)}
-          >
-            ELIMINAR
-          </button>
+          <IconActionGroup>
+            <IconActionButton kind="edit" title="Editar regla" onClick={() => onEdit(rule)} />
+            <IconActionButton kind="delete" title="Eliminar regla" onClick={() => onDelete(rule.id)} />
+          </IconActionGroup>
         </div>
       </div>
     </div>

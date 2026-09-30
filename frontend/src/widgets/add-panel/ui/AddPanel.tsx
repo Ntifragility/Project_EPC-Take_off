@@ -10,6 +10,7 @@ import { executeImportExcel } from '../../../features/import-excel/model/useImpo
 import { ExcelGuideModal } from '../../../features/import-excel/ui/ExcelGuideModal';
 import { RuleTriggerModal } from '../../../features/apply-rule/ui/RuleTriggerModal';
 import { PartidasGuideModal } from '../../../features/manage-partidas/ui/PartidasGuideModal';
+import { getRuleInsertPreview } from '../../../entities/takeoff-rule/model/ruleInsertPreview';
 
 export interface AddPanelProps {
   onCollapseSidebar?: () => void;
@@ -27,7 +28,8 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     addCustomItem,
     undoSnapshot,
     undoLastAction,
-    syncGlobalContext
+    syncGlobalContext,
+    syncContextToItemIds
   } = useItemsStore();
   const { section, activeArea, setTab } = useAppStore();
   const {
@@ -39,7 +41,8 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     clearFilters,
     showToast,
     isPartidasModalOpen,
-    setIsPartidasModalOpen
+    setIsPartidasModalOpen,
+    selectedItemIds
   } = useUIStore();
 
   const [showExcelGuide, setShowExcelGuide] = useState(false);
@@ -59,33 +62,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     ? rules.filter(r => r.trigger.toLowerCase().includes(triggerQuery.toLowerCase()))
     : rules;
 
-  const getRuleSubtitle = (r: TakeoffRule): string => {
-    const up = r.trigger.toUpperCase();
-    if (up.includes('001/2B-X1') || up.includes('001/2B')) {
-      return 'Riel Strut variable según ancho (900/600/450/300 mm) + 3 accesorios';
-    }
-    if (activeArea === 'AREA HUMEDA') {
-      if (up.includes('BARRA POT')) {
-        return '2 a 3 ítems según detalle (010/17A o 010/17B)';
-      }
-      if (up.includes('BARRA INST')) {
-        return '2 a 3 ítems según detalle (010/17C o 010/17D)';
-      }
-      if (up.includes('CABLE DESNUDO 2/0 AWG')) {
-        return 'Accesorios según detalle (008/05 - 010/18)';
-      }
-    } else {
-      if (up.includes('BARRA POT')) {
-        return '1 ítem (Detalle 166 convencional)';
-      }
-      if (up.includes('BARRA INST')) {
-        return '2 ítems (Detalle 166C con aislador)';
-      }
-    }
-
-    const count = r.subitems.length;
-    return count === 1 ? '1 ítem' : `${count} ítems`;
-  };
+  const getRuleSubtitle = (r: TakeoffRule): string => getRuleInsertPreview(r, activeArea);
 
   const handleSelectRule = (rule: TakeoffRule) => {
     setSelectedRuleForModal(rule);
@@ -162,19 +139,47 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
                 style={{ fontSize: '10.5px', padding: '1px 6px', color: 'var(--mu)' }}
                 title="Ocultar / Replegar este panel a la izquierda"
               >
-                ◀ Ocultar
+                Ocultar
               </button>
             )}
           </div>
-          <button
-            type="button"
-            className="btn-ghost"
-            style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--accent)' }}
-            onClick={() => syncGlobalContext(section)}
-            title="Aplica este Plano y Rev a todas las filas en la pantalla"
-          >
-            Aplicar a todos
-          </button>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button
+              type="button"
+              className="btn-ghost"
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                color: selectedItemIds.length > 0 ? 'var(--accent)' : 'var(--mu)'
+              }}
+              disabled={selectedItemIds.length === 0}
+              onClick={() => {
+                const applied = syncContextToItemIds(selectedItemIds, section);
+                if (applied) {
+                  showToast(
+                    `Plano "${customPlano || '—'}" / Rev "${customRev || '—'}" aplicado a la selección`,
+                    'success'
+                  );
+                }
+              }}
+              title={
+                selectedItemIds.length > 0
+                  ? `Aplicar este Plano y Rev a ${selectedItemIds.length} fila(s) seleccionada(s)`
+                  : 'Selecciona celdas en la tabla para sincronizar plano y rev'
+              }
+            >
+              Aplicar selección
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--accent)' }}
+              onClick={() => syncGlobalContext(section)}
+              title="Aplica este Plano y Rev a todas las filas en la pantalla"
+            >
+              Aplicar a todos
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -333,7 +338,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
                     onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
                     <div style={{ fontWeight: 700, color: 'var(--tx-hd)' }}>{r.trigger}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--mu)', marginTop: '2px' }}>{getRuleSubtitle(r)}</div>
+                    <div className="rule-insert-preview">{getRuleSubtitle(r)}</div>
                   </div>
                 ))}
               </div>
@@ -380,7 +385,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
                 }}
               >
                 <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--tx-hd)' }}>{r.trigger}</div>
-                <div style={{ fontSize: '11px', color: 'var(--mu)', marginTop: '2px' }}>{getRuleSubtitle(r)}</div>
+                <div className="rule-insert-preview">{getRuleSubtitle(r)}</div>
               </button>
             ))}
           </div>
@@ -483,7 +488,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
           }}
           title="Subir archivo Excel (.xlsx, .xlsb, .xls) de Metrado"
         >
-          <span>📁 Importar</span>
+          <span>Importar</span>
           <input
             type="file"
             accept=".xlsx,.xlsb,.xls,.csv"
@@ -499,7 +504,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
           onClick={() => setIsPartidasModalOpen(true)}
           title="Cargar / Actualizar Partidas Master en Supabase"
         >
-          🏷️ Partidas
+          Partidas
         </button>
 
         <button
@@ -509,7 +514,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
           onClick={() => setShowExcelGuide(true)}
           title="Ver guía y descargar plantilla Excel multi-pestaña"
         >
-          📋 Guía
+          Guía
         </button>
       </div>
 
