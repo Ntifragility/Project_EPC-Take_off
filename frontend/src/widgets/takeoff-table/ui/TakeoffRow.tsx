@@ -7,6 +7,7 @@ import { useItemsStore } from '../../../features/manage-items/model/useItemsStor
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { isDetalleTriggerRow } from '../../../entities/takeoff-rule/model/instanceRebuild';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import type { RangeEdges } from '../model/cellRange';
 
 export interface TakeoffRowProps {
   item: TakeoffItem;
@@ -17,6 +18,7 @@ export interface TakeoffRowProps {
   onCancelEdit: () => void;
   selectedColKey?: string | null;
   selectedColKeys?: string[];
+  rangeEdgesByCol?: Record<string, RangeEdges>;
   editingColKey?: string | null;
   isFillTarget?: boolean;
   showFillHandle?: boolean;
@@ -37,6 +39,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   onCancelEdit,
   selectedColKey = null,
   selectedColKeys = [],
+  rangeEdgesByCol = {},
   editingColKey = null,
   isFillTarget = false,
   showFillHandle = true,
@@ -113,10 +116,11 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   };
 
   const isHighlighted = Boolean(highlightedTag && item.tagPlano === highlightedTag);
+  const isMainItem = item.material === 'P';
 
   if (isEditing) {
     return (
-      <tr ref={rowRef} className={`tr-edit ${isHighlighted ? 'tr-amber-pulse' : ''}`}>
+      <tr ref={rowRef} className={`tr-edit ${isHighlighted ? 'tr-amber-pulse' : ''} ${!isMainItem ? 'tr-consumable-row' : ''}`}>
         <td className="td-n">{index}</td>
         <td className="td-u" style={{ color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
           {item.partida || 'NA'}
@@ -284,6 +288,12 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
                   {k}
                 </option>
               ))}
+              {item.detalle &&
+                !getDetallesForArea(activeArea).some(([k]) => k === item.detalle) && (
+                  <option value={item.detalle} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
+                    {item.detalle}
+                  </option>
+                )}
             </select>
           ) : (
             <input
@@ -332,14 +342,26 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
     );
   }
 
-  const isMainItem = item.material === 'P';
   const isTriggerRow = isDetalleTriggerRow(item, allStoreItems);
-  const canInteract = (colKey: string) =>
-    isMainItem || colKey === 'plano' || (colKey === 'detalle' && isTriggerRow);
+  const canInteract = () => isMainItem;
   // PARTIDA SICME / PARTIDA BALANCE come from the PARTIDAS master;
   // TAG UNICO is derived. All three are system columns (display-only).
   const isSystemColumn = (colKey: string) =>
     colKey === 'partida' || colKey === 'partidaBalance' || colKey === 'tagUnico';
+
+  const rangeEdgeClass = (colKey: string): string => {
+    const edges = rangeEdgesByCol[colKey];
+    if (!edges) return '';
+    return [
+      'is-range-selected',
+      edges.top ? 'is-range-edge-top' : '',
+      edges.bottom ? 'is-range-edge-bottom' : '',
+      edges.left ? 'is-range-edge-left' : '',
+      edges.right ? 'is-range-edge-right' : ''
+    ]
+      .filter(Boolean)
+      .join(' ');
+  };
 
   // Excel-like Cell Renderer
   const renderCell = (
@@ -350,9 +372,9 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   ) => {
     const isActive = selectedColKey === colKey;
     const isSelected = isActive || selectedColKeys.includes(colKey);
-    const editable = canInteract(colKey) && !isSystemColumn(colKey);
+    const editable = canInteract() && !isSystemColumn(colKey);
     const isEditingThisCell = editable && editingColKey === colKey;
-    const isTarget = isFillTarget && (isMainItem || colKey === 'plano' || colKey === 'detalle');
+    const isTarget = isFillTarget && isMainItem;
     const dragValue = colKey === 'plano' ? (item.plano || '') : value;
 
     const cellTitle = isSystemColumn(colKey)
@@ -360,11 +382,9 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
         ? 'TAG ÚNICO se genera automáticamente'
         : 'PARTIDA de solo lectura: proviene del maestro PARTIDAS')
       : !editable
-      ? 'Consumible derivado: se actualiza desde el ítem principal'
+      ? 'Consumible (C): solo lectura. PLANO y REV se copian desde el ítem principal (P)'
       : colKey === 'detalle' && isTriggerRow
       ? 'Cambiar DETALLE pide actualizar TAG EN PLANO e inserta las filas debajo'
-      : !isMainItem
-      ? 'PLANO se puede editar y arrastrar. Solo el ítem principal cambia DETALLE'
       : isActive && showFillHandle
       ? 'Doble clic para editar, o arrastra la esquina para copiar hacia abajo'
       : isSelected
@@ -373,7 +393,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
 
     return (
       <td
-        className={`${className} excel-cell ${isSelected ? 'is-range-selected' : ''} ${isActive ? 'is-selected' : ''} ${isTarget ? 'excel-cell-fill-target' : ''} ${!isMainItem ? 'excel-cell-consumable' : ''}`}
+        className={`${className} excel-cell ${rangeEdgeClass(colKey)} ${isActive ? 'is-selected' : ''} ${isTarget ? 'excel-cell-fill-target' : ''} ${!isMainItem ? 'excel-cell-consumable' : ''}`}
         style={customStyle}
         data-item-id={item.id}
         data-col-key={colKey}
@@ -415,14 +435,10 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
           <div
             className="excel-fill-handle"
             role="button"
-            aria-label={
-              colKey === 'plano'
-                ? 'Arrastrar plano hacia otras filas'
-                : 'Arrastrar valor hacia ítems principales'
-            }
+            aria-label="Arrastrar valor hacia ítems principales"
             title={
-              colKey === 'plano'
-                ? 'Arrastra para copiar el plano hacia abajo, incluyendo consumibles'
+              colKey === 'plano' || colKey === 'rev'
+                ? 'Arrastra para copiar a ítems P. Los consumibles de cada instancia se actualizan solos'
                 : 'Arrastra para copiar el valor a los ítems principales de abajo'
             }
             onDragStart={e => e.preventDefault()}
@@ -474,7 +490,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
       {renderCell('metradoOt', item.metradoOt || '', 'td-u')}
 
       <td
-        className={`td-u excel-cell ${selectedColKeys.includes('unit') || selectedColKey === 'unit' ? 'is-range-selected' : ''} ${selectedColKey === 'unit' ? 'is-selected' : ''} ${isFillTarget && selectedColKey === 'unit' ? 'excel-cell-fill-target' : ''}`}
+        className={`td-u excel-cell ${rangeEdgeClass('unit')} ${selectedColKey === 'unit' ? 'is-selected' : ''} ${isFillTarget && selectedColKey === 'unit' ? 'excel-cell-fill-target' : ''}`}
         style={{ position: 'relative' }}
         data-item-id={item.id}
         data-col-key="unit"

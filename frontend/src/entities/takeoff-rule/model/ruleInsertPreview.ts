@@ -1,6 +1,7 @@
 import { TakeoffRule } from './types';
 import { getDefaultDetalleByRule } from './seedRules';
 import { getDetallesForArea } from './detalleVariants';
+import { isHumedaArea } from './areaCatalog';
 
 function shorten(desc: string, max = 42): string {
   const clean = (desc || '').trim();
@@ -33,19 +34,19 @@ export function getRuleInsertPreview(rule: TakeoffRule, activeArea: string): str
   }
 
   if (up.includes('CABLE DESNUDO 4/0')) {
-    return activeArea === 'AREA HUMEDA'
+    return isHumedaArea(activeArea)
       ? '008/3A: cable, cinta, tierra, tubería opcional. 008/3B: + cemento GEM'
       : '167/G1: cable desnudo 4/0, cinta amarilla y tierra de cultivo';
   }
 
   if (up.includes('BARRA POT')) {
-    return activeArea === 'AREA HUMEDA'
+    return isHumedaArea(activeArea)
       ? 'Barra + soportes/terminales según DETALLE 010/17A o 010/17B'
       : '1 ítem BARRA POT (detalle 166A)';
   }
 
   if (up.includes('BARRA INST')) {
-    return activeArea === 'AREA HUMEDA'
+    return isHumedaArea(activeArea)
       ? 'Barra + aislador y herrajes según DETALLE 010/17C o 010/17D'
       : 'BARRA INST + aislador de resina (detalle 166C)';
   }

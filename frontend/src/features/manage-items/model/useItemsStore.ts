@@ -213,6 +213,10 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       showToast('TAG ÚNICO se genera automáticamente', 'warn');
       return false;
     }
+    if (oldItem.material === 'C') {
+      showToast('Solo se editan ítems principales (P). Los consumibles se actualizan desde el P.', 'warn');
+      return false;
+    }
 
     if (updates.detalle !== undefined) {
       updates = { ...updates, detalle: normalizeDetalle(updates.detalle) };
@@ -376,14 +380,20 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       }
     }
 
+    const principalIds = itemIds.filter(id => items.find(it => it.id === id)?.material === 'P');
+    if (principalIds.length === 0) {
+      showToast('Solo se editan ítems principales (P). Los consumibles se actualizan desde el P.', 'warn');
+      return false;
+    }
+
     const { saveUndoSnapshot } = get();
     saveUndoSnapshot();
-    const idSet = new Set(itemIds);
+    const idSet = new Set(principalIds);
     let currentItems = [...items];
-    const instanceIds = instanceIdsForItemIds(currentItems, itemIds);
+    const instanceIds = instanceIdsForItemIds(currentItems, principalIds);
 
     if (field === 'detalle') {
-      const triggerIds = itemIds.filter(id => {
+      const triggerIds = principalIds.filter(id => {
         const row = currentItems.find(it => it.id === id);
         return row ? isDetalleTriggerRow(row, currentItems) : false;
       });

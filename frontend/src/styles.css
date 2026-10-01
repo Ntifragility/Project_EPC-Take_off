@@ -18,6 +18,8 @@ body.light-mode {
   --bg: #f3f2f1;
   --s1: #ffffff;
   --s2: #f8f9fa;
+  --row-p: #ffffff;
+  --row-c: #f0f8f4;
   --s3: #f3f2f1;
   --s4: #edebe9;
 
@@ -82,6 +84,8 @@ body:not(.light-theme):not(.light-mode) {
   --bg: #201f1e;
   --s1: #292827;
   --s2: #323130;
+  --row-p: #292827;
+  --row-c: #323130;
   --s3: #3b3a39;
   --s4: #484644;
 
@@ -950,19 +954,21 @@ td {
 }
 
 tr.tr-row td {
-  background: var(--s1);
+  background: var(--row-p, var(--s1));
 }
 
-tr.tr-row:hover td {
-  background: #f3f9f5;
+.takeoff-table tbody tr.tr-row:hover td,
+.takeoff-table tbody tr.tr-edit td {
+  background: var(--row-p, var(--s1));
 }
 
-body:not(.light-theme):not(.light-mode) tr.tr-row:hover td {
-  background: #233529;
+.takeoff-table tbody tr.tr-consumable-row td,
+.takeoff-table tbody tr.tr-consumable-row:hover td,
+.takeoff-table tbody tr.tr-edit.tr-consumable-row td {
+  background: var(--row-c, var(--s2));
 }
 
 tr.tr-edit td {
-  background: #e6f3ec !important;
   outline: 1px solid #107c41;
 }
 
@@ -970,7 +976,14 @@ tr.tr-edit td {
   color: var(--di);
   font-size: 11px;
   font-family: var(--mo);
-  background: var(--s1) !important;
+}
+
+.takeoff-table tbody tr.tr-row .td-n {
+  background: var(--row-p, var(--s1)) !important;
+}
+
+.takeoff-table tbody tr.tr-consumable-row .td-n {
+  background: var(--row-c, var(--s2)) !important;
 }
 
 .td-d {
@@ -1077,18 +1090,60 @@ tr.tr-edit td {
   margin-top: 2px;
 }
 
+.rules-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--b1);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--s1);
+}
+
 .rule-card {
   position: relative;
   background: var(--s1);
-  border: 1px solid var(--b1);
-  border-radius: 2px;
-  padding: 12px 16px;
-  margin-bottom: 10px;
-  box-shadow: var(--card-shadow);
+  border: none;
+  border-bottom: 1px solid var(--b1);
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
+  box-shadow: none;
 }
 
-.rule-card:hover {
-  border-color: #107c41;
+.rule-card:last-child {
+  border-bottom: none;
+}
+
+.rule-card:hover,
+.rule-card.is-open {
+  background: var(--s2);
+}
+
+.rule-card.is-open {
+  border-bottom-color: #107c41;
+}
+
+.rule-card-head {
+  display: grid;
+  grid-template-columns: 14px minmax(160px, 280px) minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  user-select: none;
+  min-height: 32px;
+}
+
+.rule-card-head:hover {
+  background: var(--row-c, var(--s2));
+}
+
+.rule-card-chevron {
+  flex: 0 0 14px;
+  color: var(--mu);
+  font-size: 10px;
+  line-height: 1;
 }
 
 .rule-card-row {
@@ -1098,10 +1153,71 @@ tr.tr-edit td {
 }
 
 .rule-trigger {
+  min-width: 0;
   font-size: 13px;
   color: #107c41;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rule-card-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rule-card-chip {
+  flex: 0 0 auto;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mu);
+  font-size: 11px;
+  font-family: var(--mo);
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border: 1px solid var(--b2);
+  border-radius: 2px;
+  background: var(--s1);
+}
+
+.rule-card-chip.is-more {
+  color: var(--tx);
+  border-style: dashed;
+}
+
+@media (max-width: 900px) {
+  .rule-card-head {
+    grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  }
+
+  .rule-card-preview {
+    display: none;
+  }
+}
+
+.rule-card-badge {
+  flex: 0 0 auto;
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  color: var(--tx);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-weight: 700;
+  font-family: var(--mo);
+  white-space: nowrap;
+}
+
+.rule-card-body {
+  padding: 0 10px 10px;
 }
 
 .rule-subitems {
@@ -1122,25 +1238,18 @@ tr.tr-edit td {
 }
 
 .rule-card-acts {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  position: static;
   display: inline-flex;
   gap: 4px;
   align-items: center;
-  background: var(--s1);
-  border: 1px solid var(--b1);
+  background: transparent;
+  border: none;
   border-radius: 2px;
-  padding: 2px 4px;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.rule-card:hover .rule-card-acts,
-.rule-card:focus-within .rule-card-acts {
+  padding: 0;
   opacity: 1;
   pointer-events: auto;
+  z-index: 1;
+  flex: 0 0 auto;
 }
 
 .icon-act-group {
@@ -1528,17 +1637,32 @@ body:not(.light-theme):not(.light-mode) .modal-choice.is-active {
   transition: background-color 0.1s ease;
 }
 
-.excel-cell:hover {
-  background-color: var(--accent-subtle, rgba(16, 124, 65, 0.05));
-}
-
 .takeoff-table tbody td.excel-cell.is-range-selected {
-  background-color: var(--accent-dim, rgba(16, 124, 65, 0.12)) !important;
+  --range-t: 0px;
+  --range-b: 0px;
+  --range-l: 0px;
+  --range-r: 0px;
+  box-shadow:
+    inset 0 var(--range-t) 0 0 var(--excel-green, #107c41),
+    inset 0 calc(-1 * var(--range-b)) 0 0 var(--excel-green, #107c41),
+    inset var(--range-l) 0 0 0 var(--excel-green, #107c41),
+    inset calc(-1 * var(--range-r)) 0 0 0 var(--excel-green, #107c41);
 }
 
-.takeoff-table tbody td.excel-cell.is-selected {
-  box-shadow: inset 0 0 0 2px var(--excel-green, #107c41);
-  background-color: var(--accent-dim, rgba(16, 124, 65, 0.16)) !important;
+.takeoff-table tbody td.excel-cell.is-range-edge-top {
+  --range-t: 2px;
+}
+
+.takeoff-table tbody td.excel-cell.is-range-edge-bottom {
+  --range-b: 2px;
+}
+
+.takeoff-table tbody td.excel-cell.is-range-edge-left {
+  --range-l: 2px;
+}
+
+.takeoff-table tbody td.excel-cell.is-range-edge-right {
+  --range-r: 2px;
 }
 
 .excel-fill-handle {
@@ -1567,7 +1691,6 @@ body.is-fill-dragging * {
 }
 
 .excel-cell-fill-target {
-  background-color: rgba(16, 124, 65, 0.15) !important;
   box-shadow: inset 0 0 0 1px var(--excel-green, #107c41);
 }
 
@@ -1597,11 +1720,11 @@ body.is-fill-dragging * {
 /* Consumable rows keep their tint on frozen cells too, so the frozen block
    stays fully opaque while the rest of the row scrolls under it. */
 .takeoff-table tbody tr.tr-consumable-row td {
-  background: var(--s2);
+  background: var(--row-c, var(--s2));
 }
 
 .tr-consumable-row {
-  background-color: var(--s2);
+  background-color: var(--row-c, var(--s2));
 }
 
 /* ==========================================================================
@@ -1674,7 +1797,11 @@ button, input, select, textarea, label {
 }
 
 .takeoff-table tbody td {
-  background-color: var(--s1);
+  background-color: var(--row-p, var(--s1));
+}
+
+.takeoff-table tbody tr.tr-consumable-row td {
+  background-color: var(--row-c, var(--s2));
 }
 
 .header .nav-tab,

@@ -143,11 +143,13 @@ export async function fetchTakeoffRulesFromSupabase(
       let cableTrayMatrix = r.cable_tray_matrix || r.cableTrayMatrix;
       let detalle = r.detalle || r.detalle_code;
       let tagPrefix = r.tag_prefix || r.tagPrefix;
+      let areas = r.areas;
 
       if (subitems && typeof subitems === 'object' && !Array.isArray(subitems)) {
         if (subitems.cableTrayMatrix) cableTrayMatrix = subitems.cableTrayMatrix;
         if (subitems.detalle) detalle = subitems.detalle;
         if (subitems.tagPrefix) tagPrefix = subitems.tagPrefix;
+        if (subitems.areas) areas = subitems.areas;
         if (Array.isArray(subitems.items)) subitems = subitems.items;
       }
 
@@ -157,7 +159,8 @@ export async function fetchTakeoffRulesFromSupabase(
         subitems: Array.isArray(subitems) ? subitems : [],
         detalle,
         tagPrefix,
-        cableTrayMatrix
+        cableTrayMatrix,
+        areas
       };
     });
     return { data: rules };
@@ -195,7 +198,8 @@ export async function saveTakeoffRuleToSupabase(
       items: fallbackSubitems,
       cableTrayMatrix: rule.cableTrayMatrix,
       detalle: rule.detalle,
-      tagPrefix: rule.tagPrefix
+      tagPrefix: rule.tagPrefix,
+      areas: rule.areas
     };
 
     const basePayload: any = {

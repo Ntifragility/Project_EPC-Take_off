@@ -1,7 +1,8 @@
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { AreaType } from '../../../shared/types/common';
-import { getDefaultTagPrefixByRule, getDefaultDetalleByRule } from '../../../entities/takeoff-rule/model/seedRules';
+import { getDefaultTagPrefixByRule, getDefaultDetalleByRule, getRuleCatalogDetalles } from '../../../entities/takeoff-rule/model/seedRules';
 import { getDetallesForArea, hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { detalleBelongsToArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 
 export interface RulePromptRequirements {
   isCableTray: boolean;
@@ -36,10 +37,16 @@ export function resolveRuleRequirements(rule: TakeoffRule, activeArea: AreaType)
   const isBarraInst = triggerUp.includes('BARRA INST');
 
   const defaultTagPrefix = rule.tagPrefix || getDefaultTagPrefixByRule(rule.trigger) || 'M';
-  const defaultDetalle = rule.detalle || getDefaultDetalleByRule(rule.trigger, activeArea) || '';
+  const storedDetalle = (rule.detalle || '').trim();
+  const defaultDetalle =
+    (storedDetalle && detalleBelongsToArea(storedDetalle, activeArea)
+      ? storedDetalle
+      : getDefaultDetalleByRule(rule.trigger, activeArea)) || '';
 
   const areaDetalleEntries = getDetallesForArea(activeArea);
-  const availableDetalles = areaDetalleEntries.map(([code]) => code);
+  const availableDetalles = isCable20
+    ? areaDetalleEntries.map(([code]) => code)
+    : getRuleCatalogDetalles(rule.trigger, activeArea, storedDetalle);
 
   let requiresSoportes = false;
   let requiresJumpers = false;

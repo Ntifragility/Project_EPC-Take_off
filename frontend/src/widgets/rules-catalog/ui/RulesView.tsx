@@ -16,6 +16,7 @@ import { Cable20RuleCard } from './Cable20RuleCard';
 import { BarraRuleCard } from './BarraRuleCard';
 import { CableTrayRuleCard } from './CableTrayRuleCard';
 import { GenericRuleCard } from './GenericRuleCard';
+import { detalleBelongsToArea, getCatalogForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 
 export const RulesView: React.FC = () => {
   const rules = useRulesStore(state => state.rules);
@@ -36,7 +37,11 @@ export const RulesView: React.FC = () => {
   };
 
   const handleSaveRule = (rule: TakeoffRule, isNewRule: boolean) => {
-    saveRule(rule, isNewRule, section);
+    const withArea: TakeoffRule =
+      isNewRule && !(rule.areas && rule.areas.length)
+        ? { ...rule, areas: [activeArea] }
+        : rule;
+    saveRule(withArea, isNewRule, section);
   };
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -58,6 +63,7 @@ export const RulesView: React.FC = () => {
 
   const areaDetalles = getDetallesForArea(activeArea);
   const currentAreaCodes: string[] = areaDetalles.map(([c]) => c);
+  const catalogRules = getCatalogForArea(rules, activeArea);
 
   const getDetalleItemsForCode = (
     code: string,
@@ -133,13 +139,13 @@ export const RulesView: React.FC = () => {
     });
   };
 
-  const allExpanded = rules.length > 0 && rules.every(r => expandedRules.has(r.id));
+  const allExpanded = catalogRules.length > 0 && catalogRules.every(r => expandedRules.has(r.id));
 
   const toggleAllExpand = () => {
     if (allExpanded) {
       setExpandedRules(new Set());
     } else {
-      setExpandedRules(new Set(rules.map(r => r.id)));
+      setExpandedRules(new Set(catalogRules.map(r => r.id)));
     }
   };
 
@@ -157,7 +163,7 @@ export const RulesView: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {rules.length > 0 && (
+          {catalogRules.length > 0 && (
             <button
               className="btn-ghost"
               onClick={toggleAllExpand}
@@ -180,14 +186,15 @@ export const RulesView: React.FC = () => {
         </div>
       </div>
 
-      {rules.length === 0 ? (
+      {catalogRules.length === 0 ? (
         <div className="empty">
           <div className="empty-icon">—</div>
-          <div className="empty-title">Sin reglas</div>
-          <div className="empty-sub">Crea tu primera regla para empezar</div>
+          <div className="empty-title">Sin reglas para esta área</div>
+          <div className="empty-sub">Crea una regla o cambia de área de trabajo</div>
         </div>
       ) : (
-        rules.map(r => {
+        <div className="rules-catalog">
+        {catalogRules.map(r => {
           const isExpanded = expandedRules.has(r.id);
 
           // CABLE DESNUDO 4/0 AWG in Area Humeda
@@ -227,6 +234,7 @@ export const RulesView: React.FC = () => {
                 key={r.id}
                 rule={r}
                 category="BARRA_POT"
+                activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
                 onEdit={handleOpenEdit}
@@ -243,6 +251,7 @@ export const RulesView: React.FC = () => {
                 key={r.id}
                 rule={r}
                 category="BARRA_INST"
+                activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
                 onEdit={handleOpenEdit}
@@ -285,7 +294,8 @@ export const RulesView: React.FC = () => {
               onDelete={handleDeleteRule}
             />
           );
-        })
+        })}
+        </div>
       )}
 
       <RuleEditorModal
@@ -315,7 +325,17 @@ export const RulesView: React.FC = () => {
           detalleCode={editingDetalle.code}
           category={editingDetalle.category}
           initialItems={editingDetalle.items}
-          availableCodes={currentAreaCodes}
+          availableCodes={
+            editingDetalle.category === 'BARRA_POT'
+              ? Object.keys(DYNAMIC_BARRA_POT_VARIANTS).filter(code =>
+                  detalleBelongsToArea(code, activeArea)
+                )
+              : editingDetalle.category === 'BARRA_INST'
+                ? Object.keys(DYNAMIC_BARRA_INST_VARIANTS).filter(code =>
+                    detalleBelongsToArea(code, activeArea)
+                  )
+                : currentAreaCodes
+          }
           onSelectDetalle={(newCode: string) => {
             const itemsForCode = getDetalleItemsForCode(newCode, editingDetalle.category);
             setEditingDetalle({

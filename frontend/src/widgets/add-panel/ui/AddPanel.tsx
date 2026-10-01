@@ -11,13 +11,14 @@ import { ExcelGuideModal } from '../../../features/import-excel/ui/ExcelGuideMod
 import { RuleTriggerModal } from '../../../features/apply-rule/ui/RuleTriggerModal';
 import { PartidasGuideModal } from '../../../features/manage-partidas/ui/PartidasGuideModal';
 import { getRuleInsertPreview } from '../../../entities/takeoff-rule/model/ruleInsertPreview';
+import { getCatalogForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 
 export interface AddPanelProps {
   onCollapseSidebar?: () => void;
 }
 
 export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
-  const { packages, selPkg, setSelPkg } = usePackagesStore();
+  const { selPkg } = usePackagesStore();
   const { rules } = useRulesStore();
   const {
     items,
@@ -58,9 +59,10 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
   const [qty, setQty] = useState<number>(1);
   const [unit, setUnit] = useState('UND');
 
+  const catalogRules = getCatalogForArea(rules, activeArea);
   const filteredRules = triggerQuery.trim()
-    ? rules.filter(r => r.trigger.toLowerCase().includes(triggerQuery.toLowerCase()))
-    : rules;
+    ? catalogRules.filter(r => r.trigger.toLowerCase().includes(triggerQuery.toLowerCase()))
+    : catalogRules;
 
   const getRuleSubtitle = (r: TakeoffRule): string => getRuleInsertPreview(r, activeArea);
 
@@ -220,39 +222,6 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
             />
           </div>
         </div>
-      </div>
-
-      {/* Package Selector */}
-      <div className="panel-section">
-        <div className="panel-section-hd">
-          <span className="panel-section-title">Paquete</span>
-          <button
-            type="button"
-            className="btn-ghost"
-            style={{ fontSize: '11px', padding: '2px 8px' }}
-            onClick={() => setTab('packages')}
-            title="Administrar / Agregar Partidas"
-          >
-            + Gestionar
-          </button>
-        </div>
-
-        <select
-          value={selPkg || ''}
-          onChange={e => setSelPkg(e.target.value)}
-          style={{
-            width: '100%',
-            fontSize: '12.5px',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          {packages.map(p => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Mode Switcher Pill */}

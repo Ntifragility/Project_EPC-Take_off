@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { usePackagesStore } from '../../../features/manage-packages/model/usePackagesStore';
 import { usePartidasStore } from '../../../features/manage-partidas/model/usePartidasStore';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
@@ -9,11 +8,6 @@ import { PartidaRecord } from '../../../entities/partida/model/types';
 import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
 
 export const PackagesView: React.FC = () => {
-  const packages = usePackagesStore(state => state.packages);
-  const addPackage = usePackagesStore(state => state.addPackage);
-  const updatePackage = usePackagesStore(state => state.updatePackage);
-  const deletePackage = usePackagesStore(state => state.deletePackage);
-
   const partidas = usePartidasStore(state => state.partidas);
   const updatePartida = usePartidasStore(state => state.updatePartida);
   const deletePartida = usePartidasStore(state => state.deletePartida);
@@ -22,29 +16,10 @@ export const PackagesView: React.FC = () => {
   const activeSection = useAppStore(state => state.section);
   const showToast = useUIStore(state => state.showToast);
 
-  const [newPkgName, setNewPkgName] = useState('');
-  const [editingPkgId, setEditingPkgId] = useState<string | null>(null);
-  const [editingPkgName, setEditingPkgName] = useState('');
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [editingPartidaId, setEditingPartidaId] = useState<string | null>(null);
   const [partidaDraft, setPartidaDraft] = useState<PartidaRecord | null>(null);
-
-  const handleAdd = () => {
-    if (!newPkgName.trim()) return;
-    addPackage(newPkgName, activeSection);
-    setNewPkgName('');
-  };
-
-  const handleStartEdit = (id: string, name: string) => {
-    setEditingPkgId(id);
-    setEditingPkgName(name);
-  };
-
-  const handleSaveEdit = (id: string) => {
-    updatePackage(id, editingPkgName, activeSection);
-    setEditingPkgId(null);
-  };
 
   const handleCorrelate = (list = partidas) => {
     correlateAll(list, activeArea, activeSection);
@@ -346,79 +321,6 @@ export const PackagesView: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
-
-      {/* Paquetes / Frentes Manuales */}
-      <div style={{ marginTop: '20px' }}>
-        <div style={{ fontWeight: 700, fontSize: '12px', color: 'var(--mu)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Agrupaciones y Frentes Locales
-        </div>
-        <div className="pkg-add-row">
-          <input
-            id="new-pkg-input"
-            type="text"
-            placeholder="Nombre de la agrupación / frente..."
-            value={newPkgName}
-            style={{ flex: 1, textTransform: 'uppercase' }}
-            onChange={e => setNewPkgName(e.target.value.toUpperCase())}
-            onKeyDown={e => {
-              if (e.key === 'Enter') handleAdd();
-            }}
-          />
-          <button className="btn-primary" onClick={handleAdd}>
-            + CREAR FRENTE
-          </button>
-        </div>
-
-        <div className="pkg-list">
-          {packages.length === 0 ? (
-            <div style={{ color: 'var(--mu)', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>
-              Sin frentes creados
-            </div>
-          ) : (
-            packages.map(p => (
-              <div className="pkg-item" key={p.id}>
-                <span className="pkg-item-icon" style={{ fontSize: '11px', color: 'var(--mu)', fontWeight: 600 }}>P</span>
-                {editingPkgId === p.id ? (
-                  <div className="pkg-edit-row">
-                    <input
-                      id="edit-pkg-input"
-                      type="text"
-                      value={editingPkgName}
-                      style={{ flex: 1, textTransform: 'uppercase' }}
-                      onChange={e => setEditingPkgName(e.target.value.toUpperCase())}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleSaveEdit(p.id);
-                        if (e.key === 'Escape') setEditingPkgId(null);
-                      }}
-                      autoFocus
-                    />
-                    <button className="btn-green" onClick={() => handleSaveEdit(p.id)}>
-                      OK
-                    </button>
-                    <button className="btn-icon" onClick={() => setEditingPkgId(null)}>
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <span className="pkg-item-name">{p.name}</span>
-                    <div className="pkg-item-acts">
-                      <IconActionGroup>
-                        <IconActionButton kind="edit" title="Editar frente" onClick={() => handleStartEdit(p.id, p.name)} />
-                        <IconActionButton
-                          kind="delete"
-                          title="Eliminar frente"
-                          onClick={() => deletePackage(p.id, activeSection)}
-                        />
-                      </IconActionGroup>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))
-          )}
-        </div>
       </div>
 
       {/* Partidas Guide & Upload Modal */}

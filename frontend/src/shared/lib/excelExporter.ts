@@ -61,7 +61,9 @@ export async function exportTakeoffExcel(items: TakeoffItem[], packages: Package
     headers,
     rows,
     widths,
-    fileName: finalFileName
+    fileName: finalFileName,
+    showRowStripes: false,
+    rowFills: items.map(it => (it.material === 'C' ? 'FFF0F8F4' : 'FFFFFFFF'))
   });
 }
 

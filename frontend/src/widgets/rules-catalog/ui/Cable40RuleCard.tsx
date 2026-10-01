@@ -1,6 +1,6 @@
 import React from 'react';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
-import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
+import { RuleCardShell } from './RuleCardShell';
 
 interface Cable40RuleCardProps {
   rule: TakeoffRule;
@@ -39,29 +39,16 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
   ];
 
   return (
-    <div className="rule-card" key={rule.id}>
-      <div className="rule-card-row">
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <div className="rule-trigger">{rule.trigger}</div>
-            <span style={{ background: 'var(--s2)', border: '1px solid var(--b1)', color: 'var(--tx)', fontSize: '11px', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, fontFamily: 'var(--mo)', marginRight: '90px' }}>
-              2 detalles
-            </span>
-          </div>
-
-          <div
-            onClick={onToggleExpand}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: '4px', cursor: 'pointer', userSelect: 'none', fontSize: '11px', fontFamily: 'var(--mo)', color: 'var(--tx)', margin: '8px 14px', transition: 'all 0.15s ease' }}
-            title="Haga clic para mostrar u ocultar"
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-              <span>{isExpanded ? '▼' : '▶'}</span>
-              <span>{isExpanded ? 'Ocultar' : 'Mostrar'}</span>
-            </span>
-          </div>
-
-          {isExpanded && (
-            <div style={{ margin: '12px 14px', overflowX: 'auto', border: '1px solid var(--b1)', borderRadius: '6px', background: 'var(--s2)' }}>
+    <RuleCardShell
+      trigger={rule.trigger}
+      preview={cable40Detalles.map(d => d.code)}
+      badge="2 detalles"
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
+      onEdit={() => onEdit(rule)}
+      onDelete={() => onDelete(rule.id)}
+    >
+            <div style={{ overflowX: 'auto', border: '1px solid var(--b1)', borderRadius: '4px', background: 'var(--s2)' }}>
               <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', fontFamily: 'var(--mo)', fontSize: '11px' }}>
                 <colgroup>
                   <col style={{ width: '90px' }} />
@@ -98,16 +85,6 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
-
-        <div className="rule-card-acts">
-          <IconActionGroup>
-            <IconActionButton kind="edit" title="Editar regla" onClick={() => onEdit(rule)} />
-            <IconActionButton kind="delete" title="Eliminar regla" onClick={() => onDelete(rule.id)} />
-          </IconActionGroup>
-        </div>
-      </div>
-    </div>
+    </RuleCardShell>
   );
 };

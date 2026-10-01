@@ -51,3 +51,48 @@ export function isSingleCell(a: CellRef, b: CellRef | null | undefined): boolean
   if (!b) return true;
   return a.itemId === b.itemId && a.colKey === b.colKey;
 }
+
+export interface RangeEdges {
+  top: boolean;
+  bottom: boolean;
+  left: boolean;
+  right: boolean;
+}
+
+/** Outer edges of a selected rectangle, so CSS can draw one grid outline. */
+export function rangeEdgesForCell(
+  rows: { id: string }[],
+  rangeKeys: Set<string>,
+  itemId: string,
+  colKey: string
+): RangeEdges | null {
+  if (!rangeKeys.has(cellKey(itemId, colKey))) return null;
+  const rowIdx = rows.findIndex(r => r.id === itemId);
+  const colIdx = SELECTABLE_COLS.indexOf(colKey as SelectableCol);
+  if (rowIdx < 0 || colIdx < 0) return null;
+
+  const prevRow = rowIdx > 0 ? rows[rowIdx - 1] : null;
+  const nextRow = rowIdx < rows.length - 1 ? rows[rowIdx + 1] : null;
+  const leftCol = colIdx > 0 ? SELECTABLE_COLS[colIdx - 1] : null;
+  const rightCol = colIdx < SELECTABLE_COLS.length - 1 ? SELECTABLE_COLS[colIdx + 1] : null;
+
+  return {
+    top: !prevRow || !rangeKeys.has(cellKey(prevRow.id, colKey)),
+    bottom: !nextRow || !rangeKeys.has(cellKey(nextRow.id, colKey)),
+    left: !leftCol || !rangeKeys.has(cellKey(itemId, leftCol)),
+    right: !rightCol || !rangeKeys.has(cellKey(itemId, rightCol))
+  };
+}
+
+export function rangeEdgesByCol(
+  rows: { id: string }[],
+  rangeKeys: Set<string>,
+  itemId: string
+): Record<string, RangeEdges> {
+  const out: Record<string, RangeEdges> = {};
+  for (const col of SELECTABLE_COLS) {
+    const edges = rangeEdgesForCell(rows, rangeKeys, itemId, col);
+    if (edges) out[col] = edges;
+  }
+  return out;
+}

@@ -141,13 +141,13 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
           )}
 
           {/* DETALLE CONSTRUCTIVO SELECTION */}
-          {req.isSoldadura40_20 && (
+          {req.isSoldadura40_20 && req.availableDetalles.length > 0 && (
             <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO:
               </label>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
-                {['008/4T2', '167/X2'].map(d => (
+                {req.availableDetalles.map(d => (
                   <button
                     key={d}
                     type="button"
@@ -155,20 +155,20 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                     className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
                     style={{ flex: 1, padding: '0.5rem' }}
                   >
-                    {d} {d === '008/4T2' ? '(Área Húmeda)' : '(Área Seca)'}
+                    {d}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {req.isSoldadura40 && (
+          {req.isSoldadura40 && req.availableDetalles.length > 0 && (
             <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO:
               </label>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
-                {['008/4T1', '167/X1'].map(d => (
+                {req.availableDetalles.map(d => (
                   <button
                     key={d}
                     type="button"
@@ -176,20 +176,20 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                     className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
                     style={{ flex: 1, padding: '0.5rem' }}
                   >
-                    {d} {d === '008/4T1' ? '(Área Húmeda)' : '(Área Seca)'}
+                    {d}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {req.isCable40 && (
+          {req.isCable40 && req.availableDetalles.length > 0 && (
             <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO:
               </label>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
-                {['008/3A', '008/3B', '167/G1'].map(d => (
+                {req.availableDetalles.map(d => (
                   <button
                     key={d}
                     type="button"
@@ -251,13 +251,13 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             </div>
           )}
 
-          {(req.isBarraPot || req.isBarraInst) && (
+          {(req.isBarraPot || req.isBarraInst) && req.availableDetalles.length > 0 && (
             <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
                 DETALLE CONSTRUCTIVO:
               </label>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
-                {(req.isBarraPot ? ['010/17A', '010/17B', '166A'] : ['010/17C', '010/17D', '166C']).map(d => (
+                {req.availableDetalles.map(d => (
                   <button
                     key={d}
                     type="button"

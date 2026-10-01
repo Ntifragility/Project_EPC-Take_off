@@ -5,7 +5,8 @@ import {
   shouldAutoManageTuberia,
   DetalleVariantItem
 } from '../../../entities/takeoff-rule/model/detalleVariants';
-import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
+import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { RuleCardShell } from './RuleCardShell';
 
 interface Cable20RuleCardProps {
   rule: TakeoffRule;
@@ -29,66 +30,18 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   const areaDetalles = getDetallesForArea(activeArea);
 
   return (
-    <div className="rule-card" key={rule.id}>
-      <div className="rule-card-row">
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '6px'
-            }}
-          >
-            <div className="rule-trigger">{rule.trigger}</div>
-            <span
-              style={{
-                background: 'var(--s2)',
-                border: '1px solid var(--b1)',
-                color: 'var(--tx)',
-                fontSize: '11px',
-                padding: '3px 8px',
-                borderRadius: '4px',
-                fontWeight: 700,
-                fontFamily: 'var(--mo)',
-                marginRight: '90px'
-              }}
-            >
-              {areaDetalles.length} detalles
-            </span>
-          </div>
-
-          {/* Foldable Row / Banner */}
-          <div
-            onClick={onToggleExpand}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 12px',
-              background: 'var(--s2)',
-              border: '1px solid var(--b1)',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              userSelect: 'none',
-              fontSize: '11px',
-              fontFamily: 'var(--mo)',
-              color: 'var(--tx)',
-              margin: '8px 14px 8px 14px',
-              transition: 'all 0.15s ease'
-            }}
-            title="Haga clic para mostrar u ocultar"
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-              <span>{isExpanded ? '▼' : '▶'}</span>
-              <span>{isExpanded ? 'Ocultar' : 'Mostrar'}</span>
-            </span>
-          </div>
-
-          {isExpanded && (
+    <RuleCardShell
+      trigger={rule.trigger}
+      preview={areaDetalles.map(([code]) => code)}
+      badge={`${areaDetalles.length} detalles`}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
+      onEdit={() => onEdit(rule)}
+      onDelete={() => onDelete(rule.id)}
+    >
+            <>
             <div
               style={{
-                margin: '12px 14px',
                 overflowX: 'auto',
                 WebkitOverflowScrolling: 'touch',
                 border: '1px solid var(--b1)',
@@ -293,7 +246,6 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                 </tbody>
               </table>
             </div>
-          )}
 
           {activeArea === 'AREA SECA' && (
             <>
@@ -329,15 +281,7 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
               </div>
             </>
           )}
-        </div>
-
-        <div className="rule-card-acts">
-          <IconActionGroup>
-            <IconActionButton kind="edit" title="Editar regla" onClick={() => onEdit(rule)} />
-            <IconActionButton kind="delete" title="Eliminar regla" onClick={() => onDelete(rule.id)} />
-          </IconActionGroup>
-        </div>
-      </div>
-    </div>
+            </>
+    </RuleCardShell>
   );
 };

@@ -51,10 +51,15 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
   const showSoportes = isR2 && hasSoporteItems(detalle, activeArea);
   const showJumpers = isR2 && hasJumperItems(detalle, activeArea);
   const availableDetalles = getDetallesForArea(activeArea).map(([code]) => code);
+  const detalleOptions =
+    detalle && !availableDetalles.includes(detalle) ? [detalle, ...availableDetalles] : availableDetalles;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!item) return;
+    if (item.material !== 'P') {
+      return;
+    }
 
     const applied = updateItem(
       item.id,
@@ -144,7 +149,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
                   onChange={e => setDetalle(e.target.value)}
                 >
                   <option value="">(Sin Detalle)</option>
-                  {availableDetalles.map(d => (
+                  {detalleOptions.map(d => (
                     <option key={d} value={d}>
                       {d}
                     </option>

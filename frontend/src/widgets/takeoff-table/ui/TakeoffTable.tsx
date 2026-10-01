@@ -10,7 +10,7 @@ import {
   fitWidthsToPane
 } from './columnWidths';
 import { COLUMN_LABELS, uniqueColumnValues } from '../model/columnValue';
-import { SELECTABLE_COLS, cellKey, cellsInRect, isSingleCell, type CellRef } from '../model/cellRange';
+import { SELECTABLE_COLS, cellKey, cellsInRect, isSingleCell, rangeEdgesByCol, type CellRef } from '../model/cellRange';
 import { isDetalleTriggerRow } from '../../../entities/takeoff-rule/model/instanceRebuild';
 import { mergeItemsByDetalle } from '../../../entities/takeoff-item/model/itemAggregation';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
@@ -35,7 +35,6 @@ function idsInFillRange(
   const start = Math.min(sourceIdx, targetIdx);
   const end = Math.max(sourceIdx, targetIdx);
   const slice = rows.slice(start, end + 1).filter(it => it.id !== sourceId);
-  if (colKey === 'plano') return slice.map(i => i.id);
   if (colKey === 'detalle') return slice.filter(it => isDetalleTriggerRow(it, rows)).map(i => i.id);
   return slice.filter(it => it.material === 'P').map(i => i.id);
 }
@@ -270,9 +269,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         sectionRef.current
       );
       if (applied && session.colKey !== 'detalle') {
-        const noun = session.colKey === 'plano' ? 'fila(s)' : 'ítem(s) principal(es)';
         showToastRef.current(
-          `Copiado "${session.sourceValue ?? ''}" a ${session.targetItemIds.length} ${noun}`,
+          `Copiado "${session.sourceValue ?? ''}" a ${session.targetItemIds.length} ítem(s) principal(es)`,
           'info'
         );
       }
@@ -450,6 +448,11 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         showToast('La descripción no puede estar vacía', 'warn');
         return;
       }
+    }
+    const row = allItems.find(it => it.id === itemId);
+    if (row && row.material !== 'P') {
+      showToast('Solo se editan ítems principales (P). Los consumibles se actualizan desde el P.', 'warn');
+      return;
     }
     if (colKey === 'plano' || colKey === 'rev') {
       parsedVal = String(newValue).toUpperCase().trim();
@@ -671,6 +674,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                 const isEditingThisRow = editingCell?.itemId === item.id;
                 const isTargetRow = dragFill.isDragging && dragFill.targetItemIds.includes(item.id);
                 const rowSelectedCols = SELECTABLE_COLS.filter(c => rangeKeys.has(cellKey(item.id, c)));
+                const rowRangeEdges = rangeEdgesByCol(visibleItems, rangeKeys, item.id);
 
                 return (
                   <TakeoffRow
@@ -683,6 +687,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
                     onCancelEdit={() => setEditingItemId(null)}
                     selectedColKey={isActiveRow ? selectedCell?.colKey : isTargetRow ? dragFill.colKey : null}
                     selectedColKeys={rowSelectedCols}
+                    rangeEdgesByCol={rowRangeEdges}
                     editingColKey={isEditingThisRow ? editingCell?.colKey : null}
                     isFillTarget={isTargetRow}
                     showFillHandle={rangeIsSingle && !dragFill.isDragging}
