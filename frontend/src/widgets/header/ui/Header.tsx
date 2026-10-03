@@ -5,6 +5,7 @@ import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { isSupabaseConfigured } from '../../../shared/api/supabase';
 import { executeSyncToDatabase } from '../../../features/sync-cloud/model/useCloudSync';
 import { ToolsPanel } from '../../actions-drawer/ui/ActionsDrawer';
+import { useBductoStore } from '../../../features/generate-bducto/model/useBductoStore';
 
 export interface HeaderProps {
   onOpenSummaryModal: () => void;
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { section, tab, theme, activeArea, setSection, setTab, toggleTheme } = useAppStore();
   const { items } = useItemsStore();
+  const bductoRows = useBductoStore(state => state.rows);
   const { isSyncing } = useUIStore();
 
   const hasSupabase = isSupabaseConfigured();
@@ -77,6 +79,12 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setTab('takeoff')}
           >
             METRADO
+          </button>
+          <button
+            className={`nav-tab ${tab === 'bductos' ? 'active' : ''}`}
+            onClick={() => setTab('bductos')}
+          >
+            BDUCTOS
           </button>
           <button
             className={`nav-tab ${tab === 'rules' ? 'active' : ''}`}
@@ -144,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({
           }}
           id="item-count"
         >
-          {items.length} ítems
+          {tab === 'bductos' ? bductoRows.length : items.length} ítems
         </span>
 
         <ToolsPanel />

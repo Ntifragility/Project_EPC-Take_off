@@ -1,0 +1,138 @@
+.bducto-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.bducto-entry,
+.bducto-card {
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  padding: 12px 14px;
+}
+
+.bducto-entry h2,
+.bducto-card h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bducto-form,
+.bducto-prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bducto-form label,
+.bducto-prompt label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mu);
+}
+
+.bducto-form input,
+.bducto-prompt input,
+.bducto-paste textarea,
+.bducto-mini input {
+  font-family: var(--mo);
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--b1);
+  background: var(--s1);
+  color: var(--tx);
+  width: 100%;
+}
+
+.bducto-actions,
+.bducto-elev-hd {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.bducto-paste {
+  margin-top: 12px;
+}
+
+.bducto-paste textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.bducto-error {
+  color: var(--rd);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.bducto-preview {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--tx);
+}
+
+.bducto-mini {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+.bducto-mini th,
+.bducto-mini td {
+  border-bottom: 1px solid var(--b1);
+  padding: 4px 6px;
+  text-align: left;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.bducto-mini th {
+  font-size: 11px;
+  color: var(--mu);
+}
+
+.bducto-prompt h3 {
+  margin: 8px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bducto-mini input {
+  max-width: 110px;
+}
+
+.bducto-sources {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bducto-sources th,
+.bducto-sources td {
+  border-bottom: 1px solid var(--b1);
+  padding: 6px 8px;
+  font-size: 12px;
+  text-align: left;
+  font-family: var(--mo);
+}
+
+.bducto-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .bducto-form,
+  .bducto-prompt-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

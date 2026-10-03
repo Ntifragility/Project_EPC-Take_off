@@ -3,6 +3,7 @@ import { useAppStore } from '../features/app-config/model/useAppStore';
 import { loadInitialCloudConfig } from '../features/sync-cloud/model/useCloudSync';
 import { Header } from '../widgets/header/ui/Header';
 import { TakeoffPage } from '../pages/takeoff/ui/TakeoffPage';
+import { BductosPage } from '../features/generate-bducto/ui/BductosPage';
 import { RulesPage } from '../pages/rules/ui/RulesPage';
 import { PackagesPage } from '../pages/packages/ui/PackagesPage';
 import { ModalsHost } from '../widgets/modals-host/ui/ModalsHost';
@@ -34,6 +35,7 @@ export const App: React.FC = () => {
 
       <main className="main" id="main-content">
         {tab === 'takeoff' && <TakeoffPage />}
+        {tab === 'bductos' && <BductosPage />}
         {tab === 'rules' && <RulesPage />}
         {tab === 'packages' && <PackagesPage />}
       </main>
