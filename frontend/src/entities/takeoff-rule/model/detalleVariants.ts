@@ -351,6 +351,13 @@ export const BARRA_POT_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = 
       metradoOt: '4'
     },
     {
+      desc: 'PERNO DE CABEZA HEXAGONAL 3/8"X1" DE ACERO INOXIDABLE, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
+      qty: 4,
+      unit: 'u / cjto',
+      material: 'C',
+      metradoOt: '4'
+    },
+    {
       desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
       qty: 2,
       unit: 'u / soporte',
@@ -409,6 +416,13 @@ export const BARRA_INST_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> =
       metradoOt: '4'
     },
     {
+      desc: 'PERNO DE CABEZA HEXAGONAL 3/8"X1" DE ACERO INOXIDABLE, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
+      qty: 4,
+      unit: 'u / cjto',
+      material: 'C',
+      metradoOt: '4'
+    },
+    {
       desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
       qty: 2,
       unit: 'u / soporte',
@@ -436,6 +450,7 @@ export const R2_SWAPPABLE: string[] = [
   'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY',
   'AISLADOR DE RESINA TIPO BARRIL',
   'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE',
+  'PERNO DE CABEZA HEXAGONAL 3/8"X1" DE ACERO INOXIDABLE, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
   'PERNO 3/8"X1" DE ACERO INOXIDABLE 316 CON ARANDELA PLANA Y UNA DE PRESIÓN',
   'BARRA DE COBRE CON AGUJEROS 11mm, SIN AISLADORES TIPO CB14412 THERMOWELD O SIMILAR',
   'RIEL UNISTRUT ACERO GALVANIZADO 41X41X2.7mm. L= 1metro',
@@ -475,10 +490,53 @@ export function renameCable20RielDesc(desc: string): string {
   return (desc || '').trim() === OLD_CABLE20_RIEL ? NEW_CABLE20_RIEL : desc;
 }
 
+export const ANCLAJE_DESC = 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE';
+export const ANCLAJE_PERNO_DESC =
+  'PERNO DE CABEZA HEXAGONAL 3/8"X1" DE ACERO INOXIDABLE, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN';
+
+export function ensureAnclajePerno(items: any[]): any[] {
+  if (!Array.isArray(items)) return items;
+  const hasAnclaje = items.some(it => (it.desc || '').trim() === ANCLAJE_DESC);
+  const hasPerno = items.some(it => (it.desc || '').trim() === ANCLAJE_PERNO_DESC);
+  if (!hasAnclaje || hasPerno) return items;
+  const out: any[] = [];
+  for (const it of items) {
+    out.push(it);
+    if ((it.desc || '').trim() === ANCLAJE_DESC) {
+      const qty = typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 4;
+      if ('metradoOt' in it || !('ot' in it)) {
+        out.push({
+          desc: ANCLAJE_PERNO_DESC,
+          qty,
+          unit: 'u / cjto',
+          material: it.material || 'C',
+          metradoOt: String((it as any).metradoOt ?? qty)
+        });
+      } else {
+        out.push({
+          desc: ANCLAJE_PERNO_DESC,
+          qty,
+          unit: 'u / cjto',
+          ot: (it as any).ot ?? qty,
+          material: (it as any).material || 'C'
+        });
+      }
+    }
+  }
+  return out;
+}
+
 export const DYNAMIC_DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVariantItem[]>> = JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_AREA));
 export const DYNAMIC_DETALLE_VARIANTS: Record<string, DetalleVariantItem[]> = JSON.parse(JSON.stringify(DETALLE_VARIANTS));
 export const DYNAMIC_BARRA_POT_VARIANTS: Record<string, any[]> = JSON.parse(JSON.stringify(BARRA_POT_VARIANTS_HUMEDA));
 export const DYNAMIC_BARRA_INST_VARIANTS: Record<string, any[]> = JSON.parse(JSON.stringify(BARRA_INST_VARIANTS_HUMEDA));
+
+Object.keys(DYNAMIC_BARRA_POT_VARIANTS).forEach(key => {
+  DYNAMIC_BARRA_POT_VARIANTS[key] = ensureAnclajePerno(DYNAMIC_BARRA_POT_VARIANTS[key]);
+});
+Object.keys(DYNAMIC_BARRA_INST_VARIANTS).forEach(key => {
+  DYNAMIC_BARRA_INST_VARIANTS[key] = ensureAnclajePerno(DYNAMIC_BARRA_INST_VARIANTS[key]);
+});
 
 export function updateDynamicVariants(dbRecords: any[]) {
   const newByArea: Record<string, Record<string, DetalleVariantItem[]>> = {
@@ -503,21 +561,25 @@ export function updateDynamicVariants(dbRecords: any[]) {
       if (!newByArea[areaKey]) newByArea[areaKey] = {};
       newByArea[areaKey][rec.detalle_code] = itemsMapped;
     } else if (rec.category === 'BARRA_POT') {
-      newPot[rec.detalle_code] = itemsMapped.map((it: any) => ({
-        desc: it.desc,
-        qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
-        unit: it.unit,
-        material: it.material || 'C',
-        metradoOt: it.ot !== undefined ? String(it.ot) : '1'
-      }));
+      newPot[rec.detalle_code] = ensureAnclajePerno(
+        itemsMapped.map((it: any) => ({
+          desc: it.desc,
+          qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
+          unit: it.unit,
+          material: it.material || 'C',
+          metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+        }))
+      );
     } else if (rec.category === 'BARRA_INST') {
-      newInst[rec.detalle_code] = itemsMapped.map((it: any) => ({
-        desc: it.desc,
-        qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
-        unit: it.unit,
-        material: it.material || 'C',
-        metradoOt: it.ot !== undefined ? String(it.ot) : '1'
-      }));
+      newInst[rec.detalle_code] = ensureAnclajePerno(
+        itemsMapped.map((it: any) => ({
+          desc: it.desc,
+          qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
+          unit: it.unit,
+          material: it.material || 'C',
+          metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+        }))
+      );
     }
   });
 
@@ -561,21 +623,25 @@ export function updateSingleDynamicVariant(
     if (detalleCode === '008/05') DYNAMIC_DETALLE_VARIANTS['008/5'] = items;
     if (detalleCode === 'ND') DYNAMIC_DETALLE_VARIANTS['N/D'] = items;
   } else if (category === 'BARRA_POT') {
-    DYNAMIC_BARRA_POT_VARIANTS[detalleCode] = items.map((it: any) => ({
-      desc: it.desc,
-      qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
-      unit: it.unit,
-      material: it.material || 'C',
-      metradoOt: it.ot !== undefined ? String(it.ot) : '1'
-    }));
+    DYNAMIC_BARRA_POT_VARIANTS[detalleCode] = ensureAnclajePerno(
+      items.map((it: any) => ({
+        desc: it.desc,
+        qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
+        unit: it.unit,
+        material: it.material || 'C',
+        metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+      }))
+    );
   } else if (category === 'BARRA_INST') {
-    DYNAMIC_BARRA_INST_VARIANTS[detalleCode] = items.map((it: any) => ({
-      desc: it.desc,
-      qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
-      unit: it.unit,
-      material: it.material || 'C',
-      metradoOt: it.ot !== undefined ? String(it.ot) : '1'
-    }));
+    DYNAMIC_BARRA_INST_VARIANTS[detalleCode] = ensureAnclajePerno(
+      items.map((it: any) => ({
+        desc: it.desc,
+        qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
+        unit: it.unit,
+        material: it.material || 'C',
+        metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+      }))
+    );
   }
 }
 

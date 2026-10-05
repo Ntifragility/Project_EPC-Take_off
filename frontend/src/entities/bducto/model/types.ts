@@ -16,6 +16,11 @@ export interface BductoSource {
   plano: string;
   tagEnPlano: string;
   quantity: number;
+  /** Filled when the tramo comes from the Excel list. */
+  desde?: string;
+  hasta?: string;
+  /** Last answers used to generate this tramo. Restored by Atrás and Editar. */
+  prompt?: BductoPrompt;
 }
 
 export interface CurveChoice {
@@ -33,7 +38,11 @@ export interface BductoPrompt {
   desde: string;
   hasta: string;
   terminalCount: number;
+  /** Pieces of UNION PVC SCH 40. Defaults to the vía count. */
+  unionCount: number;
   adaptadorCount: number;
+  /** Tramo length in meters. Defaults to the uploaded Quantity. */
+  quantity?: number;
   curves: CurveChoice[];
   elevations: ElevationLine[];
 }
@@ -58,6 +67,8 @@ export interface BductoRow {
   metrado: number;
   und: BductoUnit;
   kind: BductoKind;
+  /** VERTICAL on elevation rows. Empty on the rest. */
+  comentario: string;
 }
 
 export interface ParsedBducto {

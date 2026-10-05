@@ -6,7 +6,9 @@ import {
   conduitDescription,
   curveDescription,
   curveDiametro,
-  CURVE_CATALOG,
+  curvesForDiameter,
+  getCurveCatalog,
+  isRightAngleCurve,
   terminalDescription,
   terminalDiametro,
   unionDescription,
@@ -61,17 +63,25 @@ function normalizeDiameter(raw: string): string {
   return raw.trim().replace(/[″”]/g, '"').replace(/\s+/g, ' ');
 }
 
+/** BD.A.1 keeps section A. E.1 keeps section E. */
+function sectionFromBank(bankId: string): string | null {
+  const banco = bankId.match(/^BD\.(.+)\.(\d+)$/);
+  if (banco?.[1]) return banco[1];
+  const plain = bankId.match(/^([A-Z]+)\.(\d+)$/);
+  return plain?.[1] ?? null;
+}
+
 export function parseTagEnPlano(
   tagEnPlano: string
 ): { vias: number; diameter: string; bankId: string; section: string } | null {
   const match = tagEnPlano
     .trim()
-    .match(/^(\d+)\s+VIAS\s*,\s*(.+?)\s*,\s*(BD\.(.+)\.(\d+))\s*$/i);
+    .match(/^(\d+)\s+VIAS?\s*,\s*(.+?)\s*,\s*([A-Z0-9]+(?:\.[A-Z0-9]+)*)\s*$/i);
   if (!match) return null;
   const vias = Number(match[1]);
   const diameter = normalizeDiameter(match[2]);
   const bankId = match[3].toUpperCase();
-  const section = match[4].toUpperCase();
+  const section = sectionFromBank(bankId);
   if (!Number.isFinite(vias) || vias <= 0 || !diameter || !section) return null;
   return { vias, diameter, bankId, section };
 }
@@ -86,7 +96,7 @@ export function parseBductoSource(source: Pick<BductoSource, 'plano' | 'tagEnPla
   }
   const tag = parseTagEnPlano(source.tagEnPlano);
   if (!tag) {
-    return 'El tag debe tener la forma 12 VIAS, 6", BD.K.1.';
+    return 'El tag debe tener la forma 1 VIA, 2", BD.A.1 o 2 VIAS, 2", E.1.';
   }
   return {
     ...tag,
@@ -129,6 +139,13 @@ export function expandBducto(
   const parsed = parseBductoSource(source);
   if (typeof parsed === 'string') return { ok: false, error: parsed };
 
+  const lengthM =
+    typeof prompt.quantity === 'number' && Number.isFinite(prompt.quantity)
+      ? round2(prompt.quantity)
+      : round2(source.quantity);
+  if (lengthM <= 0) return { ok: false, error: 'La longitud debe ser mayor que 0.' };
+  const sticks = splitSticks(lengthM);
+
   const desde = prompt.desde.trim().toUpperCase();
   const hasta = prompt.hasta.trim().toUpperCase();
   const plano = source.plano.trim().toUpperCase();
@@ -144,7 +161,8 @@ export function expandBducto(
     rev: '',
     seccion: parsed.section,
     desde,
-    hasta
+    hasta,
+    comentario: ''
   };
 
   const rows: BductoRow[] = [];
@@ -167,32 +185,15 @@ export function expandBducto(
       cantXd,
       metrado: round2(longitudM * cantXd),
       und: 'm',
-      kind
+      kind,
+      comentario: kind === 'elevation' ? 'VERTICAL' : ''
     });
     if (tagged) piece += 1;
   };
 
-  for (const length of parsed.sticks) {
+  for (const length of sticks) {
     pushMeasured('conduit', conduitDescription(parsed.diameter), parsed.diameter, length, parsed.vias, true);
   }
-
-  for (const line of prompt.elevations) {
-    const length = round2(line.lengthM);
-    const quantity = Math.round(line.quantity);
-    if (length <= 0 || quantity <= 0) continue;
-    pushMeasured('elevation', conduitDescription(parsed.diameter), parsed.diameter, length, quantity, true);
-  }
-
-  for (const choice of prompt.curves) {
-    const quantity = Math.round(choice.quantity);
-    const length = round2(choice.lengthM);
-    if (quantity <= 0 || length <= 0) continue;
-    const catalogItem = CURVE_CATALOG.find(item => item.id === choice.catalogId);
-    if (!catalogItem || catalogItem.diameter !== parsed.diameter) continue;
-    pushMeasured('curve', curveDescription(catalogItem), curveDiametro(catalogItem), length, quantity, true);
-  }
-
-  pushMeasured('cinta', CINTA_DESCRIPTION, CINTA_DIAMETRO, round2(source.quantity), 1, false);
 
   const terminalCount = Math.round(prompt.terminalCount);
   if (terminalCount > 0) {
@@ -211,23 +212,37 @@ export function expandBducto(
     );
   }
 
-  if (parsed.unionsPerVia > 0) {
-    rows.push({
-      id: newId(),
-      ...shared,
-      tagUnico: '',
-      descripcion: unionDescription(parsed.diameter),
-      diametro: unionDiametro(parsed.diameter),
-      longitudM: parsed.unionsPerVia,
-      cantXd: parsed.vias,
-      metrado: parsed.unionsPerVia * parsed.vias,
-      und: 'und',
-      kind: 'union'
-    });
+  const unionCount = Math.round(prompt.unionCount);
+  if (unionCount > 0) {
+    rows.push(
+      countedAccessory(
+        {
+          id: newId(),
+          ...shared,
+          tagUnico: '',
+          descripcion: unionDescription(parsed.diameter),
+          diametro: unionDiametro(parsed.diameter),
+          kind: 'union'
+        },
+        unionCount
+      )
+    );
   }
 
+  for (const line of prompt.elevations) {
+    const length = round2(line.lengthM);
+    const quantity = Math.round(line.quantity);
+    if (length <= 0 || quantity <= 0) continue;
+    pushMeasured('elevation', conduitDescription(parsed.diameter), parsed.diameter, length, quantity, true);
+  }
+
+  const usesRightAngle = prompt.curves.some(choice => {
+    if (Math.round(choice.quantity) <= 0) return false;
+    const item = getCurveCatalog().find(curve => curve.id === choice.catalogId);
+    return Boolean(item && item.diameter === parsed.diameter && isRightAngleCurve(item));
+  });
   const adaptadorCount = Math.round(prompt.adaptadorCount);
-  if (adaptadorCount > 0) {
+  if (usesRightAngle && adaptadorCount > 0) {
     rows.push(
       countedAccessory(
         {
@@ -243,6 +258,20 @@ export function expandBducto(
     );
   }
 
+  for (const choice of prompt.curves) {
+    const quantity = Math.round(choice.quantity);
+    const length = round2(choice.lengthM);
+    if (quantity <= 0 || length <= 0) continue;
+    const catalogItem = getCurveCatalog().find(item => item.id === choice.catalogId);
+    if (!catalogItem || catalogItem.diameter !== parsed.diameter) continue;
+    pushMeasured('curve', curveDescription(catalogItem), curveDiametro(catalogItem), length, quantity, true);
+  }
+
+  pushMeasured('cinta', CINTA_DESCRIPTION, CINTA_DIAMETRO, lengthM, 1, false);
+
+  // #region agent log
+  fetch('http://127.0.0.1:7553/ingest/a68ab0cd-10e6-497e-8979-86720b62c569',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b40dbc'},body:JSON.stringify({sessionId:'b40dbc',location:'expandBducto.ts:return',message:'row comments',data:{kinds:rows.map(row=>row.kind),comments:rows.map(row=>row.comentario),zeroElevations:prompt.elevations.filter(line=>line.lengthM<=0||line.quantity<=0).length},timestamp:Date.now(),hypothesisId:'B',runId:'post-fix'})}).catch(()=>{});
+  // #endregion
   return { ok: true, parsed, rows };
 }
 
@@ -276,6 +305,113 @@ export function parseSourceBlock(text: string): { rows: Array<Omit<BductoSource,
   });
 
   return { rows, errors };
+}
+
+function headerName(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Reads a sheet laid out as DESDE | HASTA | PLANO | TAG EN PLANO | Quantity.
+ * DESDE and HASTA are optional columns. The header row can sit below a title.
+ */
+export function parseBductoSheet(matrix: unknown[][]): { rows: Array<Omit<BductoSource, 'id'>>; errors: string[] } {
+  const rows: Array<Omit<BductoSource, 'id'>> = [];
+  const errors: string[] = [];
+  let headerIdx = -1;
+  const cols = { desde: -1, hasta: -1, plano: -1, tag: -1, qty: -1 };
+
+  for (let r = 0; r < Math.min(matrix.length, 20); r++) {
+    const line = matrix[r] || [];
+    const found = { desde: -1, hasta: -1, plano: -1, tag: -1, qty: -1 };
+    line.forEach((cell, index) => {
+      const name = headerName(cell);
+      if (name === 'DESDE') found.desde = index;
+      else if (name === 'HASTA') found.hasta = index;
+      else if (name === 'PLANO') found.plano = index;
+      else if (name === 'TAG EN PLANO' || name === 'TAG') found.tag = index;
+      else if (name === 'QUANTITY' || name === 'CANTIDAD' || name === 'LONGITUD' || name === 'LONGITUD (M)') found.qty = index;
+    });
+    if (found.plano >= 0 && found.tag >= 0 && found.qty >= 0) {
+      headerIdx = r;
+      Object.assign(cols, found);
+      break;
+    }
+  }
+
+  if (headerIdx < 0) {
+    return { rows, errors: ['No encontré las columnas PLANO, TAG EN PLANO y Quantity.'] };
+  }
+
+  for (let r = headerIdx + 1; r < matrix.length; r++) {
+    const line = matrix[r] || [];
+    const plano = String(line[cols.plano] ?? '').trim();
+    const tagEnPlano = String(line[cols.tag] ?? '').trim();
+    const qtyRaw = line[cols.qty];
+    const desde = cols.desde >= 0 ? String(line[cols.desde] ?? '').trim() : '';
+    const hasta = cols.hasta >= 0 ? String(line[cols.hasta] ?? '').trim() : '';
+    if (!plano && !tagEnPlano && (qtyRaw === '' || qtyRaw == null) && !desde && !hasta) continue;
+
+    const quantity = typeof qtyRaw === 'number' ? qtyRaw : Number(String(qtyRaw ?? '').replace(',', '.'));
+    const candidate = { plano, tagEnPlano, quantity };
+    const parsed = parseBductoSource(candidate);
+    if (typeof parsed === 'string') {
+      errors.push(`Fila ${r + 1}: ${parsed}`);
+      continue;
+    }
+    rows.push({
+      plano: plano.toUpperCase(),
+      tagEnPlano: tagEnPlano.toUpperCase().replace(/\s+/g, ' '),
+      quantity: round2(quantity),
+      desde: desde.toUpperCase(),
+      hasta: hasta.toUpperCase()
+    });
+  }
+
+  if (rows.length === 0 && errors.length === 0) {
+    errors.push('El Excel no tiene tramos.');
+  }
+  return { rows, errors };
+}
+
+/** Rebuilds the prompt from generated rows when the tramo was saved before prompts were stored. */
+export function promptFromRows(source: BductoSource, rows: BductoRow[]): BductoPrompt | null {
+  const own = rows.filter(row => row.sourceId === source.id);
+  if (own.length === 0) return null;
+  const parsed = parseBductoSource(source);
+  if (typeof parsed === 'string') return null;
+
+  const countOf = (kind: BductoRow['kind']) => own.find(row => row.kind === kind)?.cantXd ?? 0;
+  const curves = curvesForDiameter(parsed.diameter).map(item => {
+    const description = curveDescription(item);
+    const row = own.find(candidate => candidate.kind === 'curve' && candidate.descripcion === description);
+    return {
+      catalogId: item.id,
+      lengthM: row ? row.longitudM : item.lengthM,
+      quantity: row ? row.cantXd : 0
+    };
+  });
+  const elevations = own
+    .filter(row => row.kind === 'elevation')
+    .map(row => ({ lengthM: row.longitudM, quantity: row.cantXd }));
+  const first = own[0];
+
+  const cinta = own.find(row => row.kind === 'cinta');
+  return {
+    desde: source.desde || first.desde || '',
+    hasta: source.hasta || first.hasta || '',
+    quantity: cinta ? cinta.longitudM : source.quantity,
+    terminalCount: countOf('terminal'),
+    unionCount: countOf('union'),
+    adaptadorCount: countOf('adaptador'),
+    curves,
+    elevations: elevations.length > 0 ? elevations : [{ lengthM: 0, quantity: 0 }]
+  };
 }
 
 function splitColumns(line: string): string[] {
