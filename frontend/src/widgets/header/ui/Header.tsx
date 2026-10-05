@@ -3,8 +3,10 @@ import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { isSupabaseConfigured } from '../../../shared/api/supabase';
-import { executeSyncToDatabase } from '../../../features/sync-cloud/model/useCloudSync';
+import { executeSyncBductosToDatabase, executeSyncToDatabase } from '../../../features/sync-cloud/model/useCloudSync';
 import { ToolsPanel } from '../../actions-drawer/ui/ActionsDrawer';
+import { useBductoStore } from '../../../features/generate-bducto/model/useBductoStore';
+import { rememberRestoreAnchor, RESTORE_BUTTON_ID } from '../../../shared/ui/windowMotion';
 
 export interface HeaderProps {
   onOpenSummaryModal: () => void;
@@ -18,8 +20,16 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTagSummaryModal
 }) => {
   const { section, tab, theme, activeArea, setSection, setTab, toggleTheme } = useAppStore();
-  const { items } = useItemsStore();
-  const { isSyncing } = useUIStore();
+  const { items, undoSnapshot, undoLastAction } = useItemsStore();
+  const bductoRows = useBductoStore(state => state.rows);
+  const bductoUndoSnapshot = useBductoStore(state => state.undoSnapshot);
+  const undoBducto = useBductoStore(state => state.undoLastAction);
+  const promptMinimized = useBductoStore(state => state.promptMinimized);
+  const restoreArmed = useBductoStore(state => state.restoreArmed);
+  const setPromptMinimized = useBductoStore(state => state.setPromptMinimized);
+  const undoDisabled = section === 'bductos' ? !bductoUndoSnapshot : !undoSnapshot;
+  const showUndo = section === 'bductos' || Boolean(undoSnapshot);
+  const { isSyncing, showToast } = useUIStore();
 
   const hasSupabase = isSupabaseConfigured();
 
@@ -28,23 +38,6 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="header-left">
         <div className="logo">
           EPC TAKEOFF
-        </div>
-
-        <div className="section-switch" aria-label="Especialidad activa">
-          <button
-            className={section === 'pat' ? 'active' : ''}
-            data-section="pat"
-            onClick={() => setSection('pat')}
-          >
-            PAT
-          </button>
-          <button
-            className={section === 'canalizado' ? 'active' : ''}
-            data-section="canalizado"
-            onClick={() => setSection('canalizado')}
-          >
-            CANALIZADO
-          </button>
         </div>
 
         {/* Active Area Selector Badge */}
@@ -71,38 +64,69 @@ export const Header: React.FC<HeaderProps> = ({
           <span style={{ fontSize: '8px', opacity: 0.8, marginLeft: '2px' }}>▼</span>
         </button>
 
-        <nav className="nav">
+        <nav className="nav" aria-label="Metrados">
           <button
-            className={`nav-tab ${tab === 'takeoff' ? 'active' : ''}`}
-            onClick={() => setTab('takeoff')}
+            className={`nav-tab ${section === 'pat' && tab === 'takeoff' ? 'active' : ''}`}
+            data-section="pat"
+            onClick={() => {
+              setSection('pat');
+              setTab('takeoff');
+            }}
           >
-            METRADO
+            PAT
           </button>
           <button
-            className={`nav-tab ${tab === 'rules' ? 'active' : ''}`}
-            onClick={() => setTab('rules')}
+            className={`nav-tab ${section === 'canalizado' && tab === 'takeoff' ? 'active' : ''}`}
+            data-section="canalizado"
+            onClick={() => {
+              setSection('canalizado');
+              setTab('takeoff');
+            }}
           >
-            REGLAS
+            CANALIZADO
           </button>
+          <button
+            className={`nav-tab ${section === 'bductos' && tab === 'takeoff' ? 'active' : ''}`}
+            data-section="bductos"
+            style={{ marginRight: 12 }}
+            onClick={() => {
+              setSection('bductos');
+              setTab('takeoff');
+            }}
+          >
+            BDUCTOS
+          </button>
+          {section !== 'bductos' && (
+            <button
+              className={`nav-tab ${tab === 'rules' ? 'active' : ''}`}
+              onClick={() => setTab('rules')}
+            >
+              REGLAS
+            </button>
+          )}
           <button
             className={`nav-tab ${tab === 'packages' ? 'active' : ''}`}
             onClick={() => setTab('packages')}
           >
             PARTIDAS
           </button>
-          <button
-            className="nav-tab"
-            onClick={onOpenSummaryModal}
-          >
-            RESUMEN MAT
-          </button>
-          <button
-            className="nav-tab"
-            onClick={onOpenTagSummaryModal}
-            title="Ver tabla resumen 6 columnas (TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES)"
-          >
-            RESUMEN TAG
-          </button>
+          {section !== 'bductos' && (
+            <button
+              className="nav-tab"
+              onClick={onOpenSummaryModal}
+            >
+              RESUMEN MAT
+            </button>
+          )}
+          {section !== 'bductos' && (
+            <button
+              className="nav-tab"
+              onClick={onOpenTagSummaryModal}
+              title="Ver tabla resumen 6 columnas (TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES)"
+            >
+              RESUMEN TAG
+            </button>
+          )}
         </nav>
       </div>
 
@@ -117,14 +141,54 @@ export const Header: React.FC<HeaderProps> = ({
           {theme === 'light' ? '☾' : '☀'}
         </button>
 
+        {section === 'bductos' && (promptMinimized || restoreArmed) && (
+          <button
+            type="button"
+            id={RESTORE_BUTTON_ID}
+            className="btn-icon bducto-restore-btn"
+            onClick={() => {
+              const button = document.getElementById(RESTORE_BUTTON_ID);
+              if (button) rememberRestoreAnchor(button.getBoundingClientRect());
+              setPromptMinimized(false);
+            }}
+            title="Restaurar el tramo"
+            aria-label="Restaurar el tramo"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="1.25" y="2.25" width="13.5" height="11.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              <path d="M1.25 5.25h13.5" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </button>
+        )}
+
+        {showUndo && (
+          <button
+            type="button"
+            className="btn-ghost"
+            disabled={undoDisabled}
+            onClick={() => {
+              const undone = section === 'bductos' ? undoBducto() : undoLastAction(section);
+              // #region agent log
+              fetch('http://127.0.0.1:7553/ingest/a68ab0cd-10e6-497e-8979-86720b62c569',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b40dbc'},body:JSON.stringify({sessionId:'b40dbc',location:'Header.tsx:undo',message:'deshacer click',data:{section,undone,hadSnapshot:section==='bductos'?Boolean(bductoUndoSnapshot):Boolean(undoSnapshot)},timestamp:Date.now(),hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
+              // #endregion
+              if (undone) showToast('Acción deshecha', 'info');
+            }}
+            title="Deshacer la última acción agregada o modificada"
+          >
+            Deshacer
+          </button>
+        )}
+
         <button
           className="btn-save-db"
-          onClick={() => executeSyncToDatabase()}
+          onClick={() => (section === 'bductos' ? executeSyncBductosToDatabase() : executeSyncToDatabase())}
           disabled={isSyncing}
           title={
-            hasSupabase
-              ? 'Depositar/Añadir los datos de la pantalla a Supabase (main_PAT_table)'
-              : 'Configura VITE_SUPABASE_URL en .env para guardar directamente en BD'
+            !hasSupabase
+              ? 'Configura VITE_SUPABASE_URL en .env para guardar directamente en BD'
+              : section === 'bductos'
+                ? 'Depositar las filas de BDUCTOS y el catálogo de curvas en Supabase'
+                : 'Depositar/Añadir los datos de la pantalla a Supabase (main_PAT_table)'
           }
         >
           {isSyncing ? 'Guardando...' : 'Guardar en BD'}
@@ -144,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
           }}
           id="item-count"
         >
-          {items.length} ítems
+          {section === 'bductos' ? bductoRows.length : items.length} ítems
         </span>
 
         <ToolsPanel />

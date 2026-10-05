@@ -48,10 +48,13 @@ export const useAppStore = createStore<AppStore>((set, get) => ({
 
   setSection: (section: SectionType) => {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_SECTION, section);
-    useRulesStore.getState().loadRules(section);
-    useItemsStore.getState().loadItems(section, get().activeArea);
-    usePackagesStore.getState().loadPackages(section);
-    set({ section });
+    if (section !== 'bductos') {
+      useRulesStore.getState().loadRules(section);
+      useItemsStore.getState().loadItems(section, get().activeArea);
+      usePackagesStore.getState().loadPackages(section);
+    }
+    const leaveRules = section === 'bductos' && get().tab === 'rules';
+    set({ section, ...(leaveRules ? { tab: 'takeoff' as TabType } : {}) });
   },
 
   setTab: (tab: TabType) => set({ tab }),

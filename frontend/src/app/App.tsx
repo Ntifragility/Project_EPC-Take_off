@@ -3,12 +3,15 @@ import { useAppStore } from '../features/app-config/model/useAppStore';
 import { loadInitialCloudConfig } from '../features/sync-cloud/model/useCloudSync';
 import { Header } from '../widgets/header/ui/Header';
 import { TakeoffPage } from '../pages/takeoff/ui/TakeoffPage';
+import { BductosPage } from '../features/generate-bducto/ui/BductosPage';
 import { RulesPage } from '../pages/rules/ui/RulesPage';
 import { PackagesPage } from '../pages/packages/ui/PackagesPage';
 import { ModalsHost } from '../widgets/modals-host/ui/ModalsHost';
 
 export const App: React.FC = () => {
   const tab = useAppStore(state => state.tab);
+  const section = useAppStore(state => state.section);
+  const isBductos = section === 'bductos';
 
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [areaModalOpen, setAreaModalOpen] = useState(false);
@@ -33,8 +36,9 @@ export const App: React.FC = () => {
       />
 
       <main className="main" id="main-content">
-        {tab === 'takeoff' && <TakeoffPage />}
-        {tab === 'rules' && <RulesPage />}
+        {isBductos && tab === 'takeoff' && <BductosPage />}
+        {!isBductos && tab === 'takeoff' && <TakeoffPage />}
+        {!isBductos && tab === 'rules' && <RulesPage />}
         {tab === 'packages' && <PackagesPage />}
       </main>
 

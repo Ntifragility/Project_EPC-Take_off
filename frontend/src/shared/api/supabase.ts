@@ -1,4 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { curveFromRecord, CurveCatalogDbRecord, mapBductoRowToRecord, mapCurveToRecord } from '../../entities/bducto/model/bductoRecord';
+import { CurveCatalogItem, getCurveCatalog } from '../../entities/bducto/model/catalog';
+import { BductoRow } from '../../entities/bducto/model/types';
 import { TakeoffItem, PackageGroup } from '../../entities/takeoff-item/model/types';
 import { TakeoffRule } from '../../entities/takeoff-rule/model/types';
 import { PartidaRecord, SupabasePartidaRecord, SupabaseTakeoffRecord } from '../../entities/partida/model/types';
@@ -428,6 +431,74 @@ export async function fetchPartidasFromSupabase(): Promise<{
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al obtener partidas de Supabase';
     console.error('Supabase partidas fetch exception:', err);
+    return { data: null, error: message };
+  }
+}
+
+const BDUCTOS_TABLE = 'main_BDUCTOS_table';
+const CURVE_CATALOG_TABLE = 'bducto_curve_catalog';
+
+function missingTableHint(message: string): string {
+  if (/does not exist|schema cache|Could not find the table/i.test(message)) {
+    return `${message} Ejecuta frontend/src/sql/schema_bductos.sql en el editor SQL de Supabase.`;
+  }
+  return message;
+}
+
+export async function syncBductosToSupabase(
+  rows: BductoRow[]
+): Promise<{ success: boolean; count: number; error?: string }> {
+  if (!supabase) {
+    return {
+      success: false,
+      count: 0,
+      error: 'Supabase client no está configurado. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_KEY en .env.'
+    };
+  }
+  if (rows.length === 0) return { success: true, count: 0 };
+
+  try {
+    const { error } = await supabase.from(BDUCTOS_TABLE).insert(rows.map(mapBductoRowToRecord));
+    if (error) return { success: false, count: 0, error: missingTableHint(error.message) };
+    return { success: true, count: rows.length };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error desconocido al guardar BDUCTOS';
+    return { success: false, count: 0, error: missingTableHint(message) };
+  }
+}
+
+export async function syncCurveCatalogToSupabase(
+  items: CurveCatalogItem[] = getCurveCatalog()
+): Promise<{ success: boolean; count: number; error?: string }> {
+  if (!supabase) {
+    return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  }
+  if (items.length === 0) return { success: true, count: 0 };
+
+  try {
+    const { error } = await supabase
+      .from(CURVE_CATALOG_TABLE)
+      .upsert(items.map(mapCurveToRecord), { onConflict: 'id' });
+    if (error) return { success: false, count: 0, error: missingTableHint(error.message) };
+    return { success: true, count: items.length };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error desconocido al guardar el catálogo de curvas';
+    return { success: false, count: 0, error: missingTableHint(message) };
+  }
+}
+
+export async function fetchCurveCatalogFromSupabase(): Promise<{ data: CurveCatalogItem[] | null; error?: string }> {
+  if (!supabase) return { data: null, error: 'Supabase no está configurado' };
+
+  try {
+    const { data, error } = await supabase
+      .from(CURVE_CATALOG_TABLE)
+      .select('*')
+      .order('order_index', { ascending: true });
+    if (error) return { data: null, error: error.message };
+    return { data: ((data || []) as CurveCatalogDbRecord[]).map(curveFromRecord) };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al consultar el catálogo de curvas';
     return { data: null, error: message };
   }
 }
