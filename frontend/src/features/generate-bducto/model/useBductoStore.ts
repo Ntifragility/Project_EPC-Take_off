@@ -1,4 +1,5 @@
 import { createStore } from '../../../shared/lib/store';
+import { createSingleUndo } from '../../../shared/lib/singleUndo';
 import { BductoPrompt, BductoRow, BductoSource } from '../../../entities/bducto/model/types';
 import { SAMPLE_LY028 } from '../../../entities/bducto/model/catalog';
 import { uid } from '../../../shared/lib/uid';
@@ -33,6 +34,8 @@ function loadPersisted(): PersistedBductos {
 function persist(state: PersistedBductos) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
+
+const bductoUndo = createSingleUndo<PersistedBductos>();
 
 export interface BductoState {
   sources: BductoSource[];
@@ -75,12 +78,10 @@ export interface BductoState {
 const initial = loadPersisted();
 
 function remember(get: () => BductoState, set: (partial: Partial<BductoState>) => void, action: string, next: PersistedBductos) {
-  const previous = { sources: get().sources, rows: get().rows };
-  // #region agent log
-  fetch('http://127.0.0.1:7553/ingest/a68ab0cd-10e6-497e-8979-86720b62c569',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b40dbc'},body:JSON.stringify({sessionId:'b40dbc',location:'useBductoStore.ts:remember',message:'bducto undo snapshot',data:{action,sources:previous.sources.length,rows:previous.rows.length,nextSources:next.sources.length,nextRows:next.rows.length},timestamp:Date.now(),hypothesisId:'D',runId:'post-fix'})}).catch(()=>{});
-  // #endregion
+  void action;
+  bductoUndo.remember({ sources: get().sources, rows: get().rows });
   persist(next);
-  set({ ...next, undoSnapshot: JSON.stringify(previous) });
+  set({ ...next, undoSnapshot: bductoUndo.snapshot });
 }
 
 export const useBductoStore = createStore<BductoState>((set, get) => ({
@@ -196,17 +197,14 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
         : source
     );
     const nextRows = [...get().rows.filter(row => row.sourceId !== sourceId), ...rows];
-    const previous = { sources: get().sources, rows: get().rows };
+    bductoUndo.remember({ sources: get().sources, rows: get().rows });
     persist({ sources, rows: nextRows });
     const nextIndex = get().wizardIndex + 1;
     const done = nextIndex >= get().wizardIds.length;
-    // #region agent log
-    fetch('http://127.0.0.1:7553/ingest/a68ab0cd-10e6-497e-8979-86720b62c569',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b40dbc'},body:JSON.stringify({sessionId:'b40dbc',location:'useBductoStore.ts:commitTramo',message:'bducto tramo committed',data:{sourceId,wizardIndex:get().wizardIndex,nextIndex,done,rows:nextRows.length},timestamp:Date.now(),hypothesisId:'D',runId:'post-fix'})}).catch(()=>{});
-    // #endregion
     set({
       sources,
       rows: nextRows,
-      undoSnapshot: JSON.stringify(previous),
+      undoSnapshot: bductoUndo.snapshot,
       wizardIds: done ? [] : get().wizardIds,
       wizardIndex: done ? 0 : nextIndex,
       promptMinimized: done ? false : get().promptMinimized,
@@ -247,18 +245,11 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
   },
 
   undoLastAction: () => {
-    const snapshot = get().undoSnapshot;
-    if (!snapshot) return false;
-    try {
-      const restored = JSON.parse(snapshot) as PersistedBductos;
-      persist({ sources: restored.sources, rows: restored.rows });
-      set({ sources: restored.sources, rows: restored.rows, undoSnapshot: null });
-      // #region agent log
-      fetch('http://127.0.0.1:7553/ingest/a68ab0cd-10e6-497e-8979-86720b62c569',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b40dbc'},body:JSON.stringify({sessionId:'b40dbc',location:'useBductoStore.ts:undo',message:'bducto undo restored',data:{sources:restored.sources.length,rows:restored.rows.length},timestamp:Date.now(),hypothesisId:'D',runId:'post-fix'})}).catch(()=>{});
-      // #endregion
-      return true;
-    } catch {
-      return false;
-    }
+    if (!get().undoSnapshot) return false;
+    const restored = bductoUndo.undo();
+    if (!restored) return false;
+    persist({ sources: restored.sources, rows: restored.rows });
+    set({ sources: restored.sources, rows: restored.rows, undoSnapshot: bductoUndo.snapshot });
+    return true;
   }
 }));

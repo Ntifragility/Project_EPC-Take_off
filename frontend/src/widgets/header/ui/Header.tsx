@@ -168,9 +168,6 @@ export const Header: React.FC<HeaderProps> = ({
             disabled={undoDisabled}
             onClick={() => {
               const undone = section === 'bductos' ? undoBducto() : undoLastAction(section);
-              // #region agent log
-              fetch('http://127.0.0.1:7553/ingest/a68ab0cd-10e6-497e-8979-86720b62c569',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b40dbc'},body:JSON.stringify({sessionId:'b40dbc',location:'Header.tsx:undo',message:'deshacer click',data:{section,undone,hadSnapshot:section==='bductos'?Boolean(bductoUndoSnapshot):Boolean(undoSnapshot)},timestamp:Date.now(),hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-              // #endregion
               if (undone) showToast('Acción deshecha', 'info');
             }}
             title="Deshacer la última acción agregada o modificada"

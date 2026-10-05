@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import { readSheetMatrices, foldHeaderCell } from './readSheetMatrix';
 import { TakeoffItem } from '../../entities/takeoff-item/model/types';
 import { TakeoffRule } from '../../entities/takeoff-rule/model/types';
 import { uid } from './uid';
@@ -45,15 +45,7 @@ export interface ColumnMapping {
 }
 
 export function cleanHeader(cell: any): string {
-  if (cell === null || cell === undefined) return '';
-  return String(cell)
-    .trim()
-    .toUpperCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Z0-9]/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '');
+  return foldHeaderCell(cell);
 }
 
 export function detectColumnMapping(headerRow: any[]): ColumnMapping | null {
@@ -122,23 +114,19 @@ export function detectColumnMapping(headerRow: any[]): ColumnMapping | null {
   return null;
 }
 
-export async function convertSpreadsheetToCsvText(file: File): Promise<string> {
+export async function convertSpreadsheetToCsvText(file: File, opts?: { allSheets?: boolean }): Promise<string> {
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
   if (!['xlsx', 'xlsb', 'xls', 'xlsm'].includes(ext)) {
     throw new Error('Formato no permitido. Solo se aceptan archivos Excel (.xlsx, .xlsb, .xls)');
   }
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array' });
-  if (!workbook.SheetNames || workbook.SheetNames.length === 0) return '';
+  const matrices = await readSheetMatrices(file, { allSheets: opts?.allSheets ?? true });
+  if (matrices.length === 0) return '';
 
   const normalizedRows: string[] = [
     'PLANO;TAG;LONGITUD_CABLE;LONGITUD_TUBERIA;DETALLE;JUMPERS;SOPORTES'
   ];
 
-  for (const sheetName of workbook.SheetNames) {
-    const worksheet = workbook.Sheets[sheetName];
-    if (!worksheet) continue;
-    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
+  for (const rawData of matrices) {
     if (!rawData || rawData.length === 0) continue;
 
     let headerRowIdx = -1;

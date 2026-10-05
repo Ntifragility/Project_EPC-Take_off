@@ -1,34 +1,11 @@
 import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
 import { useBductoStore } from '../model/useBductoStore';
 import { BductoSource } from '../../../entities/bducto/model/types';
 import { parseBductoSheet } from '../../../entities/bducto/model/expandBducto';
 import { downloadBductoTemplate } from '../model/exportBductosExcel';
+import { downloadTableXlsx } from '../../../shared/lib/excelTemplates';
+import { readSheetMatrix } from '../../../shared/lib/readSheetMatrix';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
-
-function decodeCsv(buffer: ArrayBuffer): string {
-  return new TextDecoder('utf-8').decode(buffer).replace(/^\uFEFF/, '');
-}
-
-function csvSeparator(text: string): ',' | ';' {
-  const header = text.split(/\r?\n/, 1)[0] ?? '';
-  const semicolons = header.match(/;/g)?.length ?? 0;
-  const commas = header.match(/,/g)?.length ?? 0;
-  return semicolons > commas ? ';' : ',';
-}
-
-async function sheetMatrix(file: File): Promise<unknown[][]> {
-  const buffer = await file.arrayBuffer();
-  const csv = file.name.toLowerCase().endsWith('.csv');
-  const text = csv ? decodeCsv(buffer) : '';
-  const workbook = csv
-    ? XLSX.read(text, { type: 'string', FS: csvSeparator(text) })
-    : XLSX.read(buffer, { type: 'array' });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = sheetName ? workbook.Sheets[sheetName] : undefined;
-  if (!sheet) return [];
-  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true }) as unknown[][];
-}
 
 type InsertMode = 'import' | 'manual';
 
@@ -56,14 +33,37 @@ export const BductoInsertPanel: React.FC<{ onDone?: () => void }> = ({ onDone })
     event.target.value = '';
     if (!file) return;
     try {
-      const matrix = await sheetMatrix(file);
+      const matrix = await readSheetMatrix(file);
       if (matrix.length === 0) {
         showToast('El archivo no tiene hojas', 'warn');
         return;
       }
-      const { rows: parsedRows, errors } = parseBductoSheet(matrix);
+      const { rows: parsedRows, errors, rejectedRows } = parseBductoSheet(matrix);
+      if (rejectedRows.length > 0) {
+        void downloadTableXlsx({
+          sheetName: 'Filas_Rechazadas',
+          tableName: 'RECHAZADAS',
+          headers: ['FILA_EXCEL', 'PLANO', 'TAG_EN_PLANO', 'QUANTITY', 'DESDE', 'HASTA', 'MOTIVO_RECHAZO'],
+          rows: rejectedRows.map(r => [
+            r.fila,
+            r.plano || '',
+            r.tagEnPlano,
+            r.quantity,
+            r.desde,
+            r.hasta,
+            r.motivo
+          ] as (string | number)[]),
+          widths: [12, 22, 18, 12, 12, 12, 55],
+          fileName: 'filas_rechazadas_bducto.xlsx'
+        });
+      }
       if (parsedRows.length === 0) {
-        showToast(errors[0] || 'El archivo no tiene tramos', 'warn');
+        showToast(
+          rejectedRows.length > 0
+            ? `No se pudo importar ninguna fila. ${rejectedRows.length} error(es) - reporte descargado.`
+            : (errors[0] || 'El archivo no tiene tramos'),
+          'warn'
+        );
         return;
       }
       const imported = importExcel(parsedRows);
@@ -71,7 +71,7 @@ export const BductoInsertPanel: React.FC<{ onDone?: () => void }> = ({ onDone })
         showToast('Esos tramos ya están cargados. No los volví a agregar.', 'warn');
         return;
       }
-      if (errors.length > 0) showToast(`${imported.added} tramos. ${errors[0]}`, 'warn');
+      if (rejectedRows.length > 0) showToast(`${imported.added} tramos. ${rejectedRows.length} fila(s) rechazada(s) - reporte descargado.`, 'warn');
       else if (imported.skipped > 0) showToast(`${imported.added} tramos nuevos. ${imported.skipped} ya estaban cargados.`, 'success');
       else showToast(`${imported.added} tramos listos para completar`, 'success');
       onDone?.();

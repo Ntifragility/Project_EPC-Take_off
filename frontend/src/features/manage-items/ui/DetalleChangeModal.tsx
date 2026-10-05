@@ -22,6 +22,9 @@ export const DetalleChangeModal: React.FC = () => {
   if (!pending) return null;
 
   const extraCount = Math.max(0, pending.applyToItemIds.length - 1);
+  const isDirty =
+    tagPlano !== (pending.currentTag || '') ||
+    JSON.stringify(lines) !== JSON.stringify(pending.previewLines);
 
   const updateLine = (index: number, field: keyof BomLine, value: string) => {
     setLines(prev =>
@@ -42,7 +45,7 @@ export const DetalleChangeModal: React.FC = () => {
   };
 
   return (
-    <ModalShell title="Actualizar implementación" onClose={cancelDetalleChange} maxWidth="760px">
+    <ModalShell title="Actualizar implementación" onClose={cancelDetalleChange} maxWidth="760px" dismiss="dirty-confirm" isDirty={isDirty}>
         <form onSubmit={handleSubmit}>
         <div className="modal-body">
           <div>
