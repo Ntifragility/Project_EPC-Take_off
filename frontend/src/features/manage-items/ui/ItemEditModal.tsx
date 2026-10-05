@@ -4,6 +4,7 @@ import { AreaType, SectionType } from '../../../shared/types/common';
 import { getDetallesForArea, hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { useItemsStore } from '../model/useItemsStore';
 import { useAppStore } from '../../app-config/model/useAppStore';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface ItemEditModalProps {
   isOpen: boolean;
@@ -50,10 +51,15 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
   const showSoportes = isR2 && hasSoporteItems(detalle, activeArea);
   const showJumpers = isR2 && hasJumperItems(detalle, activeArea);
   const availableDetalles = getDetallesForArea(activeArea).map(([code]) => code);
+  const detalleOptions =
+    detalle && !availableDetalles.includes(detalle) ? [detalle, ...availableDetalles] : availableDetalles;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!item) return;
+    if (item.material !== 'P') {
+      return;
+    }
 
     const applied = updateItem(
       item.id,
@@ -77,24 +83,9 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
   };
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal" style={{ maxWidth: '560px', width: '92vw' }}>
-        <div className="modal-header">
-          <div>
-            <h3 style={{ margin: 0 }}>Editar Ítem</h3>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.desc}</div>
-          </div>
-          <button className="btn btn-icon modal-close" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ padding: '1.25rem' }}>
+    <ModalShell title="Editar ítem" subtitle={item.desc} onClose={onClose} maxWidth="560px">
+        <form onSubmit={handleSubmit}>
+        <div className="modal-body">
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.8rem', fontWeight: 600 }}>
@@ -158,7 +149,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
                   onChange={e => setDetalle(e.target.value)}
                 >
                   <option value="">(Sin Detalle)</option>
-                  {availableDetalles.map(d => (
+                  {detalleOptions.map(d => (
                     <option key={d} value={d}>
                       {d}
                     </option>
@@ -250,16 +241,16 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
-            <button type="button" className="btn" onClick={onClose}>
+        </div>
+          <div className="modal-ft">
+            <button type="button" className="btn-ghost" onClick={onClose}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1.25rem' }}>
-              Guardar Cambios
+            <button type="submit" className="btn-primary">
+              Guardar cambios
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

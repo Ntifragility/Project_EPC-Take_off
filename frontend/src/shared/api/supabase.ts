@@ -143,11 +143,13 @@ export async function fetchTakeoffRulesFromSupabase(
       let cableTrayMatrix = r.cable_tray_matrix || r.cableTrayMatrix;
       let detalle = r.detalle || r.detalle_code;
       let tagPrefix = r.tag_prefix || r.tagPrefix;
+      let areas = r.areas;
 
       if (subitems && typeof subitems === 'object' && !Array.isArray(subitems)) {
         if (subitems.cableTrayMatrix) cableTrayMatrix = subitems.cableTrayMatrix;
         if (subitems.detalle) detalle = subitems.detalle;
         if (subitems.tagPrefix) tagPrefix = subitems.tagPrefix;
+        if (subitems.areas) areas = subitems.areas;
         if (Array.isArray(subitems.items)) subitems = subitems.items;
       }
 
@@ -157,7 +159,8 @@ export async function fetchTakeoffRulesFromSupabase(
         subitems: Array.isArray(subitems) ? subitems : [],
         detalle,
         tagPrefix,
-        cableTrayMatrix
+        cableTrayMatrix,
+        areas
       };
     });
     return { data: rules };
@@ -195,7 +198,8 @@ export async function saveTakeoffRuleToSupabase(
       items: fallbackSubitems,
       cableTrayMatrix: rule.cableTrayMatrix,
       detalle: rule.detalle,
-      tagPrefix: rule.tagPrefix
+      tagPrefix: rule.tagPrefix,
+      areas: rule.areas
     };
 
     const basePayload: any = {
@@ -322,6 +326,70 @@ export async function syncPartidasToSupabase(
     const message = err instanceof Error ? err.message : 'Error al sincronizar partidas con Supabase';
     console.error('Supabase partidas write exception:', err);
     return { success: false, count: 0, error: message };
+  }
+}
+
+function partidaToSupabasePayload(p: PartidaRecord): SupabasePartidaRecord {
+  return {
+    actividad: p.actividad || 'PAT',
+    wbs: String(p.wbs || p.area || '').trim(),
+    area: String(p.wbs || p.area || '').trim(),
+    partida_sicme: String(p.partidaSicme || p.item || '').trim(),
+    item: String(p.partidaSicme || p.item || '').trim(),
+    partida_balance: String(p.partidaBalance || 'NA').trim() || 'NA',
+    forecast_desc: p.forecastDesc || '',
+    descripcion_bm: p.descripcionBm || p.descripcion || '',
+    descripcion: p.descripcionBm || p.descripcion || '',
+    und: p.und || 'UND'
+  };
+}
+
+export function isSupabasePartidaId(id?: string): boolean {
+  return Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+}
+
+export async function updatePartidaInSupabase(
+  partida: PartidaRecord
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase || !isSupabasePartidaId(partida.id)) {
+    return { success: true };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('partidas_table')
+      .update(partidaToSupabasePayload(partida))
+      .eq('id', partida.id);
+    if (error) {
+      console.error('Supabase partida update error:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al actualizar partida en Supabase';
+    console.error('Supabase partida update exception:', err);
+    return { success: false, error: message };
+  }
+}
+
+export async function deletePartidaFromSupabase(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase || !isSupabasePartidaId(id)) {
+    return { success: true };
+  }
+
+  try {
+    const { error } = await supabase.from('partidas_table').delete().eq('id', id);
+    if (error) {
+      console.error('Supabase partida delete error:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar partida en Supabase';
+    console.error('Supabase partida delete exception:', err);
+    return { success: false, error: message };
   }
 }
 

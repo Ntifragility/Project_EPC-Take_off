@@ -21,6 +21,8 @@ export const ToolsPanel: React.FC = () => {
   const { items, clearCache } = useItemsStore();
   const { packages } = usePackagesStore();
   const requestFitTable = useUIStore(state => state.requestFitTable);
+  const isMergedView = useUIStore(state => state.isMergedView);
+  const setIsMergedView = useUIStore(state => state.setIsMergedView);
 
   const handleExport = () => {
     const exportItems = accessoryViewMode === 'join' ? consolidateAccessories(items) : items;
@@ -46,7 +48,7 @@ export const ToolsPanel: React.FC = () => {
         onClick={() => setOpen(true)}
         title="Metadatos e ingreso, exportar y acciones de tabla"
       >
-        ☰ Panel
+        Panel
       </button>
 
       {open && (
@@ -55,7 +57,7 @@ export const ToolsPanel: React.FC = () => {
             className="tools-panel"
             onClick={e => e.stopPropagation()}
           >
-            <div className="actions-drawer-head">
+            <div className="modal-hd tools-panel-hd">
               <div className="tools-tabs">
                 <button
                   type="button"
@@ -74,11 +76,10 @@ export const ToolsPanel: React.FC = () => {
               </div>
               <button
                 type="button"
-                className="actions-drawer-close"
+                className="modal-close"
                 onClick={() => setOpen(false)}
-                title="Cerrar"
               >
-                ✕
+                Cerrar
               </button>
             </div>
 
@@ -106,6 +107,35 @@ export const ToolsPanel: React.FC = () => {
                   >
                     Resumen Excel
                   </button>
+                </div>
+
+                <div className="actions-drawer-group">
+                  <div className="actions-drawer-label">DETALLE</div>
+                  <div className="mode-toggle" style={{ width: '100%' }}>
+                    <button
+                      type="button"
+                      className={`mode-btn ${!isMergedView ? 'active' : ''}`}
+                      onClick={() => setIsMergedView(false)}
+                      title="Mantener ítems separados (vista detallada)"
+                      style={{ flex: 1 }}
+                    >
+                      Separado
+                    </button>
+                    <button
+                      type="button"
+                      className={`mode-btn ${isMergedView ? 'active' : ''}`}
+                      onClick={() => setIsMergedView(true)}
+                      title="Fusionar ítems similares de cada DETALLE en una sola fila"
+                      style={{ flex: 1 }}
+                    >
+                      Consolidado
+                    </button>
+                  </div>
+                  <div className="actions-drawer-hint">
+                    {isMergedView
+                      ? '● Consolidado: una fila por DETALLE'
+                      : '● Separado: cada ítem en su propia fila'}
+                  </div>
                 </div>
 
                 <div className="actions-drawer-group">
@@ -146,7 +176,7 @@ export const ToolsPanel: React.FC = () => {
                       requestFitTable();
                       setOpen(false);
                     }}
-                    title="Encoge o estira las columnas para que la tabla quepa completa"
+                    title="Vuelve a encajar las columnas al ancho actual (también se ajusta solo al cambiar el panel)"
                   >
                     Ajustar a pantalla
                   </button>

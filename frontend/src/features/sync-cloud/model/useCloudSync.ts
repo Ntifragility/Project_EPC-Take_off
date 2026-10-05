@@ -5,7 +5,8 @@ import {
   syncItemsToSupabase
 } from '../../../shared/api/supabase';
 import { updateDynamicVariants } from '../../../entities/takeoff-rule/model/detalleVariants';
-import { getDefaultDetalleByRule, getDefaultTagPrefixByRule } from '../../../entities/takeoff-rule/model/seedRules';
+import { getDefaultDetalleByRule, getDefaultTagPrefixByRule, SEED_CANALIZADO_RULES, SEED_RULES } from '../../../entities/takeoff-rule/model/seedRules';
+import { attachCatalogAreas } from '../../../entities/takeoff-rule/model/areaCatalog';
 import { saveStoredRules, saveStoredPartidas } from '../../../shared/lib/storage';
 import { consolidateAccessories } from '../../../entities/takeoff-item/model/itemAggregation';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
@@ -44,13 +45,16 @@ export async function loadInitialCloudConfig() {
           );
         }
 
-        return {
-          ...r,
-          trigger,
-          subitems,
-          detalle: r.detalle || getDefaultDetalleByRule(trigger, activeArea),
-          tagPrefix: r.tagPrefix || getDefaultTagPrefixByRule(trigger)
-        };
+        return attachCatalogAreas(
+          {
+            ...r,
+            trigger,
+            subitems,
+            detalle: r.detalle || getDefaultDetalleByRule(trigger, activeArea),
+            tagPrefix: r.tagPrefix || getDefaultTagPrefixByRule(trigger)
+          },
+          section === 'canalizado' ? SEED_CANALIZADO_RULES : SEED_RULES
+        );
       });
 
       setRules(

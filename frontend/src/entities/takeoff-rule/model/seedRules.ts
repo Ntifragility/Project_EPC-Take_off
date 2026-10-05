@@ -1,5 +1,6 @@
 import { TakeoffRule } from './types';
 import { DEFAULT_CABLE_TRAY_MATRIX } from './cableTrayRules';
+import { getRuleDetallesForArea, normalizeArea } from './areaCatalog';
 
 export const SEED_RULES: TakeoffRule[] = [
   {
@@ -146,41 +147,23 @@ export function getDefaultTagPrefixByRule(trigger: string): string {
 
 export function getDefaultDetalleByRule(trigger: string, activeArea = 'AREA SECA'): string {
   const up = (trigger || '').toUpperCase().trim();
-  const isHumeda = activeArea === 'AREA HUMEDA';
+  if (up.includes('CABLE DESNUDO 2/0')) return 'ND';
+  return getRuleDetallesForArea(trigger, normalizeArea(activeArea))[0] || '';
+}
 
-  if (
-    up.includes('SOLDADURA T 4/0 -2/0') ||
-    up.includes('SOLDADURA T 4/0-2/0') ||
-    up.includes('SOLDADURA T 4/0  - 2/0') ||
-    up.includes('SOLDADURA T 4/0 - 2/0')
-  ) {
-    return isHumeda ? '008/4T2' : '167/X2';
-  }
-  if (up === 'SOLDADURA T 4/0' || up.startsWith('SOLDADURA T 4/0')) {
-    return isHumeda ? '008/4T1' : '167/X1';
-  }
-  if (up.includes('CABLE DESNUDO 4/0')) {
-    return isHumeda ? '008/3A' : '167/G1';
-  }
-  if (up.includes('CABLE DESNUDO 2/0')) {
-    return 'ND';
-  }
-  if (up.includes('BARRA POT')) {
-    return isHumeda ? '010/17A' : '166A';
-  }
-  if (up.includes('BARRA INST')) {
-    return isHumeda ? '010/17C' : '166C';
-  }
-  if (up.includes('001/2B-X1') || up.includes('001/2B')) {
-    return '001/2B-X1';
-  }
-  return '';
+export function getRuleCatalogDetalles(
+  trigger: string,
+  activeArea = 'AREA SECA',
+  fallbackDetalle = ''
+): string[] {
+  return getRuleDetallesForArea(trigger, normalizeArea(activeArea), fallbackDetalle);
 }
 
 export const SEED_CANALIZADO_RULES: TakeoffRule[] = [
   {
     id: 'can-r001-ext',
     trigger: 'DETALLE 001/1 - TRAPECIO - AREA EXTERIOR',
+    areas: ['AREA SECA'],
     subitems: [
       { id: 'can-s001', desc: 'VARILLA ROSCADA DE ACERO GALVANIZADO REVESTIDO DE PVC DE 13mm (1/2")Ø, CAT. N°PBH193–1/2x10, MCA. CROUSE HINDS O SIMILAR.', qty: 2.2, unit: 'und' },
       { id: 'can-s002', desc: 'TUERCA HEXAGONAL DE ACERO INOXIDABLE DE 1/2"Ø.', qty: 10, unit: 'und' },
@@ -197,6 +180,7 @@ export const SEED_CANALIZADO_RULES: TakeoffRule[] = [
   {
     id: 'can-r001-cor',
     trigger: 'DETALLE 001/1 - TRAPECIO - AREA ALTA CORROSIVA',
+    areas: ['AREA HUMEDA'],
     subitems: [
       { id: 'can-s011', desc: 'VARILLA ROSCADA DE ACERO INOXIDABLE NORMA AISI 316, DE (1/2")Ø, CAT. N°HTH050 ST, MCA. UNISTRUT O SIMILAR.', qty: 2.2, unit: 'und' },
       { id: 'can-s012', desc: 'TUERCA HEXAGONAL DE ACERO INOXIDABLE DE 1/2"Ø.', qty: 10, unit: 'und' },
@@ -213,6 +197,7 @@ export const SEED_CANALIZADO_RULES: TakeoffRule[] = [
   {
     id: 'can-r002-ext',
     trigger: 'DETALLE 001/2B - LATERAL - AREA EXTERIOR',
+    areas: ['AREA SECA'],
     subitems: [
       { id: 'can-s021', desc: 'SOPORTE MURO DOBLE LONG. VER TABLA 1, ACERO INOXIDABLE 316 FABRICADO CON PLACA BASE PARA FIJACIÓN 1/2"Ø, DE UNISTRUT O SIMILAR.', qty: 0.76, unit: 'und' },
       { id: 'can-s022', desc: 'RIEL PREFORMADO DE ACERO GALVANIZADO CON CUBIERTA EXTERIOR DE PVC, CAT. PBSH1000-10, MCA. CROUSE HINDS O SIMILAR.', qty: 0.5, unit: 'und' },
@@ -228,6 +213,7 @@ export const SEED_CANALIZADO_RULES: TakeoffRule[] = [
   {
     id: 'can-r002-cor',
     trigger: 'DETALLE 001/2B - LATERAL - AREA ALTA CORROSIVA',
+    areas: ['AREA HUMEDA'],
     subitems: [
       { id: 'can-s030', desc: 'SOPORTE MURO DOBLE LONG. VER TABLA 1, ACERO INOXIDABLE 316 FABRICADO CON PLACA BASE PARA FIJACIÓN 1/2Ø, DE UNISTRUT O SIMILAR.', qty: 0.76, unit: 'und' },
       { id: 'can-s031', desc: 'RIEL PREFORMADO DE ACERO INOXIDABLE NORMA AISI 316, CAT. P1000T-10ST, MCA. UNISTRUT O SIMILAR.', qty: 0.5, unit: 'und' },

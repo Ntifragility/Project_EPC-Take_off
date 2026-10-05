@@ -5,10 +5,14 @@ import {
   DYNAMIC_BARRA_INST_VARIANTS,
   DetalleVariantItem
 } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { detalleBelongsToArea } from '../../../entities/takeoff-rule/model/areaCatalog';
+import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { RuleCardShell } from './RuleCardShell';
 
 interface BarraRuleCardProps {
   rule: TakeoffRule;
   category: 'BARRA_POT' | 'BARRA_INST';
+  activeArea: 'AREA SECA' | 'AREA HUMEDA';
   isExpanded: boolean;
   onToggleExpand: () => void;
   onEdit: (rule: TakeoffRule) => void;
@@ -19,6 +23,7 @@ interface BarraRuleCardProps {
 export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   rule,
   category,
+  activeArea,
   isExpanded,
   onToggleExpand,
   onEdit,
@@ -26,72 +31,24 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   onEditDetalle
 }) => {
   const variantMap = category === 'BARRA_POT' ? DYNAMIC_BARRA_POT_VARIANTS : DYNAMIC_BARRA_INST_VARIANTS;
-  const entries = Object.entries(variantMap);
+  const entries = Object.entries(variantMap).filter(([code]) => detalleBelongsToArea(code, activeArea));
 
   return (
-    <div className="rule-card" key={rule.id}>
-      <div style={{ marginBottom: '14px' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '8px'
-          }}
-        >
-          <div className="rule-trigger">{rule.trigger}</div>
-          <span
-            style={{
-              background: 'var(--s2)',
-              border: '1px solid var(--b1)',
-              color: 'var(--tx)',
-              fontSize: '11px',
-              padding: '3px 8px',
-              borderRadius: '4px',
-              fontWeight: 700,
-              fontFamily: 'var(--mo)',
-              marginRight: '90px'
-            }}
-          >
-            {entries.length} {entries.length === 1 ? 'detalle' : 'detalles'}
-          </span>
-        </div>
-
-        {/* Foldable Row / Banner */}
-        <div
-          onClick={onToggleExpand}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '6px 12px',
-            background: 'var(--s2)',
-            border: '1px solid var(--b1)',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            userSelect: 'none',
-            fontSize: '11px',
-            fontFamily: 'var(--mo)',
-            color: 'var(--tx)',
-            margin: '8px 14px 8px 14px',
-            transition: 'all 0.15s ease'
-          }}
-          title="Haga clic para mostrar u ocultar"
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-            <span>{isExpanded ? '▼' : '▶'}</span>
-            <span>{isExpanded ? 'Ocultar' : 'Mostrar'}</span>
-          </span>
-        </div>
-
-        {isExpanded && (
+    <RuleCardShell
+      trigger={rule.trigger}
+      preview={entries.map(([code]) => code)}
+      badge={`${entries.length} ${entries.length === 1 ? 'detalle' : 'detalles'}`}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
+      onEdit={() => onEdit(rule)}
+      onDelete={() => onDelete(rule.id)}
+    >
           <div
             style={{
-              margin: '12px 14px',
               overflowX: 'auto',
               WebkitOverflowScrolling: 'touch',
               border: '1px solid var(--b1)',
-              borderRadius: '6px',
+              borderRadius: '4px',
               background: 'var(--s2)'
             }}
           >
@@ -197,25 +154,13 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
                             >
                               {detCode}
                             </span>
-                            <button
-                              type="button"
-                              className="btn-ghost"
-                              onClick={() => onEditDetalle(detCode, vItems as any, category)}
-                              style={{
-                                fontSize: '10px',
-                                padding: '3px 8px',
-                                marginTop: '6px',
-                                display: 'block',
-                                margin: '6px auto 0 auto',
-                                cursor: 'pointer',
-                                borderRadius: '4px',
-                                border: '1px solid var(--b1)',
-                                background: 'var(--s1)'
-                              }}
-                              title={`Editar materiales de ${detCode}`}
-                            >
-                              EDITAR
-                            </button>
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+                              <IconActionButton
+                                kind="edit"
+                                title={`Editar materiales de ${detCode}`}
+                                onClick={() => onEditDetalle(detCode, vItems as any, category)}
+                              />
+                            </div>
                           </td>
                         )}
                         <td
@@ -266,20 +211,6 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      <div className="rule-card-acts">
-        <button className="btn-ghost btn-sm" onClick={() => onEdit(rule)}>
-          EDITAR
-        </button>
-        <button
-          className="btn-ghost btn-sm btn-danger"
-          onClick={() => onDelete(rule.id)}
-        >
-          ELIMINAR
-        </button>
-      </div>
-    </div>
+    </RuleCardShell>
   );
 };

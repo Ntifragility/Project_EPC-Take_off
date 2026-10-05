@@ -116,18 +116,20 @@ export function applySoldaduraDetalleTransition(
   items: TakeoffItem[],
   tagPlano: string,
   pkgId: string,
-  newDetalle: string
+  newDetalle: string,
+  instanceId?: string
 ): TakeoffItem[] | null {
   const spec = SOLDADURA_DETALLE_SPECS[normalizeDetalle(newDetalle)];
   if (!spec) return items;
 
   const groupIdx: number[] = [];
   items.forEach((it, idx) => {
-    if (
-      (it.ruleId === 'r5' || it.ruleId === 'r6') &&
-      (it.tagPlano || '').trim() === (tagPlano || '').trim() &&
-      it.pkgId === pkgId
-    ) {
+    const sameGroup = instanceId
+      ? it.instanceId === instanceId
+      : (it.ruleId === 'r5' || it.ruleId === 'r6') &&
+        (it.tagPlano || '').trim() === (tagPlano || '').trim() &&
+        it.pkgId === pkgId;
+    if (sameGroup) {
       groupIdx.push(idx);
     }
   });

@@ -9,6 +9,8 @@ export interface UIState {
   isSyncing: boolean;
   isPartidasModalOpen: boolean;
   fitTableNonce: number;
+  isMergedView: boolean;
+  selectedItemIds: string[];
 }
 
 export interface UIActions {
@@ -20,6 +22,8 @@ export interface UIActions {
   setIsSyncing: (isSyncing: boolean) => void;
   setIsPartidasModalOpen: (open: boolean) => void;
   requestFitTable: () => void;
+  setIsMergedView: (merged: boolean) => void;
+  setSelectedItemIds: (ids: string[]) => void;
 }
 
 export type UIStore = UIState & UIActions;
@@ -32,6 +36,8 @@ export const useUIStore = createStore<UIStore>((set) => ({
   isSyncing: false,
   isPartidasModalOpen: false,
   fitTableNonce: 0,
+  isMergedView: false,
+  selectedItemIds: [],
 
   setAddMode: (addMode: AddModeType) => set({ addMode }),
   setSearchQuery: (searchQuery: string) => set({ searchQuery }),
@@ -48,5 +54,7 @@ export const useUIStore = createStore<UIStore>((set) => ({
   },
   setIsSyncing: (isSyncing: boolean) => set({ isSyncing }),
   setIsPartidasModalOpen: (isPartidasModalOpen: boolean) => set({ isPartidasModalOpen }),
-  requestFitTable: () => set(state => ({ fitTableNonce: state.fitTableNonce + 1 }))
+  requestFitTable: () => set(state => ({ fitTableNonce: state.fitTableNonce + 1 })),
+  setIsMergedView: (isMergedView: boolean) => set({ isMergedView }),
+  setSelectedItemIds: (selectedItemIds: string[]) => set({ selectedItemIds })
 }));

@@ -5,6 +5,9 @@ import { generateTagUnico } from '../../../entities/takeoff-item/model/tagGenera
 import { getDetallesForArea, hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
+import { isDetalleTriggerRow } from '../../../entities/takeoff-rule/model/instanceRebuild';
+import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import type { RangeEdges } from '../model/cellRange';
 
 export interface TakeoffRowProps {
   item: TakeoffItem;
@@ -14,14 +17,17 @@ export interface TakeoffRowProps {
   onStartEdit: () => void;
   onCancelEdit: () => void;
   selectedColKey?: string | null;
+  selectedColKeys?: string[];
+  rangeEdgesByCol?: Record<string, RangeEdges>;
   editingColKey?: string | null;
   isFillTarget?: boolean;
-  onSelectCell?: (colKey: string, value: any) => void;
+  showFillHandle?: boolean;
+  onSelectCell?: (colKey: string, value: any, e: React.MouseEvent) => void;
   onStartInlineEdit?: (colKey: string) => void;
   onSaveInlineEdit?: (colKey: string, value: any) => void;
   onCancelInlineEdit?: () => void;
   onStartFillDrag?: (colKey: string, value: any, e: React.MouseEvent) => void;
-  onCellMouseEnter?: (colKey: string) => void;
+  onCellMouseEnter?: (colKey: string, e: React.MouseEvent) => void;
 }
 
 export const TakeoffRow = React.memo<TakeoffRowProps>(({
@@ -32,8 +38,11 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   onStartEdit,
   onCancelEdit,
   selectedColKey = null,
+  selectedColKeys = [],
+  rangeEdgesByCol = {},
   editingColKey = null,
   isFillTarget = false,
+  showFillHandle = true,
   onSelectCell,
   onStartInlineEdit,
   onSaveInlineEdit,
@@ -41,7 +50,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   onStartFillDrag,
   onCellMouseEnter
 }) => {
-  const { updateItem, deleteItem, highlightedTag } = useItemsStore();
+  const { updateItem, deleteItem, highlightedTag, items: allStoreItems } = useItemsStore();
   const { section, activeArea } = useAppStore();
   const rowRef = useRef<HTMLTableRowElement>(null);
 
@@ -107,10 +116,11 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   };
 
   const isHighlighted = Boolean(highlightedTag && item.tagPlano === highlightedTag);
+  const isMainItem = item.material === 'P';
 
   if (isEditing) {
     return (
-      <tr ref={rowRef} className={`tr-edit ${isHighlighted ? 'tr-amber-pulse' : ''}`}>
+      <tr ref={rowRef} className={`tr-edit ${isHighlighted ? 'tr-amber-pulse' : ''} ${!isMainItem ? 'tr-consumable-row' : ''}`}>
         <td className="td-n">{index}</td>
         <td className="td-u" style={{ color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
           {item.partida || 'NA'}
@@ -278,6 +288,12 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
                   {k}
                 </option>
               ))}
+              {item.detalle &&
+                !getDetallesForArea(activeArea).some(([k]) => k === item.detalle) && (
+                  <option value={item.detalle} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>
+                    {item.detalle}
+                  </option>
+                )}
             </select>
           ) : (
             <input
@@ -326,12 +342,26 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
     );
   }
 
-  const isMainItem = item.material === 'P';
-  const canInteract = (colKey: string) => isMainItem || colKey === 'plano';
+  const isTriggerRow = isDetalleTriggerRow(item, allStoreItems);
+  const canInteract = () => isMainItem;
   // PARTIDA SICME / PARTIDA BALANCE come from the PARTIDAS master;
   // TAG UNICO is derived. All three are system columns (display-only).
   const isSystemColumn = (colKey: string) =>
     colKey === 'partida' || colKey === 'partidaBalance' || colKey === 'tagUnico';
+
+  const rangeEdgeClass = (colKey: string): string => {
+    const edges = rangeEdgesByCol[colKey];
+    if (!edges) return '';
+    return [
+      'is-range-selected',
+      edges.top ? 'is-range-edge-top' : '',
+      edges.bottom ? 'is-range-edge-bottom' : '',
+      edges.left ? 'is-range-edge-left' : '',
+      edges.right ? 'is-range-edge-right' : ''
+    ]
+      .filter(Boolean)
+      .join(' ');
+  };
 
   // Excel-like Cell Renderer
   const renderCell = (
@@ -340,10 +370,11 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
     className: string = 'td-u',
     customStyle: React.CSSProperties = {}
   ) => {
-    const isSelected = selectedColKey === colKey;
-    const editable = canInteract(colKey) && !isSystemColumn(colKey);
+    const isActive = selectedColKey === colKey;
+    const isSelected = isActive || selectedColKeys.includes(colKey);
+    const editable = canInteract() && !isSystemColumn(colKey);
     const isEditingThisCell = editable && editingColKey === colKey;
-    const isTarget = isFillTarget && (isMainItem || colKey === 'plano');
+    const isTarget = isFillTarget && isMainItem;
     const dragValue = colKey === 'plano' ? (item.plano || '') : value;
 
     const cellTitle = isSystemColumn(colKey)
@@ -351,35 +382,35 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
         ? 'TAG ÚNICO se genera automáticamente'
         : 'PARTIDA de solo lectura: proviene del maestro PARTIDAS')
       : !editable
-      ? 'Consumible derivado: se actualiza desde el ítem principal'
-      : !isMainItem
-      ? 'PLANO se puede editar y arrastrar. El resto del consumible sigue al ítem principal'
-      : isSelected
+      ? 'Consumible (C): solo lectura. PLANO y REV se copian desde el ítem principal (P)'
+      : colKey === 'detalle' && isTriggerRow
+      ? 'Cambiar DETALLE pide actualizar TAG EN PLANO e inserta las filas debajo'
+      : isActive && showFillHandle
       ? 'Doble clic para editar, o arrastra la esquina para copiar hacia abajo'
-      : 'Clic para seleccionar, doble clic para editar';
+      : isSelected
+      ? 'Mayús + clic en otra celda para ajustar el rango'
+      : 'Clic para seleccionar. Mayús + clic en otra celda selecciona el rango';
 
     return (
       <td
-        className={`${className} excel-cell ${isSelected ? 'is-selected' : ''} ${isTarget ? 'excel-cell-fill-target' : ''} ${!isMainItem ? 'excel-cell-consumable' : ''}`}
+        className={`${className} excel-cell ${rangeEdgeClass(colKey)} ${isActive ? 'is-selected' : ''} ${isTarget ? 'excel-cell-fill-target' : ''} ${!isMainItem ? 'excel-cell-consumable' : ''}`}
         style={customStyle}
         data-item-id={item.id}
         data-col-key={colKey}
         data-material={item.material}
         title={cellTitle}
-        onClick={() => {
-          if (editable) {
-            onSelectCell?.(colKey, dragValue);
-          }
+        onMouseDown={e => {
+          if (e.button !== 0) return;
+          if ((e.target as HTMLElement).closest('.excel-fill-handle')) return;
+          onSelectCell?.(colKey, dragValue, e);
         }}
         onDoubleClick={() => {
           if (editable) {
             onStartInlineEdit?.(colKey);
           }
         }}
-        onMouseEnter={() => {
-          if (editable || isFillTarget) {
-            onCellMouseEnter?.(colKey);
-          }
+        onMouseEnter={e => {
+          onCellMouseEnter?.(colKey, e);
         }}
       >
         {isEditingThisCell ? (
@@ -400,18 +431,14 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
           <span>{value || (colKey === 'plano' ? '—' : '')}</span>
         )}
 
-        {editable && isSelected && !isEditingThisCell && onStartFillDrag && (
+        {editable && isActive && showFillHandle && !isEditingThisCell && onStartFillDrag && (
           <div
             className="excel-fill-handle"
             role="button"
-            aria-label={
-              colKey === 'plano'
-                ? 'Arrastrar plano hacia otras filas'
-                : 'Arrastrar valor hacia ítems principales'
-            }
+            aria-label="Arrastrar valor hacia ítems principales"
             title={
-              colKey === 'plano'
-                ? 'Arrastra para copiar el plano hacia abajo, incluyendo consumibles'
+              colKey === 'plano' || colKey === 'rev'
+                ? 'Arrastra para copiar a ítems P. Los consumibles de cada instancia se actualizan solos'
                 : 'Arrastra para copiar el valor a los ítems principales de abajo'
             }
             onDragStart={e => e.preventDefault()}
@@ -463,19 +490,21 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
       {renderCell('metradoOt', item.metradoOt || '', 'td-u')}
 
       <td
-        className={`td-u excel-cell ${selectedColKey === 'unit' ? 'is-selected' : ''} ${isFillTarget && selectedColKey === 'unit' ? 'excel-cell-fill-target' : ''}`}
+        className={`td-u excel-cell ${rangeEdgeClass('unit')} ${selectedColKey === 'unit' ? 'is-selected' : ''} ${isFillTarget && selectedColKey === 'unit' ? 'excel-cell-fill-target' : ''}`}
         style={{ position: 'relative' }}
         data-item-id={item.id}
         data-col-key="unit"
         data-material={item.material}
-        onClick={() => {
-          if (isMainItem) onSelectCell?.('unit', item.unit);
+        onMouseDown={e => {
+          if (e.button !== 0) return;
+          if ((e.target as HTMLElement).closest('.excel-fill-handle, .act-row-floating')) return;
+          onSelectCell?.('unit', item.unit, e);
         }}
         onDoubleClick={() => {
           if (isMainItem) onStartInlineEdit?.('unit');
         }}
-        onMouseEnter={() => {
-          if (isMainItem || isFillTarget) onCellMouseEnter?.('unit');
+        onMouseEnter={e => {
+          onCellMouseEnter?.('unit', e);
         }}
       >
         {isMainItem && editingColKey === 'unit' ? (
@@ -496,7 +525,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
           <span>{item.unit}</span>
         )}
 
-        {isMainItem && selectedColKey === 'unit' && editingColKey !== 'unit' && onStartFillDrag && (
+        {isMainItem && selectedColKey === 'unit' && showFillHandle && editingColKey !== 'unit' && onStartFillDrag && (
           <div
             className="excel-fill-handle"
             role="button"
@@ -513,23 +542,13 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
 
         <div className="act-row-floating">
           {isMainItem && (
-            <button
-              className="btn-icon"
-              onClick={onStartEdit}
-              title="Editar fila completa"
-              style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}
-            >
-              EDIT
-            </button>
+            <IconActionButton kind="edit" title="Editar fila completa" onClick={onStartEdit} />
           )}
-          <button
-            className="btn-icon btn-danger"
-            onClick={() => deleteItem(item.id, section)}
+          <IconActionButton
+            kind="delete"
             title="Eliminar fila"
-            style={{ fontSize: '10px', padding: '2px 5px', fontFamily: 'var(--mo)' }}
-          >
-            DEL
-          </button>
+            onClick={() => deleteItem(item.id, section)}
+          />
         </div>
       </td>
     </tr>

@@ -436,8 +436,14 @@ export function parseTakeoffCsv(
         tagUnico: mat === 'P' ? generateTagUnico(effectivePlano, tagRaw, 'P') : '',
         tagPlano: tagRaw,
         detalle: rowDetalle,
-        metradoOt
+        metradoOt,
+        instanceId: ''
       };
+    });
+
+    const importInstanceId = uid();
+    batch.forEach(it => {
+      it.instanceId = importInstanceId;
     });
 
     if (rule.id === 'r1' && rowDetalle === '008/3B' && !batch.some(it => it.desc.toUpperCase().includes('CEMENTO GEM'))) {
@@ -455,7 +461,8 @@ export function parseTakeoffCsv(
         tagUnico: '',
         tagPlano: tagRaw,
         detalle: rowDetalle,
-        metradoOt: String(parseFloat((lengthRaw * 11.3 / 2).toFixed(4)))
+        metradoOt: String(parseFloat((lengthRaw * 11.3 / 2).toFixed(4))),
+        instanceId: importInstanceId
       });
     }
 
@@ -476,7 +483,7 @@ export function parseTakeoffCsv(
         if (jumpersRaw && !isNaN(parseInt(jumpersRaw, 10)) && parseInt(jumpersRaw, 10) > 0) {
           numJumpers = parseInt(jumpersRaw, 10);
         }
-        processedBatch = applyDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, tuberiaRaw, lengthRawStr, true);
+        processedBatch = applyDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, tuberiaRaw, lengthRawStr, true, importInstanceId);
       }
     } else if (rule.id === 'r8' || rule.id === 'r9') {
       const rowDetalle = detalleRaw || (rule.id === 'r8' ? '010/17A' : '010/17C');
@@ -501,7 +508,7 @@ export function parseTakeoffCsv(
             numSoportes = val;
           }
         }
-        processedBatch = applyBarraPotDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, true);
+        processedBatch = applyBarraPotDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, true, importInstanceId);
       }
     }
 

@@ -22,7 +22,8 @@ export function applyDetalleVariant(
   numJumpers = 0,
   tuberiaOtParam?: string,
   cableOtParam?: string,
-  skipAssignSuffixes = false
+  skipAssignSuffixes = false,
+  instanceId?: string
 ): TakeoffItem[] {
   let variant = DYNAMIC_DETALLE_VARIANTS[detalleCode];
   if (!variant && (detalleCode === '008/5' || detalleCode === '008/05')) {
@@ -37,8 +38,10 @@ export function applyDetalleVariant(
   if (!variant) return items;
 
   const currentItems = [...items];
-  const siblings = currentItems.filter(
-    it => (it.ruleId === 'r1' || it.ruleId === 'r2') && it.tagPlano === tagPlano && it.pkgId === pkgId
+  const siblings = currentItems.filter(it =>
+    instanceId
+      ? it.instanceId === instanceId
+      : (it.ruleId === 'r1' || it.ruleId === 'r2') && it.tagPlano === tagPlano && it.pkgId === pkgId
   );
   if (siblings.length === 0) return currentItems;
 
@@ -98,7 +101,8 @@ export function applyDetalleVariant(
           tagUnico: generateTagUnico(refItem.plano, tagPlano, 'P'),
           tagPlano: tagPlano,
           detalle: detalleCode,
-          metradoOt: tuberiaOt
+          metradoOt: tuberiaOt,
+          instanceId: instanceId || refItem.instanceId
         };
         currentItems.splice(insertTubAt, 0, tuberiaItem);
       } else {
@@ -213,7 +217,8 @@ export function applyDetalleVariant(
         tagUnico: isP ? generateTagUnico(refItem.plano, tagPlano, 'P') : '',
         tagPlano: tagPlano,
         detalle: detalleCode,
-        metradoOt: finalOt
+        metradoOt: finalOt,
+        instanceId: instanceId || refItem.instanceId
       };
     })
     .filter(v => typeof v.qty !== 'number' || v.qty > 0);
@@ -221,7 +226,11 @@ export function applyDetalleVariant(
   currentItems.splice(insertAt, 0, ...newMiddle);
 
   currentItems
-    .filter(it => it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId)
+    .filter(it =>
+      instanceId
+        ? it.instanceId === instanceId
+        : it.ruleId === 'r2' && it.tagPlano === tagPlano && it.pkgId === pkgId
+    )
     .forEach(it => {
       it.detalle = detalleCode;
     });
@@ -235,7 +244,8 @@ export function applyBarraPotDetalleVariant(
   pkgId: string,
   detalleCode: string,
   numSoportes = 1,
-  skipAssignSuffixes = false
+  skipAssignSuffixes = false,
+  instanceId?: string
 ): TakeoffItem[] {
   const variant =
     DYNAMIC_BARRA_POT_VARIANTS[detalleCode] ||
@@ -243,11 +253,12 @@ export function applyBarraPotDetalleVariant(
   if (!variant) return items;
 
   const currentItems = [...items];
-  const siblings = currentItems.filter(
-    it =>
-      (it.ruleId === 'r8' || it.ruleId === 'r9' || (it.desc && it.desc.toUpperCase().includes('BARRA'))) &&
-      it.tagPlano === tagPlano &&
-      it.pkgId === pkgId
+  const siblings = currentItems.filter(it =>
+    instanceId
+      ? it.instanceId === instanceId
+      : (it.ruleId === 'r8' || it.ruleId === 'r9' || (it.desc && it.desc.toUpperCase().includes('BARRA'))) &&
+        it.tagPlano === tagPlano &&
+        it.pkgId === pkgId
   );
   if (siblings.length === 0) return currentItems;
 
@@ -281,7 +292,8 @@ export function applyBarraPotDetalleVariant(
       tagUnico: generateTagUnico(refItem.plano, tagPlano, v.material),
       tagPlano: tagPlano,
       detalle: detalleCode,
-      metradoOt: finalOt
+      metradoOt: finalOt,
+      instanceId: instanceId || refItem.instanceId
     };
   });
 

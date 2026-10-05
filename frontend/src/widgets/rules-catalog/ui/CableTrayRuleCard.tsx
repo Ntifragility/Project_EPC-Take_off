@@ -1,6 +1,8 @@
 import React from 'react';
 import { TakeoffRule, CableTrayMatrixItem } from '../../../entities/takeoff-rule/model/types';
 import { DEFAULT_CABLE_TRAY_MATRIX } from '../../../entities/takeoff-rule/model/cableTrayRules';
+import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { RuleCardShell } from './RuleCardShell';
 
 interface CableTrayRuleCardProps {
   rule: TakeoffRule;
@@ -25,69 +27,22 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
   const detalleCode = rule.detalle || '001/2B-X1';
 
   return (
-    <div className="rule-card" key={rule.id}>
-      <div className="rule-card-row">
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '6px'
-            }}
-          >
-            <div className="rule-trigger">{rule.trigger}</div>
-            <span
-              style={{
-                background: 'var(--s2)',
-                border: '1px solid var(--b1)',
-                color: 'var(--tx)',
-                fontSize: '11px',
-                padding: '3px 8px',
-                borderRadius: '4px',
-                fontWeight: 700,
-                fontFamily: 'var(--mo)',
-                marginRight: '90px'
-              }}
-            >
-              {cableTrayRows.length} {cableTrayRows.length === 1 ? 'material' : 'materiales'} &bull; 4 anchos
-            </span>
-          </div>
+    <RuleCardShell
+      trigger={rule.trigger}
+      preview={cableTrayRows.map(row => row.desc).filter(Boolean)}
+      badge={`${cableTrayRows.length} ${cableTrayRows.length === 1 ? 'material' : 'materiales'} · 4 anchos`}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
+      onEdit={() => onEdit(rule)}
+      onDelete={() => onDelete(rule.id)}
+    >
 
-          <div
-            onClick={onToggleExpand}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 12px',
-              background: 'var(--s2)',
-              border: '1px solid var(--b1)',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              userSelect: 'none',
-              fontSize: '11px',
-              fontFamily: 'var(--mo)',
-              color: 'var(--tx)',
-              margin: '8px 14px',
-              transition: 'all 0.15s ease'
-            }}
-            title="Haga clic para mostrar u ocultar"
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-              <span>{isExpanded ? '▼' : '▶'}</span>
-              <span>{isExpanded ? 'Ocultar matriz de anchos' : 'Mostrar matriz de anchos (900/600/450/300 mm)'}</span>
-            </span>
-          </div>
-
-          {isExpanded && (
             <div
               style={{
-                margin: '12px 14px',
                 overflowX: 'auto',
                 WebkitOverflowScrolling: 'touch',
                 border: '1px solid var(--b1)',
-                borderRadius: '6px',
+                borderRadius: '4px',
                 background: 'var(--s2)'
               }}
             >
@@ -221,25 +176,13 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                             >
                               {detalleCode}
                             </span>
-                            <button
-                              type="button"
-                              className="btn-ghost"
-                              onClick={() => onEdit(rule)}
-                              style={{
-                                fontSize: '10px',
-                                padding: '3px 8px',
-                                marginTop: '6px',
-                                display: 'block',
-                                margin: '6px auto 0 auto',
-                                cursor: 'pointer',
-                                borderRadius: '4px',
-                                border: '1px solid var(--b1)',
-                                background: 'var(--s1)'
-                              }}
-                              title="Editar matriz de anchos"
-                            >
-                              EDITAR
-                            </button>
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+                              <IconActionButton
+                                kind="edit"
+                                title="Editar matriz de anchos"
+                                onClick={() => onEdit(rule)}
+                              />
+                            </div>
                           </td>
                         )}
                         <td
@@ -333,21 +276,6 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
-
-        <div className="rule-card-acts">
-          <button className="btn-ghost btn-sm" onClick={() => onEdit(rule)}>
-            EDITAR
-          </button>
-          <button
-            className="btn-ghost btn-sm btn-danger"
-            onClick={() => onDelete(rule.id)}
-          >
-            ELIMINAR
-          </button>
-        </div>
-      </div>
-    </div>
+    </RuleCardShell>
   );
 };

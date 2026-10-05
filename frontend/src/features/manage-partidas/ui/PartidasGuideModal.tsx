@@ -3,6 +3,7 @@ import { PartidaRecord } from '../../../entities/partida/model/types';
 import { downloadPartidasTemplateXlsx, parsePartidasExcelFile } from '../../../shared/lib/partidasExcel';
 import { usePartidasStore } from '../model/usePartidasStore';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface PartidasGuideModalProps {
   isOpen: boolean;
@@ -54,56 +55,13 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
   };
 
   return (
-    <div
-      className="modal-overlay"
-      id="partidas-guide-overlay"
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <ModalShell
+      title="Carga de partidas"
+      subtitle="El Excel correlaciona PARTIDA SICME y PARTIDA BALANCE con el metrado."
+      onClose={onClose}
+      maxWidth="720px"
     >
-      <div
-        className="modal"
-        style={{
-          maxWidth: '720px',
-          width: '92vw',
-          maxHeight: '88vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          padding: '16px'
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)', letterSpacing: '0.5px' }}>
-              GESTIÓN Y CARGA DE PARTIDAS (FORECAST MASTER)
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--mu)' }}>
-              Sube el archivo Excel para correlacionar automáticamente las columnas <strong>PARTIDAS SICME</strong> y <strong>PARTIDA BALANCE</strong> con el metrado.
-            </div>
-          </div>
-          <button
-            className="btn-icon"
-            onClick={onClose}
-            style={{ fontSize: '14px', width: '28px', height: '28px', padding: 0 }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <div
-          className="modal-body"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            fontSize: '11px',
-            overflowY: 'auto',
-            paddingRight: '4px'
-          }}
-        >
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Format Table */}
           <div>
             <div style={{ fontWeight: 600, color: 'var(--tx)', marginBottom: '4px' }}>
@@ -231,53 +189,16 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
         </div>
 
         {/* Modal Footer */}
-        <div
-          className="modal-ft"
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '8px',
-            marginTop: '10px',
-            paddingTop: '10px',
-            borderTop: '1px solid var(--b1)'
-          }}
-        >
-          <button
-            className="btn-ghost btn-sm btn-success"
-            style={{
-              width: '185px',
-              height: '34px',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '6px'
-            }}
-            onClick={downloadPartidasTemplateXlsx}
-          >
-            PLANTILLA (.XLSX)
+        <div className="modal-ft" style={{ justifyContent: 'center' }}>
+          <button className="btn-ghost" onClick={downloadPartidasTemplateXlsx}>
+            Plantilla Excel
           </button>
-
           <label
-            className="btn-primary btn-success"
-            style={{
-              cursor: 'pointer',
-              width: '185px',
-              height: '34px',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '6px',
-              margin: 0
-            }}
-            title="Importar archivo Excel (.xlsx, .xlsb, .xls) de Partidas"
+            className="btn-primary"
+            style={{ cursor: 'pointer', margin: 0 }}
+            title="Importar archivo Excel de partidas"
           >
-            <span>+ SELECCIONAR EXCEL</span>
+            <span>Seleccionar Excel</span>
             <input
               type="file"
               accept=".xlsx,.xlsb,.xls"
@@ -285,28 +206,12 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
               onChange={handleFileChange}
             />
           </label>
-
           {parsedPartidas.length > 0 && (
-            <button
-              className="btn-green"
-              style={{
-                height: '34px',
-                padding: '0 16px',
-                fontSize: '11px',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '6px'
-              }}
-              onClick={handleSendToSupabase}
-              disabled={isUploading}
-            >
-              {isUploading ? 'GUARDANDO...' : `ENVIAR A SUPABASE (${parsedPartidas.length})`}
+            <button className="btn-primary" onClick={handleSendToSupabase} disabled={isUploading}>
+              {isUploading ? 'Guardando...' : `Enviar a Supabase (${parsedPartidas.length})`}
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

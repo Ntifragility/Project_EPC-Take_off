@@ -118,14 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <button
-          className="btn-primary"
-          style={{
-            background: '#ffffff',
-            color: '#107c41',
-            fontWeight: 700,
-            opacity: isSyncing ? 0.7 : 1,
-            cursor: isSyncing ? 'wait' : 'pointer'
-          }}
+          className="btn-save-db"
           onClick={() => executeSyncToDatabase()}
           disabled={isSyncing}
           title={
@@ -134,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
               : 'Configura VITE_SUPABASE_URL en .env para guardar directamente en BD'
           }
         >
-          {isSyncing ? 'Sincronizando...' : '💾 Guardar en BD'}
+          {isSyncing ? 'Guardando...' : 'Guardar en BD'}
         </button>
 
         <span
@@ -151,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
           }}
           id="item-count"
         >
-          {String(items.length).padStart(5, '0')} ítems
+          {items.length} ítems
         </span>
 
         <ToolsPanel />

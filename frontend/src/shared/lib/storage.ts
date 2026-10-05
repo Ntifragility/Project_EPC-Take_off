@@ -4,6 +4,8 @@ import { SectionType } from '../types/common';
 import { PartidaRecord } from '../../entities/partida/model/types';
 import { SEED_RULES, SEED_CANALIZADO_RULES } from '../../entities/takeoff-rule/model/seedRules';
 import { DEFAULT_CABLE_TRAY_MATRIX } from '../../entities/takeoff-rule/model/cableTrayRules';
+import { renameCable20RielDesc } from '../../entities/takeoff-rule/model/detalleVariants';
+import { attachCatalogAreas } from '../../entities/takeoff-rule/model/areaCatalog';
 
 export function getStorageKey(name: string, section: SectionType): string {
   return section === 'pat' ? `epc-${name}` : `epc-canalizado-${name}`;
@@ -12,7 +14,8 @@ export function getStorageKey(name: string, section: SectionType): string {
 export function loadStoredItems(section: SectionType): TakeoffItem[] {
   try {
     const raw = localStorage.getItem(getStorageKey('items', section));
-    return raw ? JSON.parse(raw) : [];
+    const parsed: TakeoffItem[] = raw ? JSON.parse(raw) : [];
+    return parsed.map(it => ({ ...it, desc: renameCable20RielDesc(it.desc || '') }));
   } catch (err) {
     console.error('Error loading items from localStorage:', err);
     return [];
@@ -43,7 +46,6 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
           return {
             ...r,
             trigger: 'SOLDADURA T 4/0 -2/0',
-            detalle: '008/4T2',
             tagPrefix: 'TT',
             subitems: r.subitems.map(s =>
               s.desc.toUpperCase().includes('SOLDADURA T 4/0')
@@ -55,7 +57,6 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
         if (up === 'SOLDADURA T 4/0') {
           return {
             ...r,
-            detalle: '008/4T1',
             tagPrefix: 'T'
           };
         }
@@ -99,7 +100,8 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
 
       // DET.001/2B-X1 lives in CANALIZADO only: drop any legacy copy stored under PAT.
       const cleaned = section === 'canalizado' ? mapped : mapped.filter(r => r.id !== 'r-001-2b-x1');
-      return cleaned;
+      const seeds = section === 'canalizado' ? SEED_CANALIZADO_RULES : SEED_RULES;
+      return cleaned.map(r => attachCatalogAreas(r, seeds));
     }
   } catch (err) {
     console.error('Error loading rules from localStorage:', err);

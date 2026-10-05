@@ -1,3 +1,5 @@
+import { AreaType } from '../../../shared/types/common';
+
 export interface RuleSubitem {
   id: string;
   desc: string;
@@ -25,6 +27,8 @@ export interface TakeoffRule {
   detalle?: string;
   tagPrefix?: string;
   cableTrayMatrix?: CableTrayMatrixItem[];
+  /** Catalog membership. Missing/empty is inferred (see areaCatalog). */
+  areas?: AreaType[];
 }
 
 export interface DetalleVariantItem {

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useItemsStore } from '../../manage-items/model/useItemsStore';
 import { calculateMaterialSummary } from '../model/materialSummary';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface MaterialSummaryModalProps {
   isOpen: boolean;
@@ -21,25 +22,8 @@ export const MaterialSummaryModal: React.FC<MaterialSummaryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="modal-overlay"
-      id="modal-overlay"
-      style={{ display: 'flex' }}
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal" id="modal-box" style={{ maxWidth: '640px' }}>
-        <div className="modal-hd">
-          <span className="modal-hd-title" id="modal-title">
-            RESUMEN DE MATERIALES (P)
-          </span>
-          <button className="btn-ghost btn-sm" onClick={onClose}>
-            ESC
-          </button>
-        </div>
-
-        <div className="modal-body" id="modal-body">
+    <ModalShell title="Resumen de materiales (P)" onClose={onClose} maxWidth="640px">
+        <div className="modal-body">
           <div
             style={{
               maxHeight: '500px',
@@ -84,7 +68,7 @@ export const MaterialSummaryModal: React.FC<MaterialSummaryModalProps> = ({
                       }}
                     >
                       CIRCUITOS /{' '}
-                      <span style={{ color: 'var(--text)', fontWeight: 700 }}>
+                      <span style={{ color: 'var(--tx)', fontWeight: 700 }}>
                         {circ40Count}
                       </span>
                     </div>
@@ -101,7 +85,7 @@ export const MaterialSummaryModal: React.FC<MaterialSummaryModalProps> = ({
                       }}
                     >
                       CIRCUITOS /{' '}
-                      <span style={{ color: 'var(--text)', fontWeight: 700 }}>
+                      <span style={{ color: 'var(--tx)', fontWeight: 700 }}>
                         {circ20Count}
                       </span>
                     </div>
@@ -137,7 +121,7 @@ export const MaterialSummaryModal: React.FC<MaterialSummaryModalProps> = ({
                           fontFamily: 'var(--mo)',
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: 'var(--text)',
+                          color: 'var(--tx)',
                           lineHeight: 1.4
                         }}
                       >
@@ -154,7 +138,7 @@ export const MaterialSummaryModal: React.FC<MaterialSummaryModalProps> = ({
                         }}
                       >
                         UNIDAD /{' '}
-                        <span style={{ color: 'var(--text)', fontWeight: 700 }}>
+                        <span style={{ color: 'var(--tx)', fontWeight: 700 }}>
                           {item.unit}
                         </span>
                       </div>
@@ -192,10 +176,9 @@ export const MaterialSummaryModal: React.FC<MaterialSummaryModalProps> = ({
 
         <div className="modal-ft">
           <button className="btn-ghost" onClick={onClose}>
-            CERRAR
+            Cerrar
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

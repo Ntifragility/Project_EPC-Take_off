@@ -8,6 +8,10 @@ export interface TableXlsxOptions {
   rows: (string | number)[][];
   widths?: number[];
   fileName: string;
+  /** Excel banded rows. Off when the caller paints its own fills. */
+  showRowStripes?: boolean;
+  /** ARGB fills for data rows (index 0 = first body row). */
+  rowFills?: string[];
 }
 
 /**
@@ -24,10 +28,22 @@ export async function downloadTableXlsx(opts: TableXlsxOptions): Promise<void> {
     ref: 'A1',
     headerRow: true,
     totalsRow: false,
-    style: { theme: 'TableStyleMedium2', showRowStripes: true },
+    style: { theme: 'TableStyleMedium2', showRowStripes: opts.showRowStripes !== false },
     columns: opts.headers.map(h => ({ name: h, filterButton: true })),
     rows: opts.rows
   });
+  if (opts.rowFills && opts.rowFills.length > 0) {
+    opts.rowFills.forEach((argb, i) => {
+      const row = ws.getRow(i + 2);
+      row.eachCell({ includeEmpty: true }, cell => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb }
+        };
+      });
+    });
+  }
   if (opts.widths) {
     ws.columns.forEach((col, idx) => {
       col.width = opts.widths![idx] || 14;

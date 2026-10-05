@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { downloadMetradoTemplateXlsx } from '../../../shared/lib/excelTemplates';
+import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface ExcelGuideModalProps {
   isOpen: boolean;
@@ -13,101 +14,24 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div
-      className="modal-overlay"
-      id="excel-guide-overlay"
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="modal"
-        style={{
-          maxWidth: '620px',
-          width: '92vw',
-          maxHeight: '88vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          padding: '16px'
-        }}
-      >
-        {/* Modal Header & Tabs */}
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tx)', letterSpacing: '0.5px' }}>
-              GUÍA Y ESTRUCTURA DE PLANTILLA EXCEL
-            </div>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--mu)',
-                fontSize: '16px',
-                cursor: 'pointer',
-                padding: '0 4px',
-                lineHeight: 1
-              }}
-              title="Cerrar"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Section Selector Tabs */}
-          <div style={{ display: 'flex', gap: '6px', background: 'var(--s2)', padding: '3px', borderRadius: '6px' }}>
+    <ModalShell title="Guía de plantilla Excel" onClose={onClose} maxWidth="620px">
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="modal-seg">
             <button
               type="button"
+              className={activeTab === 'mechas' ? 'is-active' : ''}
               onClick={() => setActiveTab('mechas')}
-              style={{
-                flex: 1,
-                padding: '6px 10px',
-                fontSize: '11px',
-                fontWeight: 600,
-                borderRadius: '5px',
-                border: 'none',
-                cursor: 'pointer',
-                background: activeTab === 'mechas' ? 'var(--p1)' : 'transparent',
-                color: activeTab === 'mechas' ? '#fff' : 'var(--mu)',
-                transition: 'all 0.15s ease'
-              }}
             >
-              1. Mechas 2/0 AWG (7 cols)
+              Mechas 2/0 AWG (7 cols)
             </button>
             <button
               type="button"
+              className={activeTab === 'otros' ? 'is-active' : ''}
               onClick={() => setActiveTab('otros')}
-              style={{
-                flex: 1,
-                padding: '6px 10px',
-                fontSize: '11px',
-                fontWeight: 600,
-                borderRadius: '5px',
-                border: 'none',
-                cursor: 'pointer',
-                background: activeTab === 'otros' ? 'var(--p1)' : 'transparent',
-                color: activeTab === 'otros' ? '#fff' : 'var(--mu)',
-                transition: 'all 0.15s ease'
-              }}
             >
-              2. Cables 4/0, Barras y Soldaduras (5 cols)
+              Cables 4/0, barras y soldaduras (5 cols)
             </button>
           </div>
-        </div>
-
-        {/* Modal Body */}
-        <div
-          className="modal-body"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            fontSize: '11px',
-            overflowY: 'auto',
-            paddingRight: '4px'
-          }}
-        >
           {/* Table of Columns for activeTab */}
           <div>
             <div
@@ -212,7 +136,7 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
               color: 'var(--tx)'
             }}
           >
-            <strong>💡 Plantilla Multi-Pestaña y Auto-Detección:</strong> La plantilla <strong>.xlsx</strong> descargable contiene ambas pestañas (<strong>1. MECHAS</strong> y <strong>2. CABLES_BARRAS_OTROS</strong>), cada una con formato <strong>Tabla de Excel</strong> (filtros por columna y filas con bandas). Puedes subir el archivo con ambas pestañas a la vez. El sistema procesa todas las hojas automáticamente reconociendo las columnas por su cabecera.
+            <strong>Plantilla multi-pestaña y auto-detección:</strong> La plantilla <strong>.xlsx</strong> descargable contiene ambas pestañas (<strong>1. MECHAS</strong> y <strong>2. CABLES_BARRAS_OTROS</strong>), cada una con formato <strong>Tabla de Excel</strong> (filtros por columna y filas con bandas). Puedes subir el archivo con ambas pestañas a la vez. El sistema procesa todas las hojas automáticamente reconociendo las columnas por su cabecera.
           </div>
 
           {/* Compact Prefixes Row */}
@@ -271,52 +195,16 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
         </div>
 
         {/* Modal Footer */}
-        <div
-          className="modal-ft"
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '8px',
-            marginTop: '10px',
-            paddingTop: '10px',
-            borderTop: '1px solid var(--b1)'
-          }}
-        >
-          <button
-            className="btn-ghost btn-sm btn-success"
-            style={{
-              width: '185px',
-              height: '34px',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '6px'
-            }}
-            onClick={downloadMetradoTemplateXlsx}
-          >
-            DESCARGAR PLANTILLA (.XLSX)
+        <div className="modal-ft" style={{ justifyContent: 'center' }}>
+          <button className="btn-ghost" onClick={downloadMetradoTemplateXlsx}>
+            Descargar plantilla
           </button>
           <label
-            className="btn-primary btn-success"
-            style={{
-              cursor: 'pointer',
-              width: '185px',
-              height: '34px',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '6px',
-              margin: 0
-            }}
+            className="btn-primary"
+            style={{ cursor: 'pointer', margin: 0 }}
             title="Importar archivo Excel (.xlsx, .xlsb, .xls) ahora"
           >
-            <span>+ SELECCIONAR EXCEL</span>
+            <span>Seleccionar Excel</span>
             <input
               type="file"
               accept=".xlsx,.xlsb,.xls"
@@ -328,7 +216,6 @@ export const ExcelGuideModal: React.FC<ExcelGuideModalProps> = ({ isOpen, onClos
             />
           </label>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };
