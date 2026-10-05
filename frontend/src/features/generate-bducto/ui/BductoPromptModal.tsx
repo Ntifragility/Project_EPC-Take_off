@@ -158,6 +158,19 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   if (!manual && invalid) return null;
   const adaptadorInfo = !invalid && parsed && typeof parsed !== 'string' ? parsed : null;
 
+  const savedPrompt = source.prompt;
+  const parsedVias = parsed && typeof parsed !== 'string' ? parsed.vias : 0;
+  const nonZeroEntry = (value: string) => value !== '' && value !== '0';
+  const isDirty =
+    desde !== (savedPrompt?.desde || source.desde || '') ||
+    hasta !== (savedPrompt?.hasta || source.hasta || '') ||
+    (quantity ?? '') !== (savedPrompt && typeof savedPrompt.quantity === 'number' ? String(savedPrompt.quantity) : source.quantity > 0 ? String(source.quantity) : '') ||
+    terminalCount !== (savedPrompt ? String(savedPrompt.terminalCount) : '0') ||
+    unionCount !== (savedPrompt ? String(savedPrompt.unionCount) : String(parsedVias)) ||
+    adaptadorCount !== (savedPrompt ? String(savedPrompt.adaptadorCount) : '0') ||
+    curves.some(choice => nonZeroEntry(choice.quantity)) ||
+    elevations.some(line => nonZeroEntry(line.length) || nonZeroEntry(line.quantity));
+
   const lengthM = invalid ? 0 : quantity == null ? source.quantity : parseLengthInput(quantity);
   const sticks = lengthM > 0 ? splitSticks(lengthM) : [];
   const stickSummary =
@@ -209,6 +222,8 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
       subtitle={subtitle}
       onClose={onCancel}
       dismissOnOverlay={false}
+      dismiss="dirty-confirm"
+      isDirty={isDirty}
       onMinimize={onMinimize}
       onPrepareMinimize={() => flushSync(() => armRestore())}
       minimizeTargetId={RESTORE_BUTTON_ID}

@@ -1,5 +1,9 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { growWindow, prefersReducedMotion, shrinkWindow, takeRestoreAnchor } from './windowMotion';
+
+export type ModalDismissPolicy = 'safe' | 'dirty-confirm' | 'locked';
+
+export const DIRTY_DISCARD_MESSAGE = 'Hay cambios sin guardar. ¿Descartarlos?';
 
 export interface ModalShellProps {
   title: string;
@@ -12,6 +16,13 @@ export interface ModalShellProps {
   closeDisabled?: boolean;
   /** Backdrop click closes the window. The BDUCTOS prompt keeps edits until Cancelar or Cerrar. */
   dismissOnOverlay?: boolean;
+  /**
+   * Dismiss policy. 'safe' keeps the historical behavior, 'dirty-confirm'
+   * asks for confirmation when `isDirty`, 'locked' behaves like `closeDisabled`.
+   */
+  dismiss?: ModalDismissPolicy;
+  /** Whether the modal holds unsaved edits (only used with 'dirty-confirm'). */
+  isDirty?: boolean;
   maxWidth?: string | number;
   children: React.ReactNode;
 }
@@ -25,12 +36,17 @@ export const ModalShell: React.FC<ModalShellProps> = ({
   minimizeTargetId,
   closeDisabled,
   dismissOnOverlay = true,
+  dismiss = 'safe',
+  isDirty = false,
   maxWidth,
   children
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const busy = useRef(false);
+  // 'locked' is today's closeDisabled path; closeDisabled is kept for callers.
+  const locked = dismiss === 'locked' || closeDisabled;
+  const overlayAllowed = dismissOnOverlay && !locked;
 
   useLayoutEffect(() => {
     const modal = modalRef.current;
@@ -39,6 +55,26 @@ export const ModalShell: React.FC<ModalShellProps> = ({
     if (!modal || !overlay || !anchor || prefersReducedMotion()) return;
     growWindow(modal, overlay, anchor);
   }, []);
+
+  const tryDismiss = () => {
+    if (locked) return;
+    if (dismiss === 'dirty-confirm' && isDirty && !window.confirm(DIRTY_DISCARD_MESSAGE)) return;
+    onClose();
+  };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (locked) return;
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (dismiss === 'dirty-confirm' && isDirty && !window.confirm(DIRTY_DISCARD_MESSAGE)) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [locked, dismiss, isDirty, onClose]);
 
   const handleMinimize = () => {
     if (!onMinimize || busy.current) return;
@@ -64,7 +100,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
       ref={overlayRef}
       onClick={event => {
         if (busy.current) return;
-        if (event.target === event.currentTarget && dismissOnOverlay && !closeDisabled) onClose();
+        if (event.target === event.currentTarget && overlayAllowed) tryDismiss();
       }}
     >
       <div className="modal" ref={modalRef} style={maxWidth ? { maxWidth } : undefined}>
@@ -79,7 +115,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
                 Minimizar
               </button>
             ) : null}
-            <button type="button" className="modal-close" onClick={onClose} disabled={closeDisabled}>
+            <button type="button" className="modal-close" onClick={tryDismiss} disabled={locked}>
               Cerrar
             </button>
           </div>

@@ -1,4 +1,5 @@
 import { createStore } from '../../../shared/lib/store';
+import { createSingleUndo } from '../../../shared/lib/singleUndo';
 import { TakeoffItem, MaterialType } from '../../../entities/takeoff-item/model/types';
 import { SectionType } from '../../../shared/types/common';
 import { PartidaRecord } from '../../../entities/partida/model/types';
@@ -109,6 +110,8 @@ const initialRev = localStorage.getItem(STORAGE_KEYS.REV) || DEFAULT_REV;
 
 let highlightTimer: any = null;
 
+const itemsUndo = createSingleUndo<TakeoffItem[]>();
+
 export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   items: initialCorrelatedItems,
   customPlano: initialPlano,
@@ -151,7 +154,8 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   },
 
   saveUndoSnapshot: () => {
-    set({ undoSnapshot: JSON.stringify(get().items) });
+    itemsUndo.remember(get().items);
+    set({ undoSnapshot: itemsUndo.snapshot });
   },
 
   addCustomItem: (
@@ -250,6 +254,7 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       updates = rest;
     }
 
+    get().saveUndoSnapshot();
     let updated = items.map(it => {
       if (it.id !== id) return it;
       const appliedTagPlano = updates.tagPlano !== undefined ? updates.tagPlano : it.tagPlano;
@@ -584,6 +589,7 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   },
 
   deleteItem: (id: string, section: SectionType) => {
+    get().saveUndoSnapshot();
     const updated = get().items.filter(it => it.id !== id);
     saveStoredItems(section, updated);
     set({ items: updated });
@@ -596,22 +602,18 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   },
 
   undoLastAction: (section: SectionType) => {
-    const snapshot = get().undoSnapshot;
-    if (!snapshot) return false;
-    try {
-      const restored = JSON.parse(snapshot);
-      saveStoredItems(section, restored);
-      set({ items: restored, undoSnapshot: null });
-      return true;
-    } catch (e) {
-      console.error('Error restoring undo snapshot:', e);
-      return false;
-    }
+    if (!get().undoSnapshot) return false;
+    const restored = itemsUndo.undo();
+    if (!restored) return false;
+    saveStoredItems(section, restored);
+    set({ items: restored, undoSnapshot: itemsUndo.snapshot });
+    return true;
   },
 
   clearCache: (section: SectionType) => {
+    get().saveUndoSnapshot();
     saveStoredItems(section, []);
-    set({ items: [], undoSnapshot: null });
+    set({ items: [] });
   },
 
   syncGlobalContext: (section: SectionType) => {

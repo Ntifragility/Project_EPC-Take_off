@@ -39,6 +39,17 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
 
   if (!isOpen || !rule) return null;
 
+  const matrixKey = (list: CableTrayMatrixItem[]) => JSON.stringify(list);
+  const initialMatrix =
+    rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0
+      ? rule.cableTrayMatrix
+      : DEFAULT_CABLE_TRAY_MATRIX;
+  const isDirty =
+    trigger !== (rule.trigger || 'DET.001/2B-X1') ||
+    detalle !== (rule.detalle || '001/2B-X1') ||
+    tagPrefix !== (rule.tagPrefix || 'SE') ||
+    matrixKey(matrixItems) !== matrixKey(initialMatrix);
+
   const handleAddItem = () => {
     setMatrixItems(prev => [
       ...prev,
@@ -106,6 +117,8 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
       title="Matriz de escalerilla"
       subtitle="Materiales y valores para 900, 600, 450 y 300 mm."
       onClose={onClose}
+      dismiss="dirty-confirm"
+      isDirty={isDirty}
       maxWidth="960px"
     >
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>

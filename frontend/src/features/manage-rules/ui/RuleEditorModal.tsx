@@ -35,6 +35,10 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
 
   if (!isOpen) return null;
 
+  const initialTrigger = initialRule?.trigger ?? '';
+  const subitemsKey = (list: RuleSubitem[]) => JSON.stringify(list.map(s => [s.desc, s.qty, s.unit]));
+  const isDirty = trigger !== initialTrigger || subitemsKey(subitems) !== subitemsKey(initialRule?.subitems ?? [{ id: '', desc: '', qty: 1, unit: 'UND' }]);
+
   const handleAddSubitem = () => {
     setSubitems(prev => [...prev, { id: uid(), desc: '', qty: 1, unit: 'UND' }]);
   };
@@ -72,7 +76,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   };
 
   return (
-    <ModalShell title={isNew ? 'Nueva regla' : 'Editar regla'} onClose={onClose} maxWidth="640px">
+    <ModalShell title={isNew ? 'Nueva regla' : 'Editar regla'} onClose={onClose} maxWidth="640px" dismiss="dirty-confirm" isDirty={isDirty}>
         <div className="modal-body">
           <div className="mb-16">
             <div className="field-label" style={{ marginBottom: '6px' }}>

@@ -21,6 +21,7 @@ import {
   ParsedBducto,
   STICK_LENGTH_M
 } from './types';
+import { foldHeaderCell } from '../../../shared/lib/readSheetMatrix';
 
 const STICK_CENTS = Math.round(STICK_LENGTH_M * 100);
 
@@ -307,22 +308,32 @@ export function parseSourceBlock(text: string): { rows: Array<Omit<BductoSource,
   return { rows, errors };
 }
 
-function headerName(value: unknown): string {
-  return String(value ?? '')
-    .trim()
-    .toUpperCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ');
+export interface BductoRejectedRow {
+  fila: number;
+  plano: string;
+  tagEnPlano: string;
+  quantity: string;
+  desde: string;
+  hasta: string;
+  motivo: string;
 }
+
+export interface BductoSheetResult {
+  rows: Array<Omit<BductoSource, 'id'>>;
+  errors: string[];
+  rejectedRows: BductoRejectedRow[];
+}
+/* Header folding is shared via foldHeaderCell (shared/lib/readSheetMatrix.ts). */
+
 
 /**
  * Reads a sheet laid out as DESDE | HASTA | PLANO | TAG EN PLANO | Quantity.
  * DESDE and HASTA are optional columns. The header row can sit below a title.
  */
-export function parseBductoSheet(matrix: unknown[][]): { rows: Array<Omit<BductoSource, 'id'>>; errors: string[] } {
+export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
   const rows: Array<Omit<BductoSource, 'id'>> = [];
   const errors: string[] = [];
+  const rejectedRows: BductoRejectedRow[] = [];
   let headerIdx = -1;
   const cols = { desde: -1, hasta: -1, plano: -1, tag: -1, qty: -1 };
 
@@ -330,12 +341,12 @@ export function parseBductoSheet(matrix: unknown[][]): { rows: Array<Omit<Bducto
     const line = matrix[r] || [];
     const found = { desde: -1, hasta: -1, plano: -1, tag: -1, qty: -1 };
     line.forEach((cell, index) => {
-      const name = headerName(cell);
+      const name = foldHeaderCell(cell);
       if (name === 'DESDE') found.desde = index;
       else if (name === 'HASTA') found.hasta = index;
       else if (name === 'PLANO') found.plano = index;
-      else if (name === 'TAG EN PLANO' || name === 'TAG') found.tag = index;
-      else if (name === 'QUANTITY' || name === 'CANTIDAD' || name === 'LONGITUD' || name === 'LONGITUD (M)') found.qty = index;
+      else if (name === 'TAG_EN_PLANO' || name === 'TAG') found.tag = index;
+      else if (name === 'QUANTITY' || name === 'CANTIDAD' || name === 'LONGITUD' || name === 'LONGITUD_M') found.qty = index;
     });
     if (found.plano >= 0 && found.tag >= 0 && found.qty >= 0) {
       headerIdx = r;
@@ -345,7 +356,7 @@ export function parseBductoSheet(matrix: unknown[][]): { rows: Array<Omit<Bducto
   }
 
   if (headerIdx < 0) {
-    return { rows, errors: ['No encontré las columnas PLANO, TAG EN PLANO y Quantity.'] };
+    return { rows, errors: ['No encontré las columnas PLANO, TAG EN PLANO y Quantity.'], rejectedRows };
   }
 
   for (let r = headerIdx + 1; r < matrix.length; r++) {
@@ -362,6 +373,15 @@ export function parseBductoSheet(matrix: unknown[][]): { rows: Array<Omit<Bducto
     const parsed = parseBductoSource(candidate);
     if (typeof parsed === 'string') {
       errors.push(`Fila ${r + 1}: ${parsed}`);
+      rejectedRows.push({
+        fila: r + 1,
+        plano,
+        tagEnPlano,
+        quantity: typeof qtyRaw === 'number' ? String(qtyRaw) : String(qtyRaw ?? ''),
+        desde,
+        hasta,
+        motivo: parsed
+      });
       continue;
     }
     rows.push({
@@ -376,7 +396,7 @@ export function parseBductoSheet(matrix: unknown[][]): { rows: Array<Omit<Bducto
   if (rows.length === 0 && errors.length === 0) {
     errors.push('El Excel no tiene tramos.');
   }
-  return { rows, errors };
+  return { rows, errors, rejectedRows };
 }
 
 /** Rebuilds the prompt from generated rows when the tramo was saved before prompts were stored. */

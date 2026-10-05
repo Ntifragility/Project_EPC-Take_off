@@ -54,6 +54,18 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
   const detalleOptions =
     detalle && !availableDetalles.includes(detalle) ? [detalle, ...availableDetalles] : availableDetalles;
 
+  const norm = (value: string) => (value || '').trim().toUpperCase();
+  const isDirty =
+    norm(plano) !== norm(item.plano || '') ||
+    norm(rev) !== norm(item.rev || '') ||
+    norm(tagPlano) !== norm(item.tagPlano || '') ||
+    norm(detalle) !== norm(item.detalle || '') ||
+    (metradoOt || '').trim() !== (item.metradoOt || '').trim() ||
+    material !== (item.material || 'P') ||
+    (notes || '').trim() !== (item.notes || '').trim() ||
+    (showSoportes && numSoportes !== 1) ||
+    (showJumpers && numJumpers !== 1);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!item) return;
@@ -83,7 +95,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
   };
 
   return (
-    <ModalShell title="Editar ítem" subtitle={item.desc} onClose={onClose} maxWidth="560px">
+    <ModalShell title="Editar ítem" subtitle={item.desc} onClose={onClose} maxWidth="560px" dismiss="dirty-confirm" isDirty={isDirty}>
         <form onSubmit={handleSubmit}>
         <div className="modal-body">
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>

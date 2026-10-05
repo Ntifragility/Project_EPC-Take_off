@@ -64,6 +64,15 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
     (req.isCable20 && hasJumperItems(detalleCode, activeArea)) ||
     detalleCode.toUpperCase().includes('JUMPER');
 
+  const isDirty =
+    count !== 1 ||
+    baseTag !== `${req.defaultTagPrefix}01` ||
+    detalleCode !== req.defaultDetalle ||
+    numSoportes !== 1 ||
+    numJumpers !== 1 ||
+    incluirTuberia ||
+    cableTrayWidth !== '900 mm';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeRule) return;
@@ -82,7 +91,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   };
 
   return (
-    <ModalShell title="Aplicar regla" subtitle={activeRule.trigger} onClose={onClose} maxWidth="600px">
+    <ModalShell title="Aplicar regla" subtitle={activeRule.trigger} onClose={onClose} maxWidth="600px" dismiss="dirty-confirm" isDirty={isDirty}>
         <form onSubmit={handleSubmit}>
         <div className="modal-body">
           <div

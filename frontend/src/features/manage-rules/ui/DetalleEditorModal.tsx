@@ -95,6 +95,17 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
 
   if (!isOpen) return null;
 
+  const normalizeVariant = (list: DetalleVariantItem[]) =>
+    JSON.stringify(list.map(it => [it.desc || '', it.ot !== undefined ? it.ot : it.qty !== undefined ? it.qty : 1, it.unit || 'und', it.material || 'C']));
+  const isDirty =
+    JSON.stringify(items.map(it => [it.desc || '', it.ot ?? '', it.unit || '', it.material || ''])) !==
+      normalizeVariant(initialItems || []) ||
+    activeCode !== initialCode ||
+    isCreatingNew ||
+    isRenaming ||
+    customNewCode !== '' ||
+    renamedCode !== '';
+
   const handleAddItem = () => {
     setItems(prev => [
       ...prev,
@@ -192,6 +203,8 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
       subtitle={`${area} · ${category}. Materiales, cantidades y unidades se guardan en Supabase.`}
       onClose={onClose}
       closeDisabled={isSaving}
+      dismiss="dirty-confirm"
+      isDirty={isDirty}
       maxWidth="900px"
     >
         <div className="modal-body">
