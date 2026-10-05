@@ -1,3 +1,5 @@
+import { normalizeTagPlano } from '../../../entities/takeoff-item/model/itemIdentity';
+
 export interface TramoIdentity {
   desde?: string;
   hasta?: string;
@@ -7,7 +9,7 @@ export interface TramoIdentity {
 }
 
 export function tramoKey(source: TramoIdentity): string {
-  return [source.desde || '', source.hasta || '', source.plano, source.tagEnPlano, source.quantity].join('\u0000');
+  return [normalizeTagPlano(source.desde || ''), normalizeTagPlano(source.hasta || ''), normalizeTagPlano(source.plano), normalizeTagPlano(source.tagEnPlano), source.quantity].join('\u0000');
 }
 
 /** Keeps a repeated line inside one file. Skips copies already stored from an earlier upload. */

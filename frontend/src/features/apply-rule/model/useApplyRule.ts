@@ -3,7 +3,7 @@ import { TakeoffItem, MaterialType } from '../../../entities/takeoff-item/model/
 import { AreaType, SectionType } from '../../../shared/types/common';
 import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico, getSequentialTag, assignTagUnicoSuffixes } from '../../../entities/takeoff-item/model/tagGenerator';
-import { findIntroducedTagCollision, tagCollisionMessage } from '../../../entities/takeoff-item/model/itemIdentity';
+import { findIntroducedTagCollision, tagCollisionMessage, normalizeTagPlano } from '../../../entities/takeoff-item/model/itemIdentity';
 import { isPrimaryMaterial } from '../../../entities/takeoff-item/model/materialClassifier';
 import { DEFAULT_CABLE_TRAY_MATRIX, getCableTrayMatrixValue } from '../../../entities/takeoff-rule/model/cableTrayRules';
 import { getCalculatedVariantItems } from '../../../entities/takeoff-rule/model/detalleVariants';
@@ -234,7 +234,7 @@ export function executeApplyRule(
 
   const tagToInstance = new Map<string, string>();
   newItems.forEach(it => {
-    const tag = it.tagPlano || '';
+    const tag = normalizeTagPlano(it.tagPlano || '');
     if (!tagToInstance.has(tag)) tagToInstance.set(tag, uid());
     it.instanceId = tagToInstance.get(tag);
   });

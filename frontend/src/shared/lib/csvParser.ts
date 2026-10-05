@@ -5,6 +5,7 @@ import { uid } from './uid';
 import { isPrimaryMaterial, getAbsoluteUnit } from '../../entities/takeoff-item/model/materialClassifier';
 import { generateTagUnico, assignTagUnicoSuffixes } from '../../entities/takeoff-item/model/tagGenerator';
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../entities/takeoff-rule/model/ruleExpander';
+import { findIntroducedTagCollision, tagCollisionMessage } from '../../entities/takeoff-item/model/itemIdentity';
 import { normalizeDetalle, isKnownDetalle } from '../../entities/takeoff-rule/model/detalleRegistry';
 
 export interface RejectedRowInfo {
@@ -510,6 +511,21 @@ export function parseTakeoffCsv(
         }
         processedBatch = applyBarraPotDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, true, importInstanceId);
       }
+    }
+
+    const tagCollision = findIntroducedTagCollision(itemsResult, [...itemsResult, ...processedBatch]);
+    if (tagCollision) {
+      rejectedRows.push({
+        fila: i + 1,
+        plano: planoRow,
+        tag: tagRaw,
+        longitudCable: lengthRawStr,
+        longitudTuberia: tuberiaRaw,
+        detalle: detalleRaw,
+        jumpers: jumpersRaw,
+        motivo: tagCollisionMessage(tagCollision)
+      });
+      continue;
     }
 
     itemsResult.push(...processedBatch);
