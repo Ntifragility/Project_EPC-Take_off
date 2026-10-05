@@ -99,7 +99,7 @@ export const PackagesView: React.FC = () => {
           {partidas.length > 0 && (
             <button
               className="btn-ghost btn-sm"
-              onClick={handleCorrelate}
+              onClick={() => handleCorrelate()}
               title="Volver a correlacionar todas las filas del metrado con la lista de partidas"
               style={{ fontSize: '11px', height: '32px' }}
             >

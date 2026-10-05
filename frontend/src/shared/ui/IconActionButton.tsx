@@ -1,9 +1,9 @@
 import React from 'react';
-import { Pencil, Trash2, Check, X } from 'lucide-react';
+import { Pencil, Trash2, Check, X, type LucideIcon } from 'lucide-react';
 
 export type IconActionKind = 'edit' | 'delete' | 'save' | 'cancel';
 
-const ICONS: Record<IconActionKind, React.ComponentType<{ size?: number; strokeWidth?: number }>> = {
+const ICONS: Record<IconActionKind, LucideIcon> = {
   edit: Pencil,
   delete: Trash2,
   save: Check,

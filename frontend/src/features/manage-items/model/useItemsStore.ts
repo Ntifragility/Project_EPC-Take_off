@@ -476,12 +476,6 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       }
     }
 
-    if (field === 'detalle') {
-      const partidas = loadStoredPartidas();
-      const area = localStorage.getItem(STORAGE_KEYS.ACTIVE_AREA) || DEFAULT_AREA;
-      currentItems = correlateItemsWithPartidas(currentItems, partidas, area);
-    }
-
     const collision = findIntroducedTagCollision(items, currentItems);
     if (collision) {
       showToast(tagCollisionMessage(collision), 'warn');
