@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useBductoStore } from '../model/useBductoStore';
 import { tramosToAdd } from '../model/importTramos';
+import { findIntroducedTramoCollision, tramoCollisionMessage } from '../../../entities/takeoff-item/model/itemIdentity';
 import { BductoPromptModal } from './BductoPromptModal';
 import { BductoTable } from './BductoTable';
 import { BductoPrompt } from '../../../entities/bducto/model/types';
@@ -46,6 +47,11 @@ export const BductosPage: React.FC = () => {
       };
       if (tramosToAdd(sources, [effective]).length === 0) {
         showToast('Ese tramo ya está cargado. No lo volví a agregar.', 'warn');
+        return;
+      }
+      const tramoCollision = findIntroducedTramoCollision(sources, [...sources, effective]);
+      if (tramoCollision) {
+        showToast(tramoCollisionMessage(tramoCollision), 'warn');
         return;
       }
       const result = expandBducto(effective, prompt, uid);

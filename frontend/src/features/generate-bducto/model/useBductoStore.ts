@@ -3,6 +3,7 @@ import { BductoPrompt, BductoRow, BductoSource } from '../../../entities/bducto/
 import { SAMPLE_LY028 } from '../../../entities/bducto/model/catalog';
 import { uid } from '../../../shared/lib/uid';
 import { tramosToAdd, withoutRepeatedUpload } from './importTramos';
+import { findIntroducedTramoCollision } from '../../../entities/takeoff-item/model/itemIdentity';
 import { BductoAccessoryView, BductoDetailView } from './bductoView';
 
 const STORAGE_KEY = 'epc-bductos-v1';
@@ -131,7 +132,15 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
   importExcel: (incoming) => {
     const fresh = tramosToAdd(get().sources, incoming);
     if (fresh.length === 0) return { added: 0, skipped: incoming.length };
-    const created = fresh.map(source => ({ ...source, id: uid() }));
+    const base = [...get().sources];
+    const accepted: typeof fresh = [];
+    for (const candidate of fresh) {
+      const collision = findIntroducedTramoCollision([...base, ...accepted], [...base, ...accepted, candidate]);
+      if (collision) continue;
+      accepted.push(candidate);
+    }
+    if (accepted.length === 0) return { added: 0, skipped: incoming.length };
+    const created = accepted.map(source => ({ ...source, id: uid() }));
     const sources = [...get().sources, ...created];
     remember(get, set, 'importExcel', { sources, rows: get().rows });
     set({ wizardIds: created.map(source => source.id), wizardIndex: 0, promptMinimized: false, restoreArmed: false });
