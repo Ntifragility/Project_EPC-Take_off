@@ -27,8 +27,6 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     setCustomPlano,
     setCustomRev,
     addCustomItem,
-    undoSnapshot,
-    undoLastAction,
     syncGlobalContext,
     syncContextToItemIds
   } = useItemsStore();
@@ -131,57 +129,17 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
       {/* Global Metadata Inputs (Plano & Rev) */}
       <div className="panel-section">
         <div className="panel-section-hd">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="panel-section-title">Metadatos</span>
-            {onCollapseSidebar && (
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={onCollapseSidebar}
-                style={{ fontSize: '10.5px', padding: '1px 6px', color: 'var(--mu)' }}
-                title="Ocultar / Replegar este panel a la izquierda"
-              >
-                Ocultar
-              </button>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <span className="panel-section-title">Metadatos</span>
+          {onCollapseSidebar && (
             <button
               type="button"
-              className="btn-ghost"
-              style={{
-                fontSize: '11px',
-                padding: '2px 8px',
-                color: selectedItemIds.length > 0 ? 'var(--accent)' : 'var(--mu)'
-              }}
-              disabled={selectedItemIds.length === 0}
-              onClick={() => {
-                const applied = syncContextToItemIds(selectedItemIds, section);
-                if (applied) {
-                  showToast(
-                    `Plano "${customPlano || '—'}" / Rev "${customRev || '—'}" aplicado a la selección`,
-                    'success'
-                  );
-                }
-              }}
-              title={
-                selectedItemIds.length > 0
-                  ? `Aplicar este Plano y Rev a ${selectedItemIds.length} fila(s) seleccionada(s)`
-                  : 'Selecciona celdas en la tabla para sincronizar plano y rev'
-              }
+              className="meta-link-btn"
+              onClick={onCollapseSidebar}
+              title="Ocultar / Replegar este panel"
             >
-              Aplicar selección
+              Ocultar
             </button>
-            <button
-              type="button"
-              className="btn-ghost"
-              style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--accent)' }}
-              onClick={() => syncGlobalContext(section)}
-              title="Aplica este Plano y Rev a todas las filas en la pantalla"
-            >
-              Aplicar a todos
-            </button>
-          </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -221,6 +179,38 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
               }}
             />
           </div>
+        </div>
+
+        <div className="meta-apply-row">
+          <button
+            type="button"
+            className="meta-apply-btn"
+            disabled={selectedItemIds.length === 0}
+            onClick={() => {
+              const applied = syncContextToItemIds(selectedItemIds, section);
+              if (applied) {
+                showToast(
+                  `Plano "${customPlano || '—'}" / Rev "${customRev || '—'}" aplicado a la selección`,
+                  'success'
+                );
+              }
+            }}
+            title={
+              selectedItemIds.length > 0
+                ? `Aplicar este Plano y Rev a ${selectedItemIds.length} fila(s) seleccionada(s)`
+                : 'Selecciona celdas en la tabla para sincronizar plano y rev'
+            }
+          >
+            A selección
+          </button>
+          <button
+            type="button"
+            className="meta-apply-btn"
+            onClick={() => syncGlobalContext(section)}
+            title="Aplica este Plano y Rev a todas las filas en la pantalla"
+          >
+            A todos
+          </button>
         </div>
       </div>
 
@@ -486,30 +476,6 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
           Guía
         </button>
       </div>
-
-      {/* Undo Action Bar */}
-      {undoSnapshot && (
-        <button
-          type="button"
-          onClick={() => {
-            if (undoLastAction(section)) {
-              showToast('Acción deshecha', 'info');
-            }
-          }}
-          className="btn"
-          style={{
-            width: '100%',
-            fontSize: '11.5px',
-            backgroundColor: 'var(--am-dim)',
-            borderColor: 'var(--am)',
-            color: 'var(--am)',
-            fontWeight: 700
-          }}
-          title="Deshacer la última acción agregada o modificada"
-        >
-          ↩ Deshacer Última Acción
-        </button>
-      )}
 
       {/* Modals Hosted by AddPanel */}
       <ExcelGuideModal

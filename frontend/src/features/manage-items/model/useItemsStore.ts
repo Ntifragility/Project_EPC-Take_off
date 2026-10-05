@@ -162,7 +162,8 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     section: SectionType,
     activeArea: string
   ) => {
-    const { customPlano, customRev, items } = get();
+    const { customPlano, customRev, items, saveUndoSnapshot } = get();
+    saveUndoSnapshot();
     const mat = isPrimaryMaterial(desc);
     const partidas = loadStoredPartidas();
 
@@ -614,7 +615,8 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   },
 
   syncGlobalContext: (section: SectionType) => {
-    const { customPlano, customRev, items } = get();
+    const { customPlano, customRev, items, saveUndoSnapshot } = get();
+    saveUndoSnapshot();
     const updated = items.map(it => {
       const newTagUnico =
         it.material === 'P'

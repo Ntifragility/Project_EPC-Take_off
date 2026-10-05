@@ -10,7 +10,7 @@ import {
   fitWidthsToPane
 } from './columnWidths';
 import { COLUMN_LABELS, uniqueColumnValues } from '../model/columnValue';
-import { SELECTABLE_COLS, cellKey, cellsInRect, isSingleCell, rangeEdgesByCol, type CellRef } from '../model/cellRange';
+import { SELECTABLE_COLS, cellKey, cellsInRect, extendSelection, isSingleCell, rangeEdgesByCol, type CellRef } from '../model/cellRange';
 import { isDetalleTriggerRow } from '../../../entities/takeoff-rule/model/instanceRebuild';
 import { mergeItemsByDetalle } from '../../../entities/takeoff-item/model/itemAggregation';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
@@ -366,12 +366,27 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
       setRangeFocus(rangeFocusRef.current);
     };
     const onKey = (ev: KeyboardEvent) => {
+      const target = ev.target instanceof HTMLElement ? ev.target : null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"], .modal, .excel-filter-menu')) return;
       if (ev.key === 'Escape') {
         selectedCellRef.current = null;
         rangeFocusRef.current = null;
         setSelectedCell(null);
         setRangeFocus(null);
+        return;
       }
+      const anchor = selectedCellRef.current;
+      if (!ev.shiftKey || !anchor) return;
+      const next = extendSelection(visibleItemsRef.current, SELECTABLE_COLS, anchor, rangeFocusRef.current, ev.key);
+      if (!next) return;
+      ev.preventDefault();
+      const current = rangeFocusRef.current ?? anchor;
+      if (next.itemId === current.itemId && next.colKey === current.colKey) return;
+      rangeFocusRef.current = next;
+      setRangeFocus(next);
+      document
+        .querySelector(`td[data-item-id="${CSS.escape(next.itemId)}"][data-col-key="${CSS.escape(next.colKey)}"]`)
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     };
     window.addEventListener('mouseup', onUp);
     window.addEventListener('mousemove', onMove);
