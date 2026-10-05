@@ -8,7 +8,9 @@ import { renameCable20RielDesc } from '../../entities/takeoff-rule/model/detalle
 import { attachCatalogAreas } from '../../entities/takeoff-rule/model/areaCatalog';
 
 export function getStorageKey(name: string, section: SectionType): string {
-  return section === 'pat' ? `epc-${name}` : `epc-canalizado-${name}`;
+  if (section === 'pat') return `epc-${name}`;
+  if (section === 'canalizado') return `epc-canalizado-${name}`;
+  return `epc-bductos-${name}`;
 }
 
 export function loadStoredItems(section: SectionType): TakeoffItem[] {
@@ -31,6 +33,7 @@ export function saveStoredItems(section: SectionType, items: TakeoffItem[]): voi
 }
 
 export function loadStoredRules(section: SectionType): TakeoffRule[] {
+  if (section === 'bductos') return [];
   try {
     const raw = localStorage.getItem(getStorageKey('rules', section));
     if (raw) {

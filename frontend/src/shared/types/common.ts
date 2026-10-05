@@ -1,5 +1,5 @@
-export type SectionType = 'pat' | 'canalizado';
-export type TabType = 'takeoff' | 'rules' | 'packages' | 'bductos';
+export type SectionType = 'pat' | 'canalizado' | 'bductos';
+export type TabType = 'takeoff' | 'rules' | 'packages';
 export type AddModeType = 'rule' | 'custom';
 export type ThemeType = 'dark' | 'light';
 export type AreaType = 'AREA SECA' | 'AREA HUMEDA';

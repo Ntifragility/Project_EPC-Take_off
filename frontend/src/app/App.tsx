@@ -10,6 +10,8 @@ import { ModalsHost } from '../widgets/modals-host/ui/ModalsHost';
 
 export const App: React.FC = () => {
   const tab = useAppStore(state => state.tab);
+  const section = useAppStore(state => state.section);
+  const isBductos = section === 'bductos';
 
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [areaModalOpen, setAreaModalOpen] = useState(false);
@@ -34,9 +36,9 @@ export const App: React.FC = () => {
       />
 
       <main className="main" id="main-content">
-        {tab === 'takeoff' && <TakeoffPage />}
-        {tab === 'bductos' && <BductosPage />}
-        {tab === 'rules' && <RulesPage />}
+        {isBductos && tab === 'takeoff' && <BductosPage />}
+        {!isBductos && tab === 'takeoff' && <TakeoffPage />}
+        {!isBductos && tab === 'rules' && <RulesPage />}
         {tab === 'packages' && <PackagesPage />}
       </main>
 
