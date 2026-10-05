@@ -1,9 +1,14 @@
+import { mergeCurveCatalog, getCurveCatalog } from '../../../entities/bducto/model/catalog';
 import {
   fetchTakeoffRulesFromSupabase,
   fetchDetalleVariantsFromSupabase,
   fetchPartidasFromSupabase,
-  syncItemsToSupabase
+  fetchCurveCatalogFromSupabase,
+  syncItemsToSupabase,
+  syncBductosToSupabase,
+  syncCurveCatalogToSupabase
 } from '../../../shared/api/supabase';
+import { useBductoStore } from '../../generate-bducto/model/useBductoStore';
 import { updateDynamicVariants } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { getDefaultDetalleByRule, getDefaultTagPrefixByRule, SEED_CANALIZADO_RULES, SEED_RULES } from '../../../entities/takeoff-rule/model/seedRules';
 import { attachCatalogAreas } from '../../../entities/takeoff-rule/model/areaCatalog';
@@ -70,7 +75,16 @@ export async function loadInitialCloudConfig() {
       incrementVariantsVersion();
     }
 
-    // 3. Fetch Master Partidas
+    // 3. Curve catalog. Stored descriptions and lengths replace the code defaults for the same id.
+    const { data: cloudCurves, error: curvesErr } = await fetchCurveCatalogFromSupabase();
+    if (curvesErr) console.warn('[CloudSync] Catálogo de curvas:', curvesErr);
+    else if (cloudCurves && cloudCurves.length > 0) mergeCurveCatalog(cloudCurves);
+    else {
+      const seeded = await syncCurveCatalogToSupabase(getCurveCatalog());
+      if (!seeded.success) console.warn('[CloudSync] No pude cargar el catálogo de curvas:', seeded.error);
+    }
+
+    // 4. Fetch Master Partidas
     const { data: cloudPartidas, error: partidasErr } = await fetchPartidasFromSupabase();
     if (!partidasErr && cloudPartidas && cloudPartidas.length > 0) {
       setPartidas(cloudPartidas);
@@ -125,6 +139,42 @@ export async function executeSyncToDatabase(skipConfirm = false) {
     } else {
       showToast(result.error || 'Error al guardar en el servidor', 'warn');
     }
+  } finally {
+    setIsSyncing(false);
+  }
+}
+
+export async function executeSyncBductosToDatabase(skipConfirm = false) {
+  const { rows } = useBductoStore.getState();
+  const { showToast, setIsSyncing } = useUIStore.getState();
+
+  if (rows.length === 0) {
+    showToast('No hay filas de BDUCTOS para guardar', 'warn');
+    return;
+  }
+
+  if (!skipConfirm && typeof window !== 'undefined') {
+    const accepted = window.confirm(
+      `Vas a depositar ${rows.length} filas en main_BDUCTOS_table y el catálogo de curvas en bducto_curve_catalog.\n\n` +
+        `Cada guardado agrega las filas de nuevo. El catálogo se actualiza por id.\n\n` +
+        `¿Deseas enviar los ${rows.length} ítems?`
+    );
+    if (!accepted) return;
+  }
+
+  setIsSyncing(true);
+  try {
+    const rowsResult = await syncBductosToSupabase(rows);
+    const catalogResult = await syncCurveCatalogToSupabase(getCurveCatalog());
+    if (rowsResult.success && catalogResult.success) {
+      showToast(
+        `${rowsResult.count} filas en main_BDUCTOS_table y ${catalogResult.count} curvas en el catálogo.`,
+        'success'
+      );
+      return;
+    }
+    const detail = [rowsResult.error, catalogResult.error].filter(Boolean).join(' ');
+    showToast(detail || 'Error al guardar BDUCTOS', 'warn');
   } finally {
     setIsSyncing(false);
   }
