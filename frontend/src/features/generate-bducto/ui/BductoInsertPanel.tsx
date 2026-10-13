@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useBductoStore } from '../model/useBductoStore';
 import { BductoSource } from '../../../entities/bducto/model/types';
 import { parseBductoSheet } from '../../../entities/bducto/model/expandBducto';
-import { downloadBductoTemplate } from '../model/exportBductosExcel';
+import { BDUCTO_TEMPLATE_GUIDE, downloadBductoTemplate } from '../model/exportBductosExcel';
+import { siteGuide } from '../../../shared/ui/askSite';
 import { downloadTableXlsx } from '../../../shared/lib/excelTemplates';
 import { readSheetMatrix } from '../../../shared/lib/readSheetMatrix';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
@@ -43,7 +44,7 @@ export const BductoInsertPanel: React.FC<{ onDone?: () => void }> = ({ onDone })
         void downloadTableXlsx({
           sheetName: 'Filas_Rechazadas',
           tableName: 'RECHAZADAS',
-          headers: ['FILA_EXCEL', 'PLANO', 'TAG_EN_PLANO', 'QUANTITY', 'DESDE', 'HASTA', 'MOTIVO_RECHAZO'],
+          headers: ['FILA_EXCEL', 'PLANO', 'TAG_EN_PLANO', 'LONGITUD_TUBERIA', 'DESDE', 'HASTA', 'MOTIVO_RECHAZO'],
           rows: rejectedRows.map(r => [
             r.fila,
             r.plano || '',
@@ -105,7 +106,7 @@ export const BductoInsertPanel: React.FC<{ onDone?: () => void }> = ({ onDone })
             <span className="panel-section-title">Importar tramos</span>
           </div>
           <p className="actions-drawer-hint">
-            Columnas DESDE, HASTA, PLANO, TAG EN PLANO y Quantity. La plantilla trae una fila de ejemplo: reemplázala.
+            Columnas PLANO, DESDE, HASTA, TAG EN PLANO y LONGITUD TUBERÍA. La plantilla trae una fila de ejemplo: reemplázala.
           </p>
         </div>
       )}
@@ -173,7 +174,7 @@ export const BductoInsertPanel: React.FC<{ onDone?: () => void }> = ({ onDone })
             textAlign: 'center',
             margin: 0
           }}
-          title="Subir Excel o CSV con DESDE, HASTA, PLANO, TAG EN PLANO y Quantity"
+          title="Subir Excel o CSV con PLANO, DESDE, HASTA, TAG EN PLANO y LONGITUD TUBERÍA"
         >
           <span>Importar</span>
           <input
@@ -188,8 +189,8 @@ export const BductoInsertPanel: React.FC<{ onDone?: () => void }> = ({ onDone })
           type="button"
           className="btn btn-secondary"
           style={{ flex: 1, padding: '7px 10px', fontSize: '11.5px' }}
-          onClick={() => void downloadBductoTemplate()}
-          title="Descargar plantilla con DESDE, HASTA, PLANO, TAG EN PLANO y Quantity"
+          onClick={() => { void siteGuide(BDUCTO_TEMPLATE_GUIDE, downloadBductoTemplate); }}
+          title="Descargar plantilla con PLANO, DESDE, HASTA, TAG EN PLANO y LONGITUD TUBERÍA"
         >
           Plantilla
         </button>

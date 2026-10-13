@@ -30,7 +30,16 @@ const PromptCard: React.FC<{ request: SitePromptRequest }> = ({ request }) => {
 
   return (
     <div className="site-prompt" role="dialog" aria-modal="true" aria-labelledby="site-prompt-message">
-      <p id="site-prompt-message" className="site-prompt-message">{request.message}</p>
+      <p id="site-prompt-message" className="site-prompt-message">
+        {request.lines
+          ? request.lines.map((line, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && <br />}
+              {line.strong ? <strong>{line.text}</strong> : line.text}
+            </React.Fragment>
+          ))
+          : request.message}
+      </p>
       {request.kind === 'prompt' && (
         <input
           className="site-prompt-input"
@@ -46,7 +55,7 @@ const PromptCard: React.FC<{ request: SitePromptRequest }> = ({ request }) => {
           }}
         />
       )}
-      <div className="site-prompt-actions">
+      <div className={`site-prompt-actions${request.onDownload ? ' is-centered' : ''}`}>
         {request.kind !== 'alert' && (
           <button type="button" className="btn btn-secondary" onClick={cancel}>
             Cancelar
@@ -55,6 +64,15 @@ const PromptCard: React.FC<{ request: SitePromptRequest }> = ({ request }) => {
         <button type="button" className="btn btn-primary" autoFocus={request.kind !== 'prompt'} onClick={accept}>
           Aceptar
         </button>
+        {request.onDownload && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => { void request.onDownload?.(); }}
+          >
+            Descargar
+          </button>
+        )}
       </div>
     </div>
   );

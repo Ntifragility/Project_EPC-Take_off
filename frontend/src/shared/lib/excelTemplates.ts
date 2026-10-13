@@ -71,6 +71,30 @@ export async function downloadTableXlsx(opts: TableXlsxOptions): Promise<void> {
  * (SheetJS Community cannot write Tables, hence ExcelJS here. Parsing of
  * uploaded files still uses SheetJS and only relies on the header names.)
  */
+export const METRADO_TEMPLATE_GUIDE: { text: string; strong?: boolean }[] = [
+  { text: 'Descarga la plantilla, completa las pestañas y súbela con Importar.' },
+  { text: '' },
+  { text: '1. MECHAS', strong: true },
+  { text: 'PLANO: Código del plano con la forma P22-DA-3400-07-LY-014. Opcional si el plano global ya tiene esa forma.' },
+  { text: 'TAG: Prefijo M para mechas (ej. M01, M02).' },
+  { text: 'LONGITUD_CABLE: Metros de cable desnudo 2/0 AWG.' },
+  { text: 'LONGITUD_TUBERIA: Metros de tubería PVC. Opcional.' },
+  { text: 'DETALLE: Código constructivo (ej. ND, 008/05, 151).' },
+  { text: 'JUMPERS: Cantidad de jumpers por mecha (opcional, por defecto 1).' },
+  { text: 'SOPORTES: Cantidad de soportes por mecha (opcional, por defecto 1).' },
+  { text: '' },
+  { text: '2. CABLES, BARRAS Y SOLDADURAS', strong: true },
+  { text: 'PLANO: Código del plano con la forma P22-DA-3400-07-LY-014. Opcional si el plano global ya tiene esa forma.' },
+  { text: 'TAG: Prefijos C (cable 4/0), BP/BI (barras), TT/T/X (soldaduras), PC/PS (pozos).' },
+  { text: 'CANTIDAD_O_LONGITUD: Metros para cable 4/0. Para barras, soldaduras y pozos ingresar 1, o dejar en blanco.' },
+  { text: 'DETALLE: Código de detalle (ej. 010/17A, 010/17C, 167/G1). Opcional.' },
+  { text: 'SOPORTES: Aplica a barras en área húmeda (1 o 2). Para cables, soldaduras y pozos dejar vacío.' },
+  { text: '' },
+  { text: 'El archivo trae ambas pestañas. Puedes subirlo completo: las columnas se reconocen por su cabecera.' },
+  { text: '' },
+  { text: 'Prefijos de TAG: M mecha 2/0, C malla 4/0, BP barra potencia, BI barra instrumentación, T/TT soldaduras T, X soldaduras cruz, PC/PS pozos PAT.' }
+];
+
 export async function downloadMetradoTemplateXlsx(): Promise<void> {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'EPC TakeOff';
@@ -94,14 +118,14 @@ export async function downloadMetradoTemplateXlsx(): Promise<void> {
       { name: 'SOPORTES', filterButton: true }
     ],
     rows: [
-      ['010/17A', 'M01', 12.5, 2.0, 'ND', '', 1],
-      ['010/17A', 'M02', 8.0, 1.5, '008/05', 2, 2],
-      ['010/17A', 'M03', 15.0, 3.0, '010/01', '', ''],
-      ['010/17A', 'M04', 6.0, '', '151', '', '']
+      ['P22-DA-3400-07-LY-014', 'M01', 12.5, 2.0, 'ND', '', 1],
+      ['P22-DA-3400-07-LY-014', 'M02', 8.0, 1.5, '008/05', 2, 2],
+      ['P22-DA-3400-07-LY-014', 'M03', 15.0, 3.0, '010/01', '', ''],
+      ['P22-DA-3400-07-LY-014', 'M04', 6.0, '', '151', '', '']
     ]
   });
   wsMechas.columns.forEach((col, idx) => {
-    col.width = [14, 10, 17, 18, 12, 10, 11][idx] || 14;
+    col.width = [26, 10, 17, 18, 12, 10, 11][idx] || 14;
   });
   wsMechas.views = [{ state: 'frozen', ySplit: 1 }];
 
@@ -121,18 +145,18 @@ export async function downloadMetradoTemplateXlsx(): Promise<void> {
       { name: 'SOPORTES', filterButton: true }
     ],
     rows: [
-      ['010/17A', 'C01', 45.0, '167/G1', ''],
-      ['010/17A', 'BP01', 1.0, '010/17A', 1],
-      ['010/17A', 'BI01', 1.0, '010/17C', 2],
-      ['010/17A', 'TT01', 1.0, '', ''],
-      ['010/17A', 'T01', 1.0, '', ''],
-      ['010/17A', 'X01', 1.0, '', ''],
-      ['010/17A', 'PC01', 1.0, '', ''],
-      ['010/17A', 'PS01', 1.0, '', '']
+      ['P22-DA-3400-07-LY-014', 'C01', 45.0, '167/G1', ''],
+      ['P22-DA-3400-07-LY-014', 'BP01', 1.0, '010/17A', 1],
+      ['P22-DA-3400-07-LY-014', 'BI01', 1.0, '010/17C', 2],
+      ['P22-DA-3400-07-LY-014', 'TT01', 1.0, '', ''],
+      ['P22-DA-3400-07-LY-014', 'T01', 1.0, '', ''],
+      ['P22-DA-3400-07-LY-014', 'X01', 1.0, '', ''],
+      ['P22-DA-3400-07-LY-014', 'PC01', 1.0, '', ''],
+      ['P22-DA-3400-07-LY-014', 'PS01', 1.0, '', '']
     ]
   });
   wsOtros.columns.forEach((col, idx) => {
-    col.width = [14, 10, 22, 14, 11][idx] || 14;
+    col.width = [26, 10, 22, 14, 11][idx] || 14;
   });
   wsOtros.views = [{ state: 'frozen', ySplit: 1 }];
 

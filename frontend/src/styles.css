@@ -2551,6 +2551,9 @@ body.tools-panel-open .takeoff-table-scroll-container {
 
 .site-prompt {
   width: min(440px, 100%);
+  max-height: min(80vh, 640px);
+  display: flex;
+  flex-direction: column;
   background: var(--s1);
   color: var(--tx);
   border: 1px solid var(--b1);
@@ -2565,6 +2568,7 @@ body.tools-panel-open .takeoff-table-scroll-container {
   font-size: 13px;
   line-height: 1.45;
   color: var(--tx);
+  overflow: auto;
 }
 
 .site-prompt-input {
@@ -2577,7 +2581,12 @@ body.tools-panel-open .takeoff-table-scroll-container {
 .site-prompt-actions {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
   gap: 8px;
   margin-top: 16px;
+}
+
+.site-prompt-actions.is-centered {
+  justify-content: center;
 }
 

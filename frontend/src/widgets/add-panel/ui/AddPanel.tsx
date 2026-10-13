@@ -6,10 +6,9 @@ import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { convertSpreadsheetToCsvText } from '../../../shared/lib/csvParser';
-import { downloadMetradoTemplateXlsx } from '../../../shared/lib/excelTemplates';
+import { downloadMetradoTemplateXlsx, METRADO_TEMPLATE_GUIDE } from '../../../shared/lib/excelTemplates';
 import { executeImportExcel } from '../../../features/import-excel/model/useImportExcel';
-import { ExcelGuideModal } from '../../../features/import-excel/ui/ExcelGuideModal';
-import { PartidasGuideModal } from '../../../features/manage-partidas/ui/PartidasGuideModal';
+import { siteGuide } from '../../../shared/ui/askSite';
 import { getRuleInsertPreview } from '../../../entities/takeoff-rule/model/ruleInsertPreview';
 import { getCatalogForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 
@@ -39,13 +38,9 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     columnFilters,
     clearFilters,
     showToast,
-    isPartidasModalOpen,
-    setIsPartidasModalOpen,
     selectedItemIds,
     setPendingRule
   } = useUIStore();
-
-  const [showExcelGuide, setShowExcelGuide] = useState(false);
 
   // Autocomplete rule search state
   const [triggerQuery, setTriggerQuery] = useState('');
@@ -490,44 +485,12 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
           type="button"
           className="btn btn-secondary"
           style={{ flex: 1, padding: '7px 10px', fontSize: '11.5px' }}
-          onClick={() => void downloadMetradoTemplateXlsx()}
-          title="Descargar plantilla de metrado (.xlsx) con las pestañas de mechas y cables"
+          onClick={() => { void siteGuide(METRADO_TEMPLATE_GUIDE, downloadMetradoTemplateXlsx); }}
+          title="Descargar plantilla de metrado y ver la guía de columnas"
         >
           Plantilla
         </button>
-
-        <button
-          type="button"
-          className="btn btn-secondary"
-          style={{ padding: '7px 10px', fontSize: '11.5px' }}
-          onClick={() => setIsPartidasModalOpen(true)}
-          title="Cargar / Actualizar Partidas Master en Supabase"
-        >
-          Partidas
-        </button>
-
-        <button
-          type="button"
-          className="btn btn-secondary"
-          style={{ padding: '7px 10px', fontSize: '11.5px' }}
-          onClick={() => setShowExcelGuide(true)}
-          title="Ver guía y descargar plantilla Excel multi-pestaña"
-        >
-          Guía
-        </button>
       </div>
-
-      {/* Modals Hosted by AddPanel */}
-      <ExcelGuideModal
-        isOpen={showExcelGuide}
-        onClose={() => setShowExcelGuide(false)}
-        onFileUpload={handleFileUpload}
-      />
-
-      <PartidasGuideModal
-        isOpen={isPartidasModalOpen}
-        onClose={() => setIsPartidasModalOpen(false)}
-      />
     </div>
   );
 };

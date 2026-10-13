@@ -427,11 +427,11 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
               <input value={hasta} onChange={event => setHasta(event.target.value)} placeholder="300-MH-016" />
             </label>
             <label>
-              Quantity (m)
+              Longitud tubería (m)
               <input
                 inputMode="decimal"
                 value={quantity ?? ''}
-                aria-label="Quantity"
+                aria-label="Longitud tubería"
                 title="Longitud: hasta 2 decimales"
                 onChange={event => setQuantity(sanitizeLengthInput(event.target.value))}
                 placeholder={manual ? '2.2' : undefined}

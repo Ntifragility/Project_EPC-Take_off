@@ -336,7 +336,7 @@ export interface BductoSheetResult {
 
 
 /**
- * Reads a sheet laid out as DESDE | HASTA | PLANO | TAG EN PLANO | Quantity.
+ * Reads a sheet laid out as PLANO | DESDE | HASTA | TAG EN PLANO | LONGITUD TUBERÍA.
  * DESDE and HASTA are optional columns. The header row can sit below a title.
  */
 export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
@@ -355,7 +355,7 @@ export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
       else if (name === 'HASTA') found.hasta = index;
       else if (name === 'PLANO') found.plano = index;
       else if (name === 'TAG_EN_PLANO' || name === 'TAG') found.tag = index;
-      else if (name === 'QUANTITY' || name === 'CANTIDAD' || name === 'LONGITUD' || name === 'LONGITUD_M') found.qty = index;
+      else if (name === 'LONGITUD_TUBERIA' || name === 'QUANTITY' || name === 'CANTIDAD' || name === 'LONGITUD' || name === 'LONGITUD_M') found.qty = index;
     });
     if (found.plano >= 0 && found.tag >= 0 && found.qty >= 0) {
       headerIdx = r;
@@ -365,7 +365,7 @@ export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
   }
 
   if (headerIdx < 0) {
-    return { rows, errors: ['No encontré las columnas PLANO, TAG EN PLANO y Quantity.'], rejectedRows };
+    return { rows, errors: ['No encontré las columnas PLANO, TAG EN PLANO y LONGITUD TUBERÍA.'], rejectedRows };
   }
 
   for (let r = headerIdx + 1; r < matrix.length; r++) {

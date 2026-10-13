@@ -43,7 +43,7 @@ export interface BductoPrompt {
   /** Pieces of UNION PVC SCH 40. Defaults to the vía count. */
   unionCount: number;
   adaptadorCount: number;
-  /** Tramo length in meters. Defaults to the uploaded Quantity. */
+  /** Tramo length in meters. Comes from the LONGITUD TUBERÍA column. */
   quantity?: number;
   curves: CurveChoice[];
   elevations: ElevationLine[];

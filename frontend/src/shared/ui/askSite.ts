@@ -1,10 +1,17 @@
 export type SitePromptKind = 'confirm' | 'prompt' | 'alert';
 
+export interface SitePromptLine {
+  text: string;
+  strong?: boolean;
+}
+
 export interface SitePromptRequest {
   id: number;
   kind: SitePromptKind;
   message: string;
   defaultValue: string;
+  lines?: SitePromptLine[];
+  onDownload?: () => void | Promise<void>;
 }
 
 type Resolver = (value: boolean | string | null) => void;
@@ -78,6 +85,20 @@ export function siteAlert(message: string): Promise<void> {
       kind: 'alert',
       message,
       defaultValue: '',
+      resolve: () => resolve()
+    });
+  });
+}
+
+export function siteGuide(lines: SitePromptLine[], onDownload: () => void | Promise<void>): Promise<void> {
+  return new Promise(resolve => {
+    show({
+      id: ++sequence,
+      kind: 'alert',
+      message: lines.map(line => line.text).join('\n'),
+      defaultValue: '',
+      lines,
+      onDownload,
       resolve: () => resolve()
     });
   });

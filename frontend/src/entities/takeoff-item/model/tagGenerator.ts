@@ -1,6 +1,11 @@
 import { TakeoffItem, MaterialType } from './types';
 import { getPItemPriority } from './materialClassifier';
 
+/** Drawing number such as P22-DA-3400-07-LY-014. */
+export function isDrawingPlano(plano: string): boolean {
+  return /^P\d+-[A-Z]+-\d+-\d+-[A-Z]+-\d+$/.test(plano.trim().toUpperCase());
+}
+
 export function generateTagUnico(
   plano: string,
   tagPlano: string,

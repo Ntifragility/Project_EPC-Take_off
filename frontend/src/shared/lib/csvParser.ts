@@ -3,7 +3,7 @@ import { TakeoffItem } from '../../entities/takeoff-item/model/types';
 import { TakeoffRule } from '../../entities/takeoff-rule/model/types';
 import { uid } from './uid';
 import { isPrimaryMaterial, getAbsoluteUnit } from '../../entities/takeoff-item/model/materialClassifier';
-import { generateTagUnico, assignTagUnicoSuffixes } from '../../entities/takeoff-item/model/tagGenerator';
+import { generateTagUnico, assignTagUnicoSuffixes, isDrawingPlano } from '../../entities/takeoff-item/model/tagGenerator';
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../entities/takeoff-rule/model/ruleExpander';
 import { findIntroducedTagCollision, tagCollisionMessage } from '../../entities/takeoff-item/model/itemIdentity';
 import { normalizeDetalle, isKnownDetalle } from '../../entities/takeoff-rule/model/detalleRegistry';
@@ -304,6 +304,20 @@ export async function parseTakeoffCsv(
 
     const ruleName = getRuleNameByTag(tagRaw);
     const effectivePlano = (planoRow || planoVal || '').toUpperCase();
+
+    if (effectivePlano && !isDrawingPlano(effectivePlano)) {
+      rejectedRows.push({
+        fila: i + 1,
+        plano: planoRow || effectivePlano,
+        tag: tagRaw,
+        longitudCable: lengthRawStr,
+        longitudTuberia: tuberiaRaw,
+        detalle: detalleRaw,
+        jumpers: jumpersRaw,
+        motivo: 'PLANO debe tener la forma P22-DA-3400-07-LY-014'
+      });
+      continue;
+    }
 
     if (
       (!lengthRawStr || isNaN(parseFloat(lengthRawStr.replace(',', '.')))) &&

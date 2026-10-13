@@ -8,7 +8,6 @@ export interface UIState {
   columnFilters: Record<string, string[]>;
   toast: ToastState | null;
   isSyncing: boolean;
-  isPartidasModalOpen: boolean;
   fitTableNonce: number;
   isMergedView: boolean;
   selectedItemIds: string[];
@@ -24,7 +23,6 @@ export interface UIActions {
   clearFilters: () => void;
   showToast: (message: string, type?: 'info' | 'warn' | 'success') => void;
   setIsSyncing: (isSyncing: boolean) => void;
-  setIsPartidasModalOpen: (open: boolean) => void;
   requestFitTable: () => void;
   setIsMergedView: (merged: boolean) => void;
   setSelectedItemIds: (ids: string[]) => void;
@@ -41,7 +39,6 @@ export const useUIStore = createStore<UIStore>((set) => ({
   columnFilters: {},
   toast: null,
   isSyncing: false,
-  isPartidasModalOpen: false,
   fitTableNonce: 0,
   isMergedView: false,
   selectedItemIds: [],
@@ -63,7 +60,6 @@ export const useUIStore = createStore<UIStore>((set) => ({
     set({ toast: { message, type } });
   },
   setIsSyncing: (isSyncing: boolean) => set({ isSyncing }),
-  setIsPartidasModalOpen: (isPartidasModalOpen: boolean) => set({ isPartidasModalOpen }),
   requestFitTable: () => set(state => ({ fitTableNonce: state.fitTableNonce + 1 })),
   setIsMergedView: (isMergedView: boolean) => set({ isMergedView }),
   setSelectedItemIds: (selectedItemIds: string[]) => set({ selectedItemIds }),

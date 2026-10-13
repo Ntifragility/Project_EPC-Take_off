@@ -2,15 +2,27 @@ import { BductoRow } from '../../../entities/bducto/model/types';
 import { downloadTableXlsx } from '../../../shared/lib/excelTemplates';
 import { sitePrompt } from '../../../shared/ui/askSite';
 
-export const BDUCTO_TEMPLATE_HEADERS = ['DESDE', 'HASTA', 'PLANO', 'TAG EN PLANO', 'Quantity'] as const;
+export const BDUCTO_TEMPLATE_HEADERS = ['PLANO', 'DESDE', 'HASTA', 'TAG EN PLANO', 'LONGITUD TUBERÍA'] as const;
+
+export const BDUCTO_TEMPLATE_GUIDE: { text: string; strong?: boolean }[] = [
+  { text: 'Descarga la plantilla, completa la hoja y súbela con Importar.' },
+  { text: '' },
+  { text: 'PLANO: Código del plano (ej. P22-DA-3400-07-LY-014).' },
+  { text: 'DESDE: Equipo o punto de origen del tramo (ej. 400-MH-011). Opcional.' },
+  { text: 'HASTA: Equipo o punto de llegada (ej. 400-PRL-005). Opcional.' },
+  { text: 'TAG EN PLANO: Forma 1 VIA, 3", BD.C.1 o 2 VIAS, 2", E.1.' },
+  { text: 'LONGITUD TUBERÍA: Longitud del tramo en metros, mayor que 0 (ej. 2.2).' },
+  { text: '' },
+  { text: 'La plantilla trae una fila de ejemplo: reemplázala. Las columnas se reconocen por su cabecera.' }
+];
 
 export async function downloadBductoTemplate(): Promise<void> {
   await downloadTableXlsx({
     sheetName: 'BDUCTOS',
     tableName: 'PlantillaBductos',
     headers: [...BDUCTO_TEMPLATE_HEADERS],
-    rows: [['400-MH-011', '400-PRL-005', 'P22-DA-3400-07-LY-014', '1 VIA, 3", BD.C.1', 2.2]],
-    widths: [18, 18, 28, 32, 14],
+    rows: [['P22-DA-3400-07-LY-014', '400-MH-011', '400-PRL-005', '1 VIA, 3", BD.C.1', 2.2]],
+    widths: [28, 18, 18, 32, 20],
     fileName: 'plantilla_bductos.xlsx',
     showRowStripes: false
   });
