@@ -1,5 +1,5 @@
 import React from 'react';
-import { Redo2, Undo2 } from 'lucide-react';
+import { Redo2, Undo2, LogOut, ShieldCheck, User, UserPlus } from 'lucide-react';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
@@ -10,6 +10,8 @@ import { useBductoStore } from '../../../features/generate-bducto/model/useBduct
 import { useCurveCatalogHistory } from '../../../features/generate-bducto/model/curveCatalogHistory';
 import { rememberRestoreAnchor, RESTORE_BUTTON_ID, RULE_RESTORE_BUTTON_ID } from '../../../shared/ui/windowMotion';
 import { SectionType, TabType } from '../../../shared/types/common';
+import { useAuthStore } from '../../../features/auth/model/useAuthStore';
+import { UserProfileButton } from '../../../features/auth/ui/UserProfileButton';
 
 export interface HeaderProps {
   onOpenAreaModal: () => void;
@@ -44,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAreaModal }) => {
   const canRedo = (onCurves && curveCanRedo) || (section === 'bductos' ? Boolean(bductoRedoSnapshot) : Boolean(redoSnapshot));
   const showHistory = section === 'bductos' || canUndo || canRedo;
   const { isSyncing, showToast, searchQuery, setSearchQuery } = useUIStore();
+  const { currentUser, setShowUserManagement, signOut } = useAuthStore();
 
   const hasSupabase = isSupabaseConfigured();
   const onPartidas = tab === 'packages';
@@ -236,8 +239,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAreaModal }) => {
         </span>
 
         <ToolsPanel />
+
+        {/* Compact, discreet profile avatar icon with dropdown */}
+        <UserProfileButton />
       </div>
       </div>
+
+
 
       {activeWindow && !onPartidas && (
         <nav className="section-subnav" aria-label={activeWindow.label}>

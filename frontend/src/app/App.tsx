@@ -9,6 +9,9 @@ import { CurveCatalogPage } from '../features/generate-bducto/ui/CurveCatalogPag
 import { PackagesPage } from '../pages/packages/ui/PackagesPage';
 import { ModalsHost } from '../widgets/modals-host/ui/ModalsHost';
 import { CatalogDrawer } from '../shared/ui/CatalogDrawer';
+import { useAuthStore } from '../features/auth/model/useAuthStore';
+import { LoginScreen } from '../features/auth/ui/LoginScreen';
+import { UserManagementModal } from '../features/auth/ui/UserManagementModal';
 
 export const App: React.FC = () => {
   const tab = useAppStore(state => state.tab);
@@ -19,8 +22,12 @@ export const App: React.FC = () => {
   const showCurves = isBductos && tab === 'curves';
 
   const [areaModalOpen, setAreaModalOpen] = useState(false);
+  const { currentUser, initAuth } = useAuthStore();
 
   useEffect(() => {
+    // Initialize authentication and users
+    void initAuth();
+
     // Load initial cloud configuration asynchronously
     loadInitialCloudConfig();
 
@@ -29,6 +36,11 @@ export const App: React.FC = () => {
       setAreaModalOpen(true);
     }
   }, []);
+
+  // If user is not logged in, show authentication screen
+  if (!currentUser) {
+    return <LoginScreen />;
+  }
 
   return (
     <>
@@ -55,8 +67,11 @@ export const App: React.FC = () => {
         areaModalOpen={areaModalOpen}
         onCloseAreaModal={() => setAreaModalOpen(false)}
       />
+
+      <UserManagementModal />
     </>
   );
 };
 
 export default App;
+
