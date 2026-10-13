@@ -8,7 +8,6 @@ import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { convertSpreadsheetToCsvText } from '../../../shared/lib/csvParser';
 import { executeImportExcel } from '../../../features/import-excel/model/useImportExcel';
 import { ExcelGuideModal } from '../../../features/import-excel/ui/ExcelGuideModal';
-import { RuleTriggerModal } from '../../../features/apply-rule/ui/RuleTriggerModal';
 import { PartidasGuideModal } from '../../../features/manage-partidas/ui/PartidasGuideModal';
 import { getRuleInsertPreview } from '../../../entities/takeoff-rule/model/ruleInsertPreview';
 import { getCatalogForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
@@ -41,11 +40,11 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     showToast,
     isPartidasModalOpen,
     setIsPartidasModalOpen,
-    selectedItemIds
+    selectedItemIds,
+    setPendingRule
   } = useUIStore();
 
   const [showExcelGuide, setShowExcelGuide] = useState(false);
-  const [selectedRuleForModal, setSelectedRuleForModal] = useState<TakeoffRule | null>(null);
 
   // Autocomplete rule search state
   const [triggerQuery, setTriggerQuery] = useState('');
@@ -56,6 +55,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
   const [desc, setDesc] = useState('');
   const [qty, setQty] = useState<number>(1);
   const [unit, setUnit] = useState('UND');
+  const [cableLength, setCableLength] = useState('');
 
   const catalogRules = getCatalogForArea(rules, activeArea);
   const filteredRules = triggerQuery.trim()
@@ -65,7 +65,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
   const getRuleSubtitle = (r: TakeoffRule): string => getRuleInsertPreview(r, activeArea);
 
   const handleSelectRule = (rule: TakeoffRule) => {
-    setSelectedRuleForModal(rule);
+    setPendingRule(rule);
     setDropdownOpen(false);
     setTriggerQuery('');
   };
@@ -100,10 +100,22 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
   const handleAddManual = (e: React.FormEvent) => {
     e.preventDefault();
     if (!desc.trim()) return;
-    addCustomItem(desc.trim().toUpperCase(), qty, unit.toUpperCase(), selPkg || 'p1', section, activeArea);
+    const clean = desc.trim().toUpperCase();
+    const isCable20 = clean.includes('CABLE DESNUDO 2/0');
+    const meters = Number(cableLength.trim().replace(',', '.'));
+    addCustomItem(
+      clean,
+      isCable20 && Number.isFinite(meters) && meters > 0 ? meters : qty,
+      isCable20 ? 'm' : unit.toUpperCase(),
+      selPkg || 'p1',
+      section,
+      activeArea,
+      isCable20 && Number.isFinite(meters) ? String(meters) : ''
+    );
     setDesc('');
     setQty(1);
     setUnit('UND');
+    setCableLength('');
     showToast('Ítem manual agregado', 'info');
   };
 
@@ -126,7 +138,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
 
   return (
     <div className="sidebar-panel">
-      {/* Global Metadata Inputs (Plano & Rev) */}
+      {section !== 'pat' && (
       <div className="panel-section">
         <div className="panel-section-hd">
           <span className="panel-section-title">Metadatos</span>
@@ -213,6 +225,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
           </button>
         </div>
       </div>
+      )}
 
       {/* Mode Switcher Pill */}
       <div className="mode-toggle">
@@ -374,6 +387,21 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
             />
           </div>
 
+          {desc.toUpperCase().includes('CABLE DESNUDO 2/0') && (
+            <div>
+              <div className="field-label">Longitud de cable (m)</div>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={cableLength}
+                aria-label="Longitud de cable"
+                placeholder="12.5"
+                onChange={e => setCableLength(e.target.value.replace(/[^\d.,]/g, ''))}
+                style={{ width: '100%', fontSize: '12px' }}
+              />
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '8px' }}>
             <div style={{ flex: 1 }}>
               <div className="field-label">Cantidad</div>
@@ -405,7 +433,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
         </form>
       )}
 
-      {/* Filter / Search Box */}
+      {section !== 'pat' && (
       <div className="panel-section">
         <div className="panel-section-hd">
           <span className="panel-section-title">Filtrar Metrado</span>
@@ -432,6 +460,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
           }}
         />
       </div>
+      )}
 
       {/* Import / Guide Action Buttons */}
       <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
@@ -482,13 +511,6 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
         isOpen={showExcelGuide}
         onClose={() => setShowExcelGuide(false)}
         onFileUpload={handleFileUpload}
-      />
-
-      <RuleTriggerModal
-        isOpen={Boolean(selectedRuleForModal)}
-        rule={selectedRuleForModal}
-        activeArea={activeArea}
-        onClose={() => setSelectedRuleForModal(null)}
       />
 
       <PartidasGuideModal

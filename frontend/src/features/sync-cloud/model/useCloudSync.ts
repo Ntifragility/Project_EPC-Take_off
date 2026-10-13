@@ -1,4 +1,4 @@
-import { mergeCurveCatalog, getCurveCatalog } from '../../../entities/bducto/model/catalog';
+import { getCurveCatalog, setCurveCatalog } from '../../../entities/bducto/model/catalog';
 import {
   fetchTakeoffRulesFromSupabase,
   fetchDetalleVariantsFromSupabase,
@@ -10,10 +10,10 @@ import {
 } from '../../../shared/api/supabase';
 import { useBductoStore } from '../../generate-bducto/model/useBductoStore';
 import { updateDynamicVariants } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { ensureRuleCatalog, fetchRuleLines, hydrateRules } from './publishRuleCatalog';
 import { getDefaultDetalleByRule, getDefaultTagPrefixByRule, SEED_CANALIZADO_RULES, SEED_RULES } from '../../../entities/takeoff-rule/model/seedRules';
 import { attachCatalogAreas } from '../../../entities/takeoff-rule/model/areaCatalog';
 import { saveStoredRules, saveStoredPartidas } from '../../../shared/lib/storage';
-import { consolidateAccessories } from '../../../entities/takeoff-item/model/itemAggregation';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
 import { usePartidasStore } from '../../manage-partidas/model/usePartidasStore';
 import { useItemsStore } from '../../manage-items/model/useItemsStore';
@@ -28,6 +28,9 @@ export async function loadInitialCloudConfig() {
   const { correlateAll } = useItemsStore.getState();
 
   try {
+    await ensureRuleCatalog();
+    const lines = await fetchRuleLines();
+
     // 1. Fetch Takeoff Rules
     const { data: cloudRules, error: rulesErr } = await fetchTakeoffRulesFromSupabase(section);
     if (!rulesErr && cloudRules && cloudRules.length > 0) {
@@ -56,14 +59,16 @@ export async function loadInitialCloudConfig() {
             trigger,
             subitems,
             detalle: r.detalle || getDefaultDetalleByRule(trigger, activeArea),
-            tagPrefix: r.tagPrefix || getDefaultTagPrefixByRule(trigger)
+            tagPrefix:
+              trigger === 'SOLDADURA T 4/0' ? 'TT' : r.tagPrefix || getDefaultTagPrefixByRule(trigger)
           },
           section === 'canalizado' ? SEED_CANALIZADO_RULES : SEED_RULES
         );
       });
 
+      const hydrated = lines.unavailable ? enrichedRules : hydrateRules(enrichedRules, lines.items, lines.matrix);
       setRules(
-        section === 'canalizado' ? enrichedRules : enrichedRules.filter(r => r.id !== 'r-001-2b-x1'),
+        section === 'canalizado' ? hydrated : hydrated.filter(r => r.id !== 'r-001-2b-x1'),
         section
       );
     }
@@ -75,14 +80,10 @@ export async function loadInitialCloudConfig() {
       incrementVariantsVersion();
     }
 
-    // 3. Curve catalog. Stored descriptions and lengths replace the code defaults for the same id.
+    // 3. Curve catalog. bducto_curve_catalog is the only source.
     const { data: cloudCurves, error: curvesErr } = await fetchCurveCatalogFromSupabase();
     if (curvesErr) console.warn('[CloudSync] Catálogo de curvas:', curvesErr);
-    else if (cloudCurves && cloudCurves.length > 0) mergeCurveCatalog(cloudCurves);
-    else {
-      const seeded = await syncCurveCatalogToSupabase(getCurveCatalog());
-      if (!seeded.success) console.warn('[CloudSync] No pude cargar el catálogo de curvas:', seeded.error);
-    }
+    else setCurveCatalog(cloudCurves ?? []);
 
     // 4. Fetch Master Partidas
     const { data: cloudPartidas, error: partidasErr } = await fetchPartidasFromSupabase();
@@ -96,7 +97,7 @@ export async function loadInitialCloudConfig() {
 }
 
 export async function executeSyncToDatabase(skipConfirm = false) {
-  const { section, accessoryViewMode } = useAppStore.getState();
+  const { section } = useAppStore.getState();
   const { items } = useItemsStore.getState();
   const { packages } = usePackagesStore.getState();
   const { showToast, setIsSyncing } = useUIStore.getState();
@@ -110,21 +111,14 @@ export async function executeSyncToDatabase(skipConfirm = false) {
     return;
   }
 
-  const isJoined = accessoryViewMode === 'join';
-  const itemsToSync = isJoined ? consolidateAccessories(items) : items;
-  const modeLabel = isJoined ? 'UNIDOS (TOTALES)' : 'SEPARADOS (DETALLADO)';
+  const itemsToSync = items;
 
   if (!skipConfirm) {
-    const confirmMessage = isJoined
-      ? `⚠️ ATENCIÓN - GUARDAR EN BASE DE DATOS (MODO UNIDO):\n\n` +
-        `Vas a depositar ${itemsToSync.length} filas en Supabase en modo UNIDOS (Totales Consolidados).\n\n` +
-        `• Los accesorios base y jumpers de cada TAG se guardarán sumados en una sola fila combinada.\n` +
-        `• Asegúrate de que este es el formato deseado para el registro en BD.\n\n` +
-        `¿Deseas proceder y enviar los ${itemsToSync.length} ítems consolidados a la base de datos?`
-      : `ℹ️ CONFIRMAR ENVÍO A BASE DE DATOS (MODO SEPARADO):\n\n` +
-        `Vas a depositar ${itemsToSync.length} filas en Supabase en modo SEPARADOS (Detallado).\n\n` +
-        `• Los accesorios base y jumpers se guardarán en líneas independientes.\n\n` +
-        `¿Deseas proceder y enviar los ${itemsToSync.length} ítems a la base de datos?`;
+    const confirmMessage =
+      `ℹ️ CONFIRMAR ENVÍO A BASE DE DATOS:\n\n` +
+      `Vas a depositar ${itemsToSync.length} filas en Supabase.\n\n` +
+      `• Los accesorios base y jumpers se guardarán en líneas independientes.\n\n` +
+      `¿Deseas proceder y enviar los ${itemsToSync.length} ítems a la base de datos?`;
 
     if (typeof window !== 'undefined' && !window.confirm(confirmMessage)) {
       return;
@@ -135,7 +129,7 @@ export async function executeSyncToDatabase(skipConfirm = false) {
   try {
     const result = await syncItemsToSupabase(itemsToSync, packages);
     if (result.success) {
-      showToast(`¡${result.count} ítems (${modeLabel}) guardados en Supabase con éxito!`, 'success');
+      showToast(`¡${result.count} ítems guardados en Supabase con éxito!`, 'success');
     } else {
       showToast(result.error || 'Error al guardar en el servidor', 'warn');
     }

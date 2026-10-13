@@ -122,57 +122,39 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
       maxWidth="960px"
     >
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        <div className="modal-body">
-          {/* Metadata Row */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr',
-              gap: '12px',
-              padding: '12px',
-              background: 'var(--s2)',
-              border: '1px solid var(--b1)',
-              borderRadius: '8px',
-              marginBottom: '16px'
-            }}
-          >
-            <div>
-              <label style={{ display: 'block', fontSize: '10.5px', color: 'var(--mu)', marginBottom: '4px', fontWeight: 600 }}>
-                NOMBRE / TRIGGER DE LA REGLA
-              </label>
+        <div className="modal-body prompt">
+          <div className="prompt-grid" style={{ marginBottom: '12px' }}>
+            <label>
+              Nombre / trigger
               <input
                 type="text"
                 value={trigger}
                 onChange={e => setTrigger(e.target.value)}
-                style={{ width: '100%', fontSize: '11.5px', padding: '6px 8px', fontFamily: 'var(--mo)', textTransform: 'uppercase' }}
+                style={{ textTransform: 'uppercase' }}
                 placeholder="DET.001/2B-X1"
                 required
               />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '10.5px', color: 'var(--mu)', marginBottom: '4px', fontWeight: 600 }}>
-                DETALLE CONSTRUCTIVO
-              </label>
+            </label>
+            <label>
+              Detalle
               <input
                 type="text"
                 value={detalle}
                 onChange={e => setDetalle(e.target.value)}
-                style={{ width: '100%', fontSize: '11.5px', padding: '6px 8px', fontFamily: 'var(--mo)', textTransform: 'uppercase' }}
+                style={{ textTransform: 'uppercase' }}
                 placeholder="001/2B-X1"
               />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '10.5px', color: 'var(--mu)', marginBottom: '4px', fontWeight: 600 }}>
-                PREFIJO TAG EN PLANO
-              </label>
+            </label>
+            <label>
+              Prefijo tag
               <input
                 type="text"
                 value={tagPrefix}
                 onChange={e => setTagPrefix(e.target.value)}
-                style={{ width: '100%', fontSize: '11.5px', padding: '6px 8px', fontFamily: 'var(--mo)', textTransform: 'uppercase' }}
+                style={{ textTransform: 'uppercase' }}
                 placeholder="SE"
               />
-            </div>
+            </label>
           </div>
 
           {/* Matrix Table */}
@@ -180,10 +162,10 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', fontFamily: 'var(--mo)' }}>
               <thead>
                 <tr style={{ background: 'var(--s1)', position: 'sticky', top: 0, zIndex: 3, borderBottom: '1px solid var(--b1)' }}>
+                  <th rowSpan={2} style={{ padding: '8px', width: '70px', textAlign: 'center', borderRight: '1px solid var(--b1)' }}>MAT</th>
                   <th rowSpan={2} style={{ padding: '8px', width: '35px', textAlign: 'center', borderRight: '1px solid var(--b1)' }}>#</th>
                   <th rowSpan={2} style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid var(--b1)' }}>DESCRIPCIÓN DEL MATERIAL</th>
                   <th rowSpan={2} style={{ padding: '8px', width: '70px', textAlign: 'center', borderRight: '1px solid var(--b1)' }}>UND</th>
-                  <th rowSpan={2} style={{ padding: '8px', width: '70px', textAlign: 'center', borderRight: '1px solid var(--b1)' }}>TIPO</th>
                   <th colSpan={4} style={{ padding: '6px', textAlign: 'center', background: 'var(--ad)', borderRight: '1px solid var(--b1)', fontWeight: 'bold' }}>
                     VALOR SEGÚN ANCHO DE BANDEJA
                   </th>
@@ -207,6 +189,23 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                 ) : (
                   matrixItems.map((item, idx) => (
                     <tr key={item.id || idx} style={{ borderBottom: '1px solid var(--b1)', background: idx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent' }}>
+                      <td style={{ padding: '4px 6px' }}>
+                        <select
+                          value={item.material || (item.unit === 'm' ? 'P' : 'C')}
+                          onChange={e => handleUpdateItem(idx, 'material', e.target.value as 'P' | 'C')}
+                          style={{
+                            width: '100%',
+                            fontSize: '10.5px',
+                            padding: '4px',
+                            textAlign: 'center',
+                            fontWeight: 'bold',
+                            color: item.material === 'P' ? 'var(--tx)' : 'var(--mu)'
+                          }}
+                        >
+                          <option value="P">P (Ppal)</option>
+                          <option value="C">C (Acc)</option>
+                        </select>
+                      </td>
                       <td style={{ textAlign: 'center', color: 'var(--mu)', fontWeight: 'bold', padding: '6px' }}>
                         {idx + 1}
                       </td>
@@ -232,23 +231,6 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                           <option value="m/ soporte">m/sop</option>
                           <option value="kg">kg</option>
                           <option value="m3">m3</option>
-                        </select>
-                      </td>
-                      <td style={{ padding: '4px 6px' }}>
-                        <select
-                          value={item.material || (item.unit === 'm' ? 'P' : 'C')}
-                          onChange={e => handleUpdateItem(idx, 'material', e.target.value as 'P' | 'C')}
-                          style={{
-                            width: '100%',
-                            fontSize: '10.5px',
-                            padding: '4px',
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                            color: item.material === 'P' ? 'var(--tx)' : 'var(--mu)'
-                          }}
-                        >
-                          <option value="P">P (Ppal)</option>
-                          <option value="C">C (Acc)</option>
                         </select>
                       </td>
                       <td style={{ padding: '4px 6px' }}>
@@ -313,20 +295,6 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
               <button type="button" className="btn-ghost" onClick={handleAddItem}>
                 Agregar material
               </button>
-              {rule?.id && onDelete && (
-                <button
-                  type="button"
-                  className="btn-danger"
-                  onClick={() => {
-                    if (window.confirm(`¿Estás seguro de que deseas eliminar completamente la regla "${trigger || rule.trigger}"?`)) {
-                      onDelete(rule.id);
-                      onClose();
-                    }
-                  }}
-                >
-                  Eliminar regla
-                </button>
-              )}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" className="btn-ghost" onClick={onClose}>

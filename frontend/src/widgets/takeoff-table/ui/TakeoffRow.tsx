@@ -50,7 +50,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   onStartFillDrag,
   onCellMouseEnter
 }) => {
-  const { updateItem, deleteItem, highlightedTag, items: allStoreItems } = useItemsStore();
+  const { updateItem, highlightedTag, items: allStoreItems } = useItemsStore();
   const { section, activeArea } = useAppStore();
   const rowRef = useRef<HTMLTableRowElement>(null);
 
@@ -122,10 +122,10 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
     return (
       <tr ref={rowRef} className={`tr-edit ${isHighlighted ? 'tr-amber-pulse' : ''} ${!isMainItem ? 'tr-consumable-row' : ''}`}>
         <td className="td-n">{index}</td>
-        <td className="td-u" style={{ color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
+        <td className="td-u" style={{ color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)' }}>
           {item.partida || 'NA'}
         </td>
-        <td className="td-u" style={{ color: item.partidaBalance && item.partidaBalance !== 'NA' ? 'var(--am)' : 'var(--mu)', fontWeight: 700 }}>
+        <td className="td-u" style={{ color: item.partidaBalance && item.partidaBalance !== 'NA' ? 'var(--am)' : 'var(--mu)' }}>
           {item.partidaBalance || 'NA'}
         </td>
         <td>
@@ -347,7 +347,9 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   // PARTIDA SICME / PARTIDA BALANCE come from the PARTIDAS master;
   // TAG UNICO is derived. All three are system columns (display-only).
   const isSystemColumn = (colKey: string) =>
-    colKey === 'partida' || colKey === 'partidaBalance' || colKey === 'tagUnico';
+    colKey === 'partida' ||
+    colKey === 'partidaBalance' ||
+    colKey === 'tagUnico';
 
   const rangeEdgeClass = (colKey: string): string => {
     const edges = rangeEdgesByCol[colKey];
@@ -463,24 +465,19 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
       <td className="td-n" data-item-id={item.id}><span>{index}</span></td>
 
       {renderCell('partida', item.partida || 'NA', 'td-u', {
-        color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)',
-        fontWeight: 700
+        color: item.partida && item.partida !== 'NA' ? 'var(--am)' : 'var(--mu)'
       })}
 
       {renderCell('partidaBalance', item.partidaBalance || 'NA', 'td-u', {
-        color: item.partidaBalance && item.partidaBalance !== 'NA' ? 'var(--am)' : 'var(--mu)',
-        fontWeight: 700
+        color: item.partidaBalance && item.partidaBalance !== 'NA' ? 'var(--am)' : 'var(--mu)'
       })}
 
       {renderCell('material', item.material || '', 'td-u', {
-        color: isMainItem ? 'var(--excel-green, #107c41)' : 'var(--tx)',
-        fontWeight: 'bold'
+        color: isMainItem ? 'var(--excel-green, #107c41)' : 'var(--tx)'
       })}
 
       {/* PLANO Column */}
-      {renderCell('plano', item.plano || '—', 'td-u', {
-        fontWeight: 600
-      })}
+      {renderCell('plano', item.plano || '—', 'td-u')}
 
       {renderCell('rev', item.rev || '', 'td-u')}
       {renderCell('tagUnico', item.tagUnico || '', 'td-u')}
@@ -544,11 +541,6 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
           {isMainItem && (
             <IconActionButton kind="edit" title="Editar fila completa" onClick={onStartEdit} />
           )}
-          <IconActionButton
-            kind="delete"
-            title="Eliminar fila"
-            onClick={() => deleteItem(item.id, section)}
-          />
         </div>
       </td>
     </tr>

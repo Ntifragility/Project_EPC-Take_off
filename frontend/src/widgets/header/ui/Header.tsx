@@ -1,4 +1,5 @@
 import React from 'react';
+import { Redo2, Undo2 } from 'lucide-react';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
@@ -6,35 +7,56 @@ import { isSupabaseConfigured } from '../../../shared/api/supabase';
 import { executeSyncBductosToDatabase, executeSyncToDatabase } from '../../../features/sync-cloud/model/useCloudSync';
 import { ToolsPanel } from '../../actions-drawer/ui/ActionsDrawer';
 import { useBductoStore } from '../../../features/generate-bducto/model/useBductoStore';
-import { rememberRestoreAnchor, RESTORE_BUTTON_ID } from '../../../shared/ui/windowMotion';
+import { useCurveCatalogHistory } from '../../../features/generate-bducto/model/curveCatalogHistory';
+import { rememberRestoreAnchor, RESTORE_BUTTON_ID, RULE_RESTORE_BUTTON_ID } from '../../../shared/ui/windowMotion';
+import { SectionType, TabType } from '../../../shared/types/common';
 
 export interface HeaderProps {
-  onOpenSummaryModal: () => void;
   onOpenAreaModal: () => void;
-  onOpenTagSummaryModal: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  onOpenSummaryModal,
-  onOpenAreaModal,
-  onOpenTagSummaryModal
-}) => {
+const WINDOWS: { id: SectionType; label: string; sub?: { tab: TabType; label: string } }[] = [
+  { id: 'pat', label: 'PAT', sub: { tab: 'rules', label: 'REGLAS' } },
+  { id: 'canalizado', label: 'CANALIZADO' },
+  { id: 'bductos', label: 'BDUCTOS', sub: { tab: 'curves', label: 'CURVAS' } }
+];
+
+export const Header: React.FC<HeaderProps> = ({ onOpenAreaModal }) => {
   const { section, tab, theme, activeArea, setSection, setTab, toggleTheme } = useAppStore();
-  const { items, undoSnapshot, undoLastAction } = useItemsStore();
+  const { items, undoSnapshot, redoSnapshot, undoLastAction, redoLastAction } = useItemsStore();
   const bductoRows = useBductoStore(state => state.rows);
   const bductoUndoSnapshot = useBductoStore(state => state.undoSnapshot);
+  const bductoRedoSnapshot = useBductoStore(state => state.redoSnapshot);
   const undoBducto = useBductoStore(state => state.undoLastAction);
+  const redoBducto = useBductoStore(state => state.redoLastAction);
   const promptMinimized = useBductoStore(state => state.promptMinimized);
   const restoreArmed = useBductoStore(state => state.restoreArmed);
   const setPromptMinimized = useBductoStore(state => state.setPromptMinimized);
-  const undoDisabled = section === 'bductos' ? !bductoUndoSnapshot : !undoSnapshot;
-  const showUndo = section === 'bductos' || Boolean(undoSnapshot);
-  const { isSyncing, showToast } = useUIStore();
+  const rulePromptMinimized = useUIStore(state => state.rulePromptMinimized);
+  const ruleRestoreArmed = useUIStore(state => state.ruleRestoreArmed);
+  const setRulePromptMinimized = useUIStore(state => state.setRulePromptMinimized);
+  const curveCanUndo = useCurveCatalogHistory(state => state.canUndo);
+  const curveCanRedo = useCurveCatalogHistory(state => state.canRedo);
+  const undoCurve = useCurveCatalogHistory(state => state.undo);
+  const redoCurve = useCurveCatalogHistory(state => state.redo);
+  const onCurves = section === 'bductos' && tab === 'curves';
+  const canUndo = (onCurves && curveCanUndo) || (section === 'bductos' ? Boolean(bductoUndoSnapshot) : Boolean(undoSnapshot));
+  const canRedo = (onCurves && curveCanRedo) || (section === 'bductos' ? Boolean(bductoRedoSnapshot) : Boolean(redoSnapshot));
+  const showHistory = section === 'bductos' || canUndo || canRedo;
+  const { isSyncing, showToast, searchQuery, setSearchQuery } = useUIStore();
 
   const hasSupabase = isSupabaseConfigured();
+  const onPartidas = tab === 'packages';
+  const activeWindow = WINDOWS.find(window => window.id === section);
+
+  const openWindow = (id: SectionType) => {
+    setSection(id);
+    setTab('takeoff');
+  };
 
   return (
     <header className="header">
+      <div className="header-bar">
       <div className="header-left">
         <div className="logo">
           EPC TAKEOFF
@@ -63,72 +85,33 @@ export const Header: React.FC<HeaderProps> = ({
           <span>{activeArea === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'}</span>
           <span style={{ fontSize: '8px', opacity: 0.8, marginLeft: '2px' }}>▼</span>
         </button>
-
-        <nav className="nav" aria-label="Metrados">
-          <button
-            className={`nav-tab ${section === 'pat' && tab === 'takeoff' ? 'active' : ''}`}
-            data-section="pat"
-            onClick={() => {
-              setSection('pat');
-              setTab('takeoff');
-            }}
-          >
-            PAT
-          </button>
-          <button
-            className={`nav-tab ${section === 'canalizado' && tab === 'takeoff' ? 'active' : ''}`}
-            data-section="canalizado"
-            onClick={() => {
-              setSection('canalizado');
-              setTab('takeoff');
-            }}
-          >
-            CANALIZADO
-          </button>
-          <button
-            className={`nav-tab ${section === 'bductos' && tab === 'takeoff' ? 'active' : ''}`}
-            data-section="bductos"
-            style={{ marginRight: 12 }}
-            onClick={() => {
-              setSection('bductos');
-              setTab('takeoff');
-            }}
-          >
-            BDUCTOS
-          </button>
-          {section !== 'bductos' && (
-            <button
-              className={`nav-tab ${tab === 'rules' ? 'active' : ''}`}
-              onClick={() => setTab('rules')}
-            >
-              REGLAS
-            </button>
-          )}
-          <button
-            className={`nav-tab ${tab === 'packages' ? 'active' : ''}`}
-            onClick={() => setTab('packages')}
-          >
-            PARTIDAS
-          </button>
-          {section !== 'bductos' && (
-            <button
-              className="nav-tab"
-              onClick={onOpenSummaryModal}
-            >
-              RESUMEN MAT
-            </button>
-          )}
-          {section !== 'bductos' && (
-            <button
-              className="nav-tab"
-              onClick={onOpenTagSummaryModal}
-              title="Ver tabla resumen 6 columnas (TAG, LONGITUD_CABLE, LONGITUD_TUBERIA, DETALLE, JUMPERS, SOPORTES)"
-            >
-              RESUMEN TAG
-            </button>
-          )}
-        </nav>
       </div>
+
+      <nav className="nav" aria-label="Metrados">
+        {WINDOWS.map(window => {
+          const current = section === window.id;
+          const onThisWindow = current && !onPartidas;
+          return (
+            <button
+              key={window.id}
+              type="button"
+              data-section={window.id}
+              className={`nav-tab${onThisWindow ? ' active' : ''}${current && onPartidas ? ' current' : ''}`}
+              onClick={() => openWindow(window.id)}
+            >
+              {window.label}
+            </button>
+          );
+        })}
+        <span className="nav-divider" aria-hidden="true" />
+        <button
+          type="button"
+          className={`nav-tab${onPartidas ? ' active' : ''}`}
+          onClick={() => setTab('packages')}
+        >
+          PARTIDAS
+        </button>
+      </nav>
 
       <div className="header-right">
         <button
@@ -161,19 +144,63 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {showUndo && (
+        {section !== 'bductos' && (rulePromptMinimized || ruleRestoreArmed) && (
           <button
             type="button"
-            className="btn-ghost"
-            disabled={undoDisabled}
+            id={RULE_RESTORE_BUTTON_ID}
+            className="btn-icon bducto-restore-btn"
             onClick={() => {
-              const undone = section === 'bductos' ? undoBducto() : undoLastAction(section);
-              if (undone) showToast('Acción deshecha', 'info');
+              const button = document.getElementById(RULE_RESTORE_BUTTON_ID);
+              if (button) rememberRestoreAnchor(button.getBoundingClientRect());
+              setRulePromptMinimized(false);
             }}
-            title="Deshacer la última acción agregada o modificada"
+            title="Restaurar la regla"
+            aria-label="Restaurar la regla"
           >
-            Deshacer
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="1.25" y="2.25" width="13.5" height="11.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              <path d="M1.25 5.25h13.5" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
           </button>
+        )}
+
+        {showHistory && (
+          <>
+            <button
+              type="button"
+              className="btn-icon history-btn"
+              disabled={!canUndo}
+              onClick={() => {
+                if (onCurves && curveCanUndo) {
+                  if (undoCurve()) showToast('Curva restaurada', 'info');
+                  return;
+                }
+                const undone = section === 'bductos' ? undoBducto() : undoLastAction(section);
+                if (undone) showToast('Acción deshecha', 'info');
+              }}
+              title="Deshacer"
+              aria-label="Deshacer"
+            >
+              <Undo2 size={16} strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              className="btn-icon history-btn"
+              disabled={!canRedo}
+              onClick={() => {
+                if (onCurves && curveCanRedo) {
+                  if (redoCurve()) showToast('Curva quitada de nuevo', 'info');
+                  return;
+                }
+                const redone = section === 'bductos' ? redoBducto() : redoLastAction(section);
+                if (redone) showToast('Acción rehecha', 'info');
+              }}
+              title="Rehacer"
+              aria-label="Rehacer"
+            >
+              <Redo2 size={16} strokeWidth={2} />
+            </button>
+          </>
         )}
 
         <button
@@ -210,6 +237,52 @@ export const Header: React.FC<HeaderProps> = ({
 
         <ToolsPanel />
       </div>
+      </div>
+
+      {activeWindow && !onPartidas && (
+        <nav className="section-subnav" aria-label={activeWindow.label}>
+          {activeWindow.sub && (
+            <>
+              <button
+                type="button"
+                className={tab === 'takeoff' ? 'active' : ''}
+                onClick={() => {
+                  setSection(activeWindow.id);
+                  setTab('takeoff');
+                }}
+              >
+                Metrado
+              </button>
+              <button
+                type="button"
+                className={tab === activeWindow.sub.tab ? 'active' : ''}
+                onClick={() => {
+                  setSection(activeWindow.id);
+                  setTab(tab === activeWindow.sub!.tab ? 'takeoff' : activeWindow.sub!.tab);
+                }}
+              >
+                {activeWindow.sub.label === 'REGLAS' ? 'Reglas' : 'Curvas'}
+              </button>
+            </>
+          )}
+          {(tab === 'takeoff' || tab === 'rules' || tab === 'curves') && (
+            <div className="metrado-search">
+              <input
+                type="text"
+                placeholder="Buscar por SICME, BALANCE, TAG o DESCRIPCIÓN..."
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                aria-label="Buscar en el metrado"
+              />
+              {searchQuery && (
+                <button type="button" className="btn-ghost btn-sm" onClick={() => setSearchQuery('')}>
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
+        </nav>
+      )}
     </header>
   );
 };

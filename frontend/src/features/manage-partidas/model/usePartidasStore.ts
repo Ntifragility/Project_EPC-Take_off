@@ -36,6 +36,7 @@ function normalizePartida(p: PartidaRecord): PartidaRecord {
     item: sicme,
     partidaBalance: String(p.partidaBalance || 'NA').trim() || 'NA',
     forecastDesc: String(p.forecastDesc || '').trim(),
+    sicmeDesc: String(p.sicmeDesc || '').trim(),
     descripcionBm: bm,
     descripcion: bm,
     und: String(p.und || 'UND').trim() || 'UND'

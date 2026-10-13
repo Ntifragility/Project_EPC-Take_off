@@ -2,7 +2,9 @@ import React from 'react';
 import { TakeoffRule, CableTrayMatrixItem } from '../../../entities/takeoff-rule/model/types';
 import { DEFAULT_CABLE_TRAY_MATRIX } from '../../../entities/takeoff-rule/model/cableTrayRules';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { MatCell, MatHeader } from './MatCell';
 import { RuleCardShell } from './RuleCardShell';
+
 
 interface CableTrayRuleCardProps {
   rule: TakeoffRule;
@@ -33,7 +35,6 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
       badge={`${cableTrayRows.length} ${cableTrayRows.length === 1 ? 'material' : 'materiales'} · 4 anchos`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onEdit={() => onEdit(rule)}
       onDelete={() => onDelete(rule.id)}
     >
 
@@ -48,21 +49,21 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
             >
               <table
                 style={{
-                  width: '100%',
-                  minWidth: '700px',
+                  width: 'max-content',
                   borderCollapse: 'collapse',
                   fontFamily: 'var(--mo)',
                   fontSize: '11px'
                 }}
               >
                 <colgroup>
-                  <col style={{ width: '110px' }} />
-                  <col style={{ width: 'auto' }} />
-                  <col style={{ width: '70px' }} />
-                  <col style={{ width: '85px' }} />
-                  <col style={{ width: '85px' }} />
-                  <col style={{ width: '85px' }} />
-                  <col style={{ width: '85px' }} />
+                  <col className="rule-col-det" />
+                  <col className="rule-col-mat" />
+                  <col className="rule-col-desc" />
+                  <col className="rule-col-und" />
+                  <col className="rule-col-w" />
+                  <col className="rule-col-w" />
+                  <col className="rule-col-w" />
+                  <col className="rule-col-w" />
                 </colgroup>
                 <thead>
                   <tr style={{ background: 'var(--s1)' }}>
@@ -80,7 +81,9 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                     >
                       DETALLE
                     </th>
+                    <MatHeader rowSpan={2} />
                     <th
+                      className="rule-desc"
                       rowSpan={2}
                       style={{
                         borderRight: '1px solid var(--b1)',
@@ -179,18 +182,18 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
                               <IconActionButton
                                 kind="edit"
-                                title="Editar matriz de anchos"
+                                title="Editar la lista de este detalle"
                                 onClick={() => onEdit(rule)}
                               />
                             </div>
                           </td>
                         )}
+                        <MatCell desc={item.desc} material={item.material} />
                         <td
+                          className="rule-desc"
                           style={{
                             borderRight: '1px solid var(--b1)',
                             padding: '8px 10px',
-                            fontFamily: 'var(--mo)',
-                            fontSize: '11.5px',
                             color: 'var(--tx)',
                             verticalAlign: 'middle',
                             lineHeight: 1.4
@@ -279,3 +282,4 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
     </RuleCardShell>
   );
 };
+

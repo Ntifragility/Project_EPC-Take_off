@@ -14,6 +14,11 @@ export function getAbsoluteUnit(rawUnit: string, desc: string): string {
   return 'und';
 }
 
+export function componentClass(desc: string, explicit?: string | null): MaterialType {
+  if (explicit === 'P' || explicit === 'C') return explicit;
+  return isPrimaryMaterial(desc);
+}
+
 export function isPrimaryMaterial(desc: string): MaterialType {
   const d = (desc || '').toUpperCase();
   const primaryList = [

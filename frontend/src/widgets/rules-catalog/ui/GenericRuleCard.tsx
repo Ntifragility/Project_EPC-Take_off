@@ -2,6 +2,9 @@ import React from 'react';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { AreaType } from '../../../shared/types/common';
 import { getRuleCatalogDetalles, getDefaultDetalleByRule } from '../../../entities/takeoff-rule/model/seedRules';
+import { shownFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
+import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { MatCell, MatHeader } from './MatCell';
 import { RuleCardShell } from './RuleCardShell';
 
 interface GenericRuleCardProps {
@@ -41,6 +44,8 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
 }) => {
   const detalleCodes = getRuleCatalogDetalles(rule.trigger, activeArea, rule.detalle);
   const currentDetalle = getDefaultDetalleByRule(rule.trigger, activeArea) || detalleCodes[0] || '';
+  const shownCodes = detalleCodes.length > 0 ? detalleCodes : [currentDetalle || '—'];
+  const rows = rule.subitems.length > 0 ? rule.subitems : [{ id: 'empty', desc: '', qty: '', unit: '' }];
 
   return (
     <RuleCardShell
@@ -49,7 +54,6 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
       badge={`${rule.subitems.length} ${rule.subitems.length === 1 ? 'insumo' : 'insumos'}`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onEdit={() => onEdit(rule)}
       onDelete={() => onDelete(rule.id)}
     >
             <div
@@ -63,30 +67,31 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
             >
               <table
                 style={{
-                  width: '100%',
-                  minWidth: '560px',
+                  width: 'max-content',
                   borderCollapse: 'collapse',
                   fontFamily: 'var(--mo)',
                   fontSize: '11px'
                 }}
               >
                 <colgroup>
-                  <col style={{ width: '110px' }} />
-                  <col style={{ width: 'auto' }} />
-                  <col style={{ width: '120px' }} />
-                  <col style={{ width: '110px' }} />
+                  <col className="rule-col-det" />
+                  <col className="rule-col-mat" />
+                  <col className="rule-col-desc" />
+                  <col className="rule-col-ot" />
+                  <col className="rule-col-und" />
                 </colgroup>
                 <thead>
                   <tr style={{ background: 'var(--s1)' }}>
                     <th style={thStyle}>DETALLE</th>
-                    <th style={{ ...thStyle, textAlign: 'left' }}>DESCRIPCIÓN</th>
+                    <MatHeader />
+                    <th className="rule-desc" style={{ ...thStyle, textAlign: 'left' }}>DESCRIPCIÓN</th>
                     <th style={thStyle}>METRADO OT / CANT.</th>
                     <th style={{ ...thStyle, borderRight: 'none' }}>UNIDAD</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rule.subitems.map((s, i) => {
-                    const isLast = i === rule.subitems.length - 1;
+                  {rows.map((s, i) => {
+                    const isLast = i === rows.length - 1;
                     return (
                       <tr
                         key={s.id || i}
@@ -97,7 +102,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                       >
                         {i === 0 && (
                           <td
-                            rowSpan={rule.subitems.length}
+                            rowSpan={rows.length}
                             style={{
                               ...tdStyle,
                               textAlign: 'center',
@@ -106,7 +111,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                             }}
                           >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-                              {(detalleCodes.length > 0 ? detalleCodes : ['—']).map(code => (
+                              {shownCodes.map(code => (
                                 <span
                                   key={code}
                                   style={{
@@ -122,13 +127,20 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                                   {code}
                                 </span>
                               ))}
+                              <IconActionButton
+                                kind="edit"
+                                title="Editar la lista de este detalle"
+                                onClick={() => onEdit(rule)}
+                              />
                             </div>
                           </td>
                         )}
+                        <MatCell desc={s.desc} />
                         <td
+                          className="rule-desc"
                           style={{
                             ...tdStyle,
-                            fontSize: '11.5px',
+                            fontSize: '12px',
                             lineHeight: 1.4
                           }}
                         >
@@ -141,7 +153,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                             textAlign: 'center'
                           }}
                         >
-                          {s.qty}
+                          {shownFormula(s, rule.trigger) || s.qty}
                         </td>
                         <td
                           style={{

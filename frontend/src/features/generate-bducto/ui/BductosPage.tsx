@@ -34,13 +34,13 @@ export const BductosPage: React.FC = () => {
   const manual = manualDraft !== null;
   const current = manualDraft ?? found;
 
-  const confirmPrompt = (prompt: BductoPrompt) => {
+  const confirmPrompt = (prompt: BductoPrompt, tagEnPlano: string) => {
     if (!current) return;
     if (manual && manualDraft && current.id === manualDraft.id) {
       const effective = {
         ...manualDraft,
         plano: manualDraft.plano.trim().toUpperCase(),
-        tagEnPlano: manualDraft.tagEnPlano.trim().toUpperCase().replace(/\s+/g, ' '),
+        tagEnPlano: tagEnPlano.trim().toUpperCase().replace(/\s+/g, ' '),
         desde: prompt.desde.trim().toUpperCase(),
         hasta: prompt.hasta.trim().toUpperCase(),
         quantity: typeof prompt.quantity === 'number' ? prompt.quantity : manualDraft.quantity
@@ -62,12 +62,16 @@ export const BductosPage: React.FC = () => {
       commitManualDraft(effective, prompt, result.rows);
       return;
     }
-    const result = expandBducto(current, prompt, uid);
+    const effective = {
+      ...current,
+      tagEnPlano: tagEnPlano.trim().toUpperCase().replace(/\s+/g, ' ')
+    };
+    const result = expandBducto(effective, prompt, uid);
     if (result.ok === false) {
       showToast(result.error, 'warn');
       return;
     }
-    commitTramo(current.id, prompt, result.rows);
+    commitTramo(current.id, prompt, result.rows, effective.tagEnPlano);
   };
 
   return (

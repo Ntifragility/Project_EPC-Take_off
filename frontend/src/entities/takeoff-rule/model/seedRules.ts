@@ -56,7 +56,7 @@ export const SEED_RULES: TakeoffRule[] = [
     id: 'r5',
     trigger: 'SOLDADURA T 4/0',
     detalle: '167/X1',
-    tagPrefix: 'T',
+    tagPrefix: 'TT',
     subitems: [
       { id: 's20', desc: 'SOLDADURA T 4/0', qty: 1, unit: 'und' },
       { id: 's21', desc: 'CARGA 150', qty: 1, unit: 'und' },

@@ -60,7 +60,7 @@ export const TakeoffTableHeader: React.FC<TakeoffTableHeaderProps> = ({
                 color: column.key === 'partida' || column.key === 'partidaBalance' ? 'var(--am)' : undefined
               }}
             >
-              <div className="th-filter-row">
+              <div className={`th-filter-row${column.filterable ? ' has-filter' : ''}`}>
                 <span>{column.label}</span>
                 {column.filterable && (
                   <ExcelColumnFilter

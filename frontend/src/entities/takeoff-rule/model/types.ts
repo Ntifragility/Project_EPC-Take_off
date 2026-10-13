@@ -7,6 +7,10 @@ export interface RuleSubitem {
   unit: string;
   ot?: number | string;
   otDynamic?: string | boolean;
+  material?: 'P' | 'C';
+  /** Stored formula. Empty when qty is a fixed number. */
+  formula?: string;
+  optional?: boolean;
 }
 
 export interface CableTrayMatrixItem {
@@ -38,4 +42,6 @@ export interface DetalleVariantItem {
   ot?: number | string;
   otDynamic?: string | boolean;
   material?: 'P' | 'C';
+  /** Expression written to METRADO OT. Empty means the person fills the cell. */
+  formula?: string;
 }

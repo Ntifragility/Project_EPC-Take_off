@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DetalleVariantItem } from '../../../entities/takeoff-rule/model/types';
 import { AVAILABLE_CUSTOM_ITEMS } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { formulaHint, isMetradoExpression, shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { ModalShell } from '../../../shared/ui/ModalShell';
 
 export interface DetalleEditorModalProps {
@@ -31,6 +32,14 @@ interface EditableItem {
   ot: string | number;
   unit: string;
   material: 'P' | 'C';
+}
+
+function displayOt(item: DetalleVariantItem): string {
+  const formula = shownVariantFormula(item);
+  if (formula) return formula;
+  if (item.ot !== undefined && item.ot !== '') return String(item.ot);
+  if (item.qty !== undefined && item.qty !== '') return String(item.qty);
+  return '1';
 }
 
 const COMMON_UNITS = [
@@ -85,7 +94,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
         (initialItems || []).map((it, idx) => ({
           id: `item-${idx}-${Date.now()}`,
           desc: it.desc || '',
-          ot: it.ot !== undefined ? it.ot : it.qty !== undefined ? it.qty : 1,
+          ot: displayOt(it),
           unit: it.unit || 'und',
           material: it.material || 'C'
         }))
@@ -96,7 +105,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   if (!isOpen) return null;
 
   const normalizeVariant = (list: DetalleVariantItem[]) =>
-    JSON.stringify(list.map(it => [it.desc || '', it.ot !== undefined ? it.ot : it.qty !== undefined ? it.qty : 1, it.unit || 'und', it.material || 'C']));
+    JSON.stringify(list.map(it => [it.desc || '', displayOt(it), it.unit || 'und', it.material || 'C']));
   const isDirty =
     JSON.stringify(items.map(it => [it.desc || '', it.ot ?? '', it.unit || '', it.material || ''])) !==
       normalizeVariant(initialItems || []) ||
@@ -170,16 +179,28 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
     }
 
     const payloadItems: DetalleVariantItem[] = cleanItems.map(it => {
-      const isVar = String(it.ot).trim().toLowerCase() === 'var.' || String(it.ot).trim().toLowerCase() === 'var';
-      const numOt = parseFloat(String(it.ot));
-      const parsedOt = isVar ? 'Var.' : isNaN(numOt) ? String(it.ot).trim() : numOt;
+      const text = String(it.ot).trim();
+      const isVar = text.toLowerCase() === 'var.' || text.toLowerCase() === 'var';
+      const expr = isMetradoExpression(text);
+      const leading = /^(\d+(?:\.\d+)?)/.exec(text);
+      const numOt = parseFloat(text);
+      const parsedOt = expr
+        ? leading ? Number(leading[1]) : 1
+        : isVar
+          ? 'Var.'
+          : Number.isFinite(numOt) && String(numOt) === text
+            ? numOt
+            : text;
+      const ceilLength = /ceil\s*\(\s*length\s*\/\s*3\s*\)/i.test(text);
 
       return {
         desc: it.desc.trim(),
         qty: parsedOt,
         unit: it.unit.trim(),
         ot: parsedOt,
-        material: it.material
+        material: it.material,
+        formula: expr ? text : '',
+        otDynamic: ceilLength ? '1c/3m' : text === '' ? 'empty' : undefined
       };
     });
 
@@ -368,17 +389,17 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
           >
             <thead>
               <tr style={{ background: 'var(--s2)', borderBottom: '2px solid var(--b1)' }}>
+                <th style={{ padding: '10px 8px', width: '95px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
+                  MAT
+                </th>
                 <th style={{ padding: '10px 10px', textAlign: 'left', color: 'var(--tx)', fontWeight: 'bold' }}>
                   DESCRIPCIÓN DEL MATERIAL
                 </th>
-                <th style={{ padding: '10px 8px', width: '120px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
-                  METRADO OT
+                <th style={{ padding: '10px 8px', width: '180px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
+                  METRADO OT / CÁLCULO
                 </th>
                 <th style={{ padding: '10px 8px', width: '140px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
                   UNIDAD
-                </th>
-                <th style={{ padding: '10px 8px', width: '95px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
-                  TIPO
                 </th>
                 <th style={{ padding: '10px 8px', width: '45px', textAlign: 'center' }}></th>
               </tr>
@@ -392,6 +413,26 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                     background: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)'
                   }}
                 >
+                  <td style={{ padding: '8px', textAlign: 'center' }}>
+                    <select
+                      value={it.material}
+                      onChange={e => handleUpdateItem(it.id, 'material', e.target.value as 'P' | 'C')}
+                      style={{
+                        padding: '6px 4px',
+                        fontSize: '11px',
+                        fontFamily: 'var(--mo)',
+                        fontWeight: 700,
+                        border: '1px solid var(--b1)',
+                        borderRadius: '4px',
+                        background: it.material === 'P' ? '#eff6ff' : 'var(--s1)',
+                        color: it.material === 'P' ? '#1d4ed8' : 'var(--tx)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="P">P (Prin.)</option>
+                      <option value="C">C (Cons.)</option>
+                    </select>
+                  </td>
                   <td style={{ padding: '8px 10px' }}>
                     <input
                       type="text"
@@ -417,7 +458,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       type="text"
                       value={it.ot}
                       onChange={e => handleUpdateItem(it.id, 'ot', e.target.value)}
-                      placeholder="1 ó Var."
+                      placeholder="1, length, 2 * soportes"
                       style={{
                         width: '100%',
                         textAlign: 'center',
@@ -455,27 +496,6 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                   </td>
 
                   <td style={{ padding: '8px', textAlign: 'center' }}>
-                    <select
-                      value={it.material}
-                      onChange={e => handleUpdateItem(it.id, 'material', e.target.value as 'P' | 'C')}
-                      style={{
-                        padding: '6px 4px',
-                        fontSize: '11px',
-                        fontFamily: 'var(--mo)',
-                        fontWeight: 700,
-                        border: '1px solid var(--b1)',
-                        borderRadius: '4px',
-                        background: it.material === 'P' ? '#eff6ff' : 'var(--s1)',
-                        color: it.material === 'P' ? '#1d4ed8' : 'var(--tx)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="P">P (Prin.)</option>
-                      <option value="C">C (Cons.)</option>
-                    </select>
-                  </td>
-
-                  <td style={{ padding: '8px', textAlign: 'center' }}>
                     <button
                       type="button"
                       className="btn-ghost btn-sm"
@@ -489,6 +509,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
               ))}
             </tbody>
           </table>
+          <p className="prompt-note">{formulaHint(items.map(item => String(item.ot ?? '')))}</p>
 
           <button
             type="button"

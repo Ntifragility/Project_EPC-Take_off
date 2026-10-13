@@ -41,6 +41,7 @@ export interface BductoState {
   sources: BductoSource[];
   rows: BductoRow[];
   undoSnapshot: string | null;
+  redoSnapshot: string | null;
   /** Tramo ids in the open prompt, in order. Not saved. */
   wizardIds: string[];
   wizardIndex: number;
@@ -68,26 +69,57 @@ export interface BductoState {
   loadSample: () => void;
   removeSource: (id: string) => void;
   clearSources: () => void;
-  commitTramo: (sourceId: string, prompt: BductoPrompt, rows: BductoRow[]) => void;
+  commitTramo: (sourceId: string, prompt: BductoPrompt, rows: BductoRow[], tagEnPlano?: string) => void;
   commitManualDraft: (source: BductoSource, prompt: BductoPrompt, rows: BductoRow[]) => void;
   patchRows: (updated: BductoRow[]) => void;
   clearRows: () => void;
   undoLastAction: () => boolean;
+  redoLastAction: () => boolean;
 }
 
 const initial = loadPersisted();
+
+function historyFlags() {
+  return { undoSnapshot: bductoUndo.snapshot, redoSnapshot: bductoUndo.redoSnapshot };
+}
+
+function syncSources(sources: BductoSource[], rows: BductoRow[]): BductoSource[] {
+  return sources.map(source => {
+    const own = rows.filter(row => row.sourceId === source.id);
+    if (own.length === 0) return source;
+    let next = source;
+    const plano = own[0].plano;
+    if (own.every(row => row.plano === plano) && source.plano !== plano) {
+      next = { ...next, plano };
+    }
+    const desde = own[0].desde;
+    if (own.every(row => row.desde === desde) && (source.desde || '') !== desde) {
+      next = { ...next, desde, prompt: next.prompt ? { ...next.prompt, desde } : next.prompt };
+    }
+    const hasta = own[0].hasta;
+    if (own.every(row => row.hasta === hasta) && (source.hasta || '') !== hasta) {
+      next = { ...next, hasta, prompt: next.prompt ? { ...next.prompt, hasta } : next.prompt };
+    }
+    const seccion = own[0].seccion;
+    if (own.every(row => row.seccion === seccion) && next.seccion !== seccion) {
+      next = { ...next, seccion };
+    }
+    return next;
+  });
+}
 
 function remember(get: () => BductoState, set: (partial: Partial<BductoState>) => void, action: string, next: PersistedBductos) {
   void action;
   bductoUndo.remember({ sources: get().sources, rows: get().rows });
   persist(next);
-  set({ ...next, undoSnapshot: bductoUndo.snapshot });
+  set({ ...next, ...historyFlags() });
 }
 
 export const useBductoStore = createStore<BductoState>((set, get) => ({
   sources: initial.sources,
   rows: initial.rows,
   undoSnapshot: null,
+  redoSnapshot: null,
   wizardIds: [],
   wizardIndex: 0,
   manualDraft: null,
@@ -151,6 +183,7 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
   setWizard: (sources, index = 0) => set({
     wizardIds: sources.map(source => source.id),
     wizardIndex: sources.length === 0 ? 0 : Math.min(Math.max(index, 0), sources.length - 1),
+    manualDraft: null,
     promptMinimized: false,
     restoreArmed: false
   }),
@@ -185,18 +218,22 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
     });
   },
 
-  commitTramo: (sourceId, prompt, rows) => {
+  commitTramo: (sourceId, prompt, rows, tagEnPlano) => {
+    const previous = get().rows.filter(row => row.sourceId === sourceId);
+    const sharedRev = previous.length > 0 && previous.every(row => row.rev === previous[0].rev) ? previous[0].rev : '';
+    const stamped = sharedRev ? rows.map(row => ({ ...row, rev: sharedRev })) : rows;
     const sources = get().sources.map(source =>
       source.id === sourceId
         ? {
             ...source,
             desde: prompt.desde.trim().toUpperCase(),
             hasta: prompt.hasta.trim().toUpperCase(),
+            tagEnPlano: tagEnPlano?.trim().toUpperCase().replace(/\s+/g, ' ') || source.tagEnPlano,
             prompt
           }
         : source
     );
-    const nextRows = [...get().rows.filter(row => row.sourceId !== sourceId), ...rows];
+    const nextRows = [...get().rows.filter(row => row.sourceId !== sourceId), ...stamped];
     bductoUndo.remember({ sources: get().sources, rows: get().rows });
     persist({ sources, rows: nextRows });
     const nextIndex = get().wizardIndex + 1;
@@ -204,7 +241,7 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
     set({
       sources,
       rows: nextRows,
-      undoSnapshot: bductoUndo.snapshot,
+      ...historyFlags(),
       wizardIds: done ? [] : get().wizardIds,
       wizardIndex: done ? 0 : nextIndex,
       promptMinimized: done ? false : get().promptMinimized,
@@ -229,14 +266,7 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
     if (updated.length === 0) return;
     const byId = new Map(updated.map(row => [row.id, row]));
     const rows = get().rows.map(row => byId.get(row.id) ?? row);
-    const sources = get().sources.map(source => {
-      const own = rows.filter(row => row.sourceId === source.id);
-      const planos = new Set(own.map(row => row.plano));
-      if (own.length > 0 && planos.size === 1 && source.plano !== own[0].plano) {
-        return { ...source, plano: own[0].plano };
-      }
-      return source;
-    });
+    const sources = syncSources(get().sources, rows);
     remember(get, set, 'patchRows', { sources, rows });
   },
 
@@ -245,11 +275,22 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
   },
 
   undoLastAction: () => {
-    if (!get().undoSnapshot) return false;
-    const restored = bductoUndo.undo();
+    if (!bductoUndo.snapshot) return false;
+    const current = { sources: get().sources, rows: get().rows };
+    const restored = bductoUndo.undo(current);
     if (!restored) return false;
-    persist({ sources: restored.sources, rows: restored.rows });
-    set({ sources: restored.sources, rows: restored.rows, undoSnapshot: bductoUndo.snapshot });
+    persist(restored);
+    set({ sources: restored.sources, rows: restored.rows, ...historyFlags() });
+    return true;
+  },
+
+  redoLastAction: () => {
+    if (!bductoUndo.redoSnapshot) return false;
+    const current = { sources: get().sources, rows: get().rows };
+    const restored = bductoUndo.redo(current);
+    if (!restored) return false;
+    persist(restored);
+    set({ sources: restored.sources, rows: restored.rows, ...historyFlags() });
     return true;
   }
 }));

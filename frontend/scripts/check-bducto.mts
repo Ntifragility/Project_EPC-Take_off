@@ -1,7 +1,7 @@
 import { applyBductoField, applyBductoGroupField } from '../src/entities/bducto/model/bductoEdit.ts';
 import { tramosToAdd, withoutRepeatedUpload } from '../src/features/generate-bducto/model/importTramos.ts';
 import { expandBducto, parseBductoSheet, parseSourceBlock, promptFromRows, splitSticks, unionsPerVia } from '../src/entities/bducto/model/expandBducto.ts';
-import { curveDescription, curvesForDiameter, getCurveCatalog } from '../src/entities/bducto/model/catalog.ts';
+import { curveDescription, curvesForDiameter, setCurveCatalog } from '../src/entities/bducto/model/catalog.ts';
 import { mapBductoRowToRecord, mapCurveToRecord } from '../src/entities/bducto/model/bductoRecord.ts';
 import { cellsInRect, extendSelection } from '../src/widgets/takeoff-table/model/cellRange.ts';
 import { parseIntegerInput, parseLengthInput, sanitizeIntegerInput, sanitizeLengthInput } from '../src/features/generate-bducto/model/promptNumber.ts';
@@ -11,6 +11,12 @@ function assert(condition: unknown, message: string) {
 }
 
 let n = 0;
+setCurveCatalog([
+  { id: 'c45-r30-d6', angle: '45°', radius: '30"', diameter: '6"', lengthM: 0.59 },
+  { id: 'c90-r30-d6', angle: '90°', radius: '30"', diameter: '6"', lengthM: 1.12 },
+  { id: 'c90-r15-d2', angle: '90°', radius: '15"', diameter: '2"', lengthM: 0.65 },
+  { id: 'c90-r15-d3', angle: '90°', radius: '15"', diameter: '3"', lengthM: 0.65 }
+]);
 const source = {
   id: 's1',
   plano: 'P22-DA-3300-07-LY-028',
@@ -162,21 +168,10 @@ if (embedded.ok) {
   assert(embedded.parsed.vias === 2 && embedded.parsed.section === 'E' && embedded.parsed.bankId === 'E.1', 'E section');
   assert(embedded.rows[0].tagUnico === '3400LY014.E.1.1' && embedded.rows[0].seccion === 'E', embedded.rows[0].tagUnico);
 }
-const twoInch = curvesForDiameter('2"').map(curveDescription);
-assert(twoInch.join('|') === [
-  'CURVA 30° RADIO 15" PVC SCH 40 D=2" - CERTIFICACIÓN UL',
-  'CURVA 45° RADIO 15" PVC SCH 40 D=2" - CERTIFICACIÓN UL',
-  'CURVA 90° RADIO 15" PVC SCH 40 D=2" - CERTIFICACIÓN UL',
-  'CURVA 90° RADIO 9.5" PVC SCH 40 D=2" - CERTIFICACIÓN UL'
-].join('|'), twoInch.join(' | '));
 const sixInch = curvesForDiameter('6"').map(item => `${item.angle} ${item.radius} ${item.lengthM}`);
-assert(sixInch.join('|') === '30° 30" 0.44|45° 30" 0.59|90° 30" 1.12|90° 36" 1.05', sixInch.join('|'));
-const twoLengths = curvesForDiameter('2"').map(item => item.lengthM);
-assert(twoLengths.join('|') === '0.25|0.35|0.65|0.43', twoLengths.join('|'));
-const threeInch = curvesForDiameter('3"').map(item => `${item.angle} ${item.radius} ${item.lengthM}`);
-assert(threeInch.join('|') === '30° 15" 0.25|45° 15" 0.35|90° 15" 0.65|90° 9.5" 0.43', threeInch.join('|'));
-assert(curvesForDiameter('1 1/2"').length === 2, 'inch filters');
-const catalogRow = mapCurveToRecord(getCurveCatalog().find(item => item.id === 'c90-r15-d3')!, 0);
+assert(sixInch.join('|') === '45° 30" 0.59|90° 30" 1.12', sixInch.join('|'));
+assert(curvesForDiameter('2"').map(curveDescription).join('|') === 'CURVA 90° RADIO 15" PVC SCH 40 D=2" - CERTIFICACIÓN UL', 'loaded catalog only');
+const catalogRow = mapCurveToRecord({ id: 'c90-r15-d3', angle: '90°', radius: '15"', diameter: '3"', lengthM: 0.65 }, 0);
 assert(
   catalogRow.diameter === '3"' &&
     catalogRow.length_m === 0.65 &&
@@ -302,6 +297,12 @@ if (grouped.ok === true) {
 }
 const groupedRev = applyBductoGroupField(rows, [rows[rows.length - 1]], 'rev', 'c');
 assert(groupedRev.ok === true && groupedRev.rows.length === rows.length && groupedRev.rows.every(row => row.rev === 'C'), 'rev covers the tramo');
+const groupedDesde = applyBductoGroupField(rows, [rows[0]], 'desde', '300-mh-020');
+assert(groupedDesde.ok === true && groupedDesde.rows.length === rows.length && groupedDesde.rows.every(row => row.desde === '300-MH-020'), 'desde covers the tramo');
+const groupedHasta = applyBductoGroupField(rows, [rows[1] ?? rows[0]], 'hasta', '300-mh-021');
+assert(groupedHasta.ok === true && groupedHasta.rows.every(row => row.hasta === '300-MH-021'), 'hasta covers the tramo');
+const groupedSeccion = applyBductoGroupField(rows, [rows[0]], 'seccion', 'k');
+assert(groupedSeccion.ok === true && groupedSeccion.rows.every(row => row.seccion === 'K'), 'seccion covers the tramo');
 const oneTag = applyBductoGroupField(rows, [rows[0]], 'tagUnico', 'custom.1');
 assert(oneTag.ok === true && oneTag.rows.length === 1 && oneTag.rows[0].tagUnico === 'CUSTOM.1', 'tag edit stays on one row');
 

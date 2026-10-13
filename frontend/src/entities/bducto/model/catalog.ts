@@ -13,27 +13,6 @@ export interface CurveCatalogItem {
   diametro?: string;
 }
 
-/** Piece length (m) of one curve, from the LONGITUD table. 3" repeats the 2" rows. */
-export const CURVE_CATALOG: CurveCatalogItem[] = [
-  { id: 'c30-r15-d2', angle: '30°', radius: '15"', diameter: '2"', lengthM: 0.25 },
-  { id: 'c30-r15-d3', angle: '30°', radius: '15"', diameter: '3"', lengthM: 0.25 },
-  { id: 'c30-r30-d6', angle: '30°', radius: '30"', diameter: '6"', lengthM: 0.44 },
-  { id: 'c45-r15-d112', angle: '45°', radius: '15"', diameter: '1 1/2"', lengthM: 0.35 },
-  { id: 'c45-r15-d2', angle: '45°', radius: '15"', diameter: '2"', lengthM: 0.35 },
-  { id: 'c45-r15-d3', angle: '45°', radius: '15"', diameter: '3"', lengthM: 0.35 },
-  { id: 'c45-r30-d4', angle: '45°', radius: '30"', diameter: '4"', lengthM: 0.46 },
-  { id: 'c45-r30-d6', angle: '45°', radius: '30"', diameter: '6"', lengthM: 0.59 },
-  { id: 'c90-r15-d112', angle: '90°', radius: '15"', diameter: '1 1/2"', lengthM: 0.65 },
-  { id: 'c90-r15-d1', angle: '90°', radius: '15"', diameter: '1"', lengthM: 0.64 },
-  { id: 'c90-r15-d2', angle: '90°', radius: '15"', diameter: '2"', lengthM: 0.65 },
-  { id: 'c90-r15-d3', angle: '90°', radius: '15"', diameter: '3"', lengthM: 0.65 },
-  { id: 'c90-r30-d4', angle: '90°', radius: '30"', diameter: '4"', lengthM: 0.84 },
-  { id: 'c90-r30-d6', angle: '90°', radius: '30"', diameter: '6"', lengthM: 1.12 },
-  { id: 'c90-r36-d6', angle: '90°', radius: '36"', diameter: '6"', lengthM: 1.05 },
-  { id: 'c90-r95-d2', angle: '90°', radius: '9.5"', diameter: '2"', lengthM: 0.43 },
-  { id: 'c90-r95-d3', angle: '90°', radius: '9.5"', diameter: '3"', lengthM: 0.43 }
-];
-
 export const CINTA_DESCRIPTION = 'CINTA DE RIESGO ELECTRICO COLOR ROJO';
 export const CINTA_DIAMETRO = 'CINTA ROJA';
 
@@ -53,23 +32,25 @@ export function adaptadorDescription(diameter: string): string {
   return `ADAPTADOR PVC - RGS D=${diameter}${UL}`;
 }
 
-let activeCatalog: CurveCatalogItem[] = CURVE_CATALOG;
+let activeCatalog: CurveCatalogItem[] = [];
+const catalogListeners = new Set<() => void>();
 
-/** Catalog used by the prompt. Starts as the code table and can be replaced from the database. */
+/** Curves loaded from bducto_curve_catalog. Empty until that table is fetched. */
 export function getCurveCatalog(): CurveCatalogItem[] {
   return activeCatalog;
 }
 
-/** Database rows win for the same id. Curves that exist only in code stay available. */
-export function mergeCurveCatalog(remote: CurveCatalogItem[]): CurveCatalogItem[] {
-  const byId = new Map(remote.map(item => [item.id, item]));
-  const merged = CURVE_CATALOG.map(item => byId.get(item.id) ?? item);
-  const known = new Set(CURVE_CATALOG.map(item => item.id));
-  for (const item of remote) {
-    if (!known.has(item.id)) merged.push(item);
-  }
-  activeCatalog = merged;
-  return merged;
+/** Replaces the in-memory copy with the rows stored in Supabase. */
+export function setCurveCatalog(items: CurveCatalogItem[]): void {
+  activeCatalog = items;
+  catalogListeners.forEach(listener => listener());
+}
+
+export function subscribeCurveCatalog(listener: () => void): () => void {
+  catalogListeners.add(listener);
+  return () => {
+    catalogListeners.delete(listener);
+  };
 }
 
 export function curveDescription(item: CurveCatalogItem): string {
@@ -96,8 +77,45 @@ export function isRightAngleCurve(item: { angle: string }): boolean {
   return item.angle.replace(/\s/g, '').startsWith('90');
 }
 
+const MENU_SHAPES = ['30°|30"', '45°|30"', '90°|30"', '90°|36"'];
+
 export function curvesForDiameter(diameter: string): CurveCatalogItem[] {
-  return activeCatalog.filter(item => item.diameter === diameter);
+  return activeCatalog
+    .filter(item => item.diameter === diameter)
+    .sort((left, right) => {
+      const leftRank = MENU_SHAPES.indexOf(`${left.angle}|${left.radius}`);
+      const rightRank = MENU_SHAPES.indexOf(`${right.angle}|${right.radius}`);
+      return (leftRank === -1 ? MENU_SHAPES.length : leftRank) - (rightRank === -1 ? MENU_SHAPES.length : rightRank);
+    });
+}
+
+function measure(value: string): number {
+  const cleaned = value.replace(/["°]/g, '').trim();
+  const mixed = cleaned.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  if (mixed) return Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]);
+  const whole = Number(cleaned);
+  return Number.isFinite(whole) ? whole : 99;
+}
+
+function diameterRank(value: string): number {
+  return measure(value);
+}
+
+/** Catalog order: inches, then angle, then radius. */
+export function compareCurves(
+  left: Pick<CurveCatalogItem, 'diameter' | 'angle' | 'radius'>,
+  right: Pick<CurveCatalogItem, 'diameter' | 'angle' | 'radius'>
+): number {
+  return measure(left.diameter) - measure(right.diameter)
+    || measure(left.angle) - measure(right.angle)
+    || measure(left.radius) - measure(right.radius);
+}
+
+/** Sizes that have curves, smallest first. The open tramo's size is included even if it has none. */
+export function catalogDiameters(current?: string): string[] {
+  const sizes = [...new Set(activeCatalog.map(item => item.diameter))];
+  if (current && !sizes.includes(current)) sizes.push(current);
+  return sizes.sort((left, right) => diameterRank(left) - diameterRank(right));
 }
 
 export const SAMPLE_LY028: Array<Omit<BductoSource, 'id'>> = [

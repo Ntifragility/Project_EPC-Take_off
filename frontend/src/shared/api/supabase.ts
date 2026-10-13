@@ -313,6 +313,7 @@ export async function syncPartidasToSupabase(
     item: String(p.partidaSicme || p.item || '').trim(),
     partida_balance: String(p.partidaBalance || 'NA').trim() || 'NA',
     forecast_desc: p.forecastDesc || '',
+    descripcion_sicme: p.sicmeDesc || '',
     descripcion_bm: p.descripcionBm || p.descripcion || '',
     descripcion: p.descripcionBm || p.descripcion || '',
     und: p.und || 'UND'
@@ -341,6 +342,7 @@ function partidaToSupabasePayload(p: PartidaRecord): SupabasePartidaRecord {
     item: String(p.partidaSicme || p.item || '').trim(),
     partida_balance: String(p.partidaBalance || 'NA').trim() || 'NA',
     forecast_desc: p.forecastDesc || '',
+    descripcion_sicme: p.sicmeDesc || '',
     descripcion_bm: p.descripcionBm || p.descripcion || '',
     descripcion: p.descripcionBm || p.descripcion || '',
     und: p.und || 'UND'
@@ -421,6 +423,7 @@ export async function fetchPartidasFromSupabase(): Promise<{
       item: row.partida_sicme ?? row.item ?? '',
       partidaBalance: row.partida_balance || 'NA',
       forecastDesc: row.forecast_desc || '',
+      sicmeDesc: row.descripcion_sicme || '',
       descripcionBm: row.descripcion_bm ?? row.descripcion ?? '',
       descripcion: row.descripcion_bm ?? row.descripcion ?? '',
       und: row.und || 'UND',
@@ -469,20 +472,40 @@ export async function syncBductosToSupabase(
 
 export async function syncCurveCatalogToSupabase(
   items: CurveCatalogItem[] = getCurveCatalog()
-): Promise<{ success: boolean; count: number; error?: string }> {
+): Promise<{ success: boolean; count: number; error?: string; data?: CurveCatalogItem[] }> {
   if (!supabase) {
     return { success: false, count: 0, error: 'Supabase client no está configurado.' };
   }
   if (items.length === 0) return { success: true, count: 0 };
 
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from(CURVE_CATALOG_TABLE)
-      .upsert(items.map(mapCurveToRecord), { onConflict: 'id' });
+      .upsert(items.map(mapCurveToRecord), { onConflict: 'id' })
+      .select();
     if (error) return { success: false, count: 0, error: missingTableHint(error.message) };
-    return { success: true, count: items.length };
+    const stored = ((data || []) as CurveCatalogDbRecord[]).map(curveFromRecord);
+    if (stored.length === 0) {
+      return { success: false, count: 0, error: 'Supabase no devolvió las curvas guardadas.' };
+    }
+    return { success: true, count: stored.length, data: stored };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error desconocido al guardar el catálogo de curvas';
+    return { success: false, count: 0, error: missingTableHint(message) };
+  }
+}
+
+export async function deleteCurveCatalogFromSupabase(
+  ids: string[]
+): Promise<{ success: boolean; count: number; error?: string }> {
+  if (!supabase) return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  if (ids.length === 0) return { success: true, count: 0 };
+  try {
+    const { error } = await supabase.from(CURVE_CATALOG_TABLE).delete().in('id', ids);
+    if (error) return { success: false, count: 0, error: missingTableHint(error.message) };
+    return { success: true, count: ids.length };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error desconocido al borrar curvas';
     return { success: false, count: 0, error: missingTableHint(message) };
   }
 }

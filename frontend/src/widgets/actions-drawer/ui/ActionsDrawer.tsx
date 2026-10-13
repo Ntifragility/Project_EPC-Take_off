@@ -19,14 +19,13 @@ type ToolsTab = 'metadatos' | 'acciones';
 export const ToolsPanel: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<ToolsTab>('metadatos');
+  const rulePromptMinimized = useUIStore(state => state.rulePromptMinimized);
 
   const { section, accessoryViewMode, setAccessoryViewMode } = useAppStore();
   const { items, clearCache } = useItemsStore();
   const bductoRows = useBductoStore(state => state.rows);
   const bductoDetail = useBductoStore(state => state.detailView);
-  const bductoAccessories = useBductoStore(state => state.accessoryView);
   const setBductoDetail = useBductoStore(state => state.setDetailView);
-  const setBductoAccessories = useBductoStore(state => state.setAccessoryView);
   const clearBducto = useBductoStore(state => state.clearSources);
   const { packages } = usePackagesStore();
   const requestFitTable = useUIStore(state => state.requestFitTable);
@@ -35,7 +34,7 @@ export const ToolsPanel: React.FC = () => {
   const setIsMergedView = useUIStore(state => state.setIsMergedView);
 
   const handleExport = () => {
-    const exportItems = accessoryViewMode === 'join' ? consolidateAccessories(items) : items;
+    const exportItems = section === 'canalizado' && accessoryViewMode === 'join' ? consolidateAccessories(items) : items;
     void exportTakeoffExcel(exportItems, packages, section);
   };
 
@@ -59,7 +58,7 @@ export const ToolsPanel: React.FC = () => {
 
   const isBductos = section === 'bductos';
   const detailMerged = isBductos ? bductoDetail === 'merged' : isMergedView;
-  const accessoriesJoined = isBductos ? bductoAccessories === 'joined' : accessoryViewMode === 'join';
+  const accessoriesJoined = accessoryViewMode === 'join';
 
   const handlePanelExport = () => {
     if (isBductos) {
@@ -89,6 +88,10 @@ export const ToolsPanel: React.FC = () => {
     requestFitTable();
     setOpen(false);
   };
+
+  useEffect(() => {
+    if (rulePromptMinimized) setOpen(false);
+  }, [rulePromptMinimized]);
 
   useEffect(() => {
     if (!open) return;
@@ -218,36 +221,34 @@ export const ToolsPanel: React.FC = () => {
                   </div>
                 </div>
 
+                {section === 'canalizado' && (
                 <div className="actions-drawer-group">
                   <div className="actions-drawer-label">CONSUMIBLES</div>
                   <div className="mode-toggle">
                     <button
                       type="button"
                       className={`mode-btn ${!accessoriesJoined ? 'active' : ''}`}
-                      onClick={() => (isBductos ? setBductoAccessories('separated') : setAccessoryViewMode('separated'))}
-                      title={isBductos ? 'Terminal, unión, adaptador y cinta en su fila' : 'Mostrar consumibles en filas separadas'}
+                      onClick={() => setAccessoryViewMode('separated')}
+                      title="Mostrar consumibles en filas separadas"
                     >
                       SEPARADOS
                     </button>
                     <button
                       type="button"
                       className={`mode-btn ${accessoriesJoined ? 'active' : ''}`}
-                      onClick={() => (isBductos ? setBductoAccessories('joined') : setAccessoryViewMode('join'))}
-                      title={isBductos ? 'Sumar las piezas iguales en una sola fila' : 'Consolidar consumibles idénticos por TAG'}
+                      onClick={() => setAccessoryViewMode('join')}
+                      title="Consolidar consumibles idénticos por TAG"
                     >
                       UNIDOS
                     </button>
                   </div>
                   <div className="actions-drawer-hint">
-                    {isBductos
-                      ? (accessoriesJoined
-                        ? '● Unidos: terminal, unión, adaptador y cinta sumados'
-                        : '● Separados: cada pieza en su fila')
-                      : (accessoriesJoined
-                        ? '● Unidos: accesorios y jumpers consolidados por TAG'
-                        : '● Separados: accesorios en líneas independientes')}
+                    {accessoriesJoined
+                      ? '● Unidos: accesorios y jumpers consolidados por TAG'
+                      : '● Separados: accesorios en líneas independientes'}
                   </div>
                 </div>
+                )}
 
                 <div className="actions-drawer-group">
                   <div className="actions-drawer-label">PANTALLA</div>

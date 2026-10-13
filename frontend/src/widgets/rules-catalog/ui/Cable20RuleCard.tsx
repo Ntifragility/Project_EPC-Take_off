@@ -5,7 +5,9 @@ import {
   shouldAutoManageTuberia,
   DetalleVariantItem
 } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { isMetradoExpression, shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { MatCell, MatHeader } from './MatCell';
 import { RuleCardShell } from './RuleCardShell';
 
 interface Cable20RuleCardProps {
@@ -13,7 +15,6 @@ interface Cable20RuleCardProps {
   activeArea: 'AREA SECA' | 'AREA HUMEDA';
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onEdit: (rule: TakeoffRule) => void;
   onDelete: (id: string) => void;
   onEditDetalle: (code: string, items: DetalleVariantItem[]) => void;
 }
@@ -23,7 +24,6 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   activeArea,
   isExpanded,
   onToggleExpand,
-  onEdit,
   onDelete,
   onEditDetalle
 }) => {
@@ -36,7 +36,6 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
       badge={`${areaDetalles.length} detalles`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onEdit={() => onEdit(rule)}
       onDelete={() => onDelete(rule.id)}
     >
             <>
@@ -51,18 +50,18 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
             >
               <table
                 style={{
-                  width: '100%',
-                  minWidth: '600px',
+                  width: 'max-content',
                   borderCollapse: 'collapse',
                   fontFamily: 'var(--mo)',
                   fontSize: '11px'
                 }}
               >
                 <colgroup>
-                  <col style={{ width: '85px' }} />
-                  <col style={{ width: 'auto' }} />
-                  <col style={{ width: '120px' }} />
-                  <col style={{ width: '110px' }} />
+                  <col className="rule-col-det" />
+                  <col className="rule-col-mat" />
+                  <col className="rule-col-desc" />
+                  <col className="rule-col-ot" />
+                  <col className="rule-col-und" />
                 </colgroup>
                 <thead>
                   <tr style={{ background: 'var(--s1)' }}>
@@ -78,7 +77,9 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                     >
                       DETALLE
                     </th>
+                    <MatHeader />
                     <th
+                      className="rule-desc"
                       style={{
                         borderRight: '1px solid var(--b1)',
                         borderBottom: '1px solid var(--b1)',
@@ -184,18 +185,18 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
                                 <IconActionButton
                                   kind="edit"
-                                  title={`Editar materiales de ${detalleCode}`}
+                                  title={`Editar la lista de ${detalleCode}`}
                                   onClick={() => onEditDetalle(detalleCode, itemsList)}
                                 />
                               </div>
                             </td>
                           )}
+                          <MatCell desc={item.desc} material={'material' in item ? item.material : undefined} />
                           <td
+                            className="rule-desc"
                             style={{
                               borderRight: '1px solid var(--b1)',
                               padding: '8px 10px',
-                              fontFamily: 'var(--mo)',
-                              fontSize: '11.5px',
                               color: 'var(--tx)',
                               verticalAlign: 'middle',
                               lineHeight: 1.4
@@ -215,7 +216,9 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                               textAlign: 'center'
                             }}
                           >
-                            {item.otDynamic === '1c/3m' ? (
+                            {isMetradoExpression(shownVariantFormula(item)) ? (
+                              <span style={{ color: 'var(--tx)' }}>{shownVariantFormula(item)}</span>
+                            ) : item.otDynamic === '1c/3m' ? (
                               <span style={{ color: 'var(--tx)' }} title="Fórmula: Cable / 3">1c / 3m</span>
                             ) : item.qty === 'Var.' || item.ot === 'Var.' ? (
                               <span style={{ color: 'var(--tx)' }}>Var.</span>

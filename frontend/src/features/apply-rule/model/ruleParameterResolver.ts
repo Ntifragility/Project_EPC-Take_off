@@ -12,6 +12,8 @@ export interface RulePromptRequirements {
   isCable20: boolean;
   isBarraPot: boolean;
   isBarraInst: boolean;
+  isPozo: boolean;
+  isSoldaduraX: boolean;
   defaultTagPrefix: string;
   defaultDetalle: string;
   availableDetalles: string[];
@@ -68,6 +70,8 @@ export function resolveRuleRequirements(rule: TakeoffRule, activeArea: AreaType)
     isBarraInst,
     defaultTagPrefix,
     defaultDetalle,
+    isPozo,
+    isSoldaduraX,
     availableDetalles,
     requiresSoportes,
     requiresJumpers

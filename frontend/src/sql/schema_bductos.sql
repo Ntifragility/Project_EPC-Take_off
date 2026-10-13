@@ -39,7 +39,7 @@ CREATE POLICY "Allow anon insert bductos" ON public."main_BDUCTOS_table"
     FOR INSERT WITH CHECK (true);
 
 
--- Curve catalog: description and piece length for each angle, radius, and diameter.
+-- Curve catalog. This table is the source of the curve menu. The app reads it and does not keep a copy in code.
 CREATE TABLE IF NOT EXISTS public.bducto_curve_catalog (
     id TEXT PRIMARY KEY,
     angle TEXT NOT NULL,

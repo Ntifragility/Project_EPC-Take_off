@@ -38,6 +38,33 @@ function up(s: string | undefined): string {
   return (s || '').toUpperCase();
 }
 
+function meterText(value: number): string {
+  return String(parseFloat(value.toFixed(4)));
+}
+
+/** CINTA copies the cable. TIERRA is length × 0.375 × 0.5. Cemento GEM is length × 11.3 / 2. */
+export function cable40Meters(length: number): { cable: string; cinta: string; tierra: string; cemento: string } {
+  return {
+    cable: meterText(length),
+    cinta: meterText(length),
+    tierra: meterText(length * 0.375 * 0.5),
+    cemento: meterText((length * 11.3) / 2)
+  };
+}
+
+export function applyCable40Meters(items: TakeoffItem[], instanceId: string, length: number): TakeoffItem[] {
+  const derived = cable40Meters(length);
+  return items.map(sib => {
+    if (sib.instanceId !== instanceId) return sib;
+    const desc = up(sib.desc);
+    if (desc.includes('CABLE DESNUDO 4/0')) return { ...sib, metradoOt: derived.cable, qty: length };
+    if (desc.includes('CINTA AMARILLA')) return { ...sib, metradoOt: derived.cinta, qty: length };
+    if (desc.includes('TIERRA DE CULTIVO')) return { ...sib, metradoOt: derived.tierra, qty: Number(derived.tierra) };
+    if (desc.includes('CEMENTO GEM')) return { ...sib, metradoOt: derived.cemento, qty: Number(derived.cemento) };
+    return sib;
+  });
+}
+
 function has(desc: string, token: string): boolean {
   return up(desc).includes(token.toUpperCase());
 }
@@ -261,46 +288,45 @@ function resolveBom(
 
   const r1Detalles = new Set(['008/3A', '008/3B', '167/G1']);
   if (currentRuleId === 'r1' || r1Detalles.has(norm)) {
-    const tierra = String(parseFloat((0.375 * 0.5 * cableVal).toFixed(4)));
-    const cemento = String(parseFloat(((cableVal * 11.3) / 2).toFixed(4)));
+    const derived = cableVal ? cable40Meters(cableVal) : null;
     const lines: BomLine[] = [
       {
         desc: 'CABLE DESNUDO 4/0 AWG',
-        qty: 'Var.',
+        qty: derived ? cableVal : 'Var.',
         unit: 'm',
         material: 'P',
-        metradoOt: cableVal ? String(cableVal) : pickOt('CABLE DESNUDO 4/0', oldRows),
+        metradoOt: derived ? derived.cable : pickOt('CABLE DESNUDO 4/0', oldRows),
         ruleId: 'r1'
       },
       {
         desc: 'CINTA AMARILLA',
-        qty: 'Var.',
+        qty: derived ? cableVal : 'Var.',
         unit: 'm',
         material: 'C',
-        metradoOt: cableVal ? String(cableVal) : pickOt('CINTA AMARILLA', oldRows),
+        metradoOt: derived ? derived.cinta : pickOt('CINTA AMARILLA', oldRows),
         ruleId: 'r1'
       },
       {
         desc: 'TIERRA DE CULTIVO',
-        qty: 'length x 0.375 x 0.5',
+        qty: derived ? Number(derived.tierra) : 'length x 0.375 x 0.5',
         unit: 'm3',
         material: 'C',
-        metradoOt: cableVal ? tierra : pickOt('TIERRA DE CULTIVO', oldRows),
+        metradoOt: derived ? derived.tierra : pickOt('TIERRA DE CULTIVO', oldRows),
         ruleId: 'r1'
       }
     ];
     if (norm === '008/3B') {
       lines.push({
         desc: 'CEMENTO GEM (11.3 Kg x bls)',
-        qty: 'length x 11.3 / 2',
+        qty: derived ? Number(derived.cemento) : 'length x 11.3 / 2',
         unit: 'kg',
         material: 'C',
-        metradoOt: cableVal ? cemento : pickOt('CEMENTO GEM', oldRows),
+        metradoOt: derived ? derived.cemento : pickOt('CEMENTO GEM', oldRows),
         ruleId: 'r1'
       });
     }
     const hadTuberia = oldRows.some(r => has(r.desc, 'TUBERIA') || has(r.desc, 'TUBERÍA'));
-    if (norm === '008/3A' && (extras.incluirTuberia || hadTuberia || tuberiaOt)) {
+    if ((norm === '008/3A' || norm === '008/3B') && (extras.incluirTuberia || hadTuberia || tuberiaOt)) {
       lines.push({
         desc: 'TUBERIA PVC SCH 80 Ø3/4"',
         qty: 'Var.',

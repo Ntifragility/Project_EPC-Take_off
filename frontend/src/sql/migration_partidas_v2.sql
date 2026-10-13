@@ -8,6 +8,7 @@ ALTER TABLE public.partidas_table ADD COLUMN IF NOT EXISTS wbs VARCHAR(50);
 ALTER TABLE public.partidas_table ADD COLUMN IF NOT EXISTS partida_sicme VARCHAR(100);
 ALTER TABLE public.partidas_table ADD COLUMN IF NOT EXISTS partida_balance VARCHAR(100) DEFAULT 'NA';
 ALTER TABLE public.partidas_table ADD COLUMN IF NOT EXISTS descripcion_bm TEXT;
+ALTER TABLE public.partidas_table ADD COLUMN IF NOT EXISTS descripcion_sicme TEXT;
 ALTER TABLE public.partidas_table ADD COLUMN IF NOT EXISTS forecast_desc TEXT;
 
 -- Backfill new columns from the legacy layout (AREA / ITEM / DESCRIPCIÓN)

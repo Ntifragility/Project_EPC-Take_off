@@ -5,7 +5,7 @@ import { downloadTableXlsx } from './excelTemplates';
 /**
  * Generates and downloads the official Excel Template for Partidas.
  * Master layout (lives in Supabase `partidas_table`):
- * ACTIVIDAD | WBS | PARTIDA SICME | PARTIDA BALANCE | FORECAST DESCRIPTION | DESCRIPCIÓN BM | UND
+ * ACTIVIDAD | WBS | PARTIDA SICME | PARTIDA BALANCE | UND | FORECAST DESCRIPTION | SICME DESCRIPTION | BM DESCRIPTION
  */
 export async function downloadPartidasTemplateXlsx(): Promise<void> {
   const headers = [
@@ -13,19 +13,20 @@ export async function downloadPartidasTemplateXlsx(): Promise<void> {
     'WBS',
     'PARTIDA SICME',
     'PARTIDA BALANCE',
+    'UND',
     'FORECAST DESCRIPTION',
-    'DESCRIPCIÓN BM',
-    'UND'
+    'SICME DESCRIPTION',
+    'BM DESCRIPTION'
   ];
 
   const rows: (string | number)[][] = [
-    ['PAT', '3000', '1.2', 'NA', 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE', 'NA', 'UND'],
-    ['PAT', '3000', '6.3', '2.1.25', 'CABLE DESNUDO 4/0 AWG', 'Malla de Tierra - Cable Cu desnudo # 4/0 AWG', 'M'],
-    ['PAT', '3000', '7.9', 'PDN.0.0.1', 'CEMENTO GEM (11.3 kg x bls)', 'Preparación y aplicación CEMENTO GEM (11.3 kg x bls)', 'KG'],
-    ['PAT', '3300', '01.01.01', 'NA', 'POZO A TIERRA TIPO VERTICAL CON CAJA DE REGISTRO', 'POZO A TIERRA TIPO VERTICAL CON CAJA DE REGISTRO', 'UND']
+    ['PAT', '3000', '1.2', 'NA', 'UND', 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE', 'ANCLAJE 3/8" HDI', 'NA'],
+    ['PAT', '3000', '6.3', '2.1.25', 'M', 'CABLE DESNUDO 4/0 AWG', 'CABLE CU DESNUDO 4/0 AWG', 'Malla de Tierra - Cable Cu desnudo # 4/0 AWG'],
+    ['PAT', '3000', '7.9', 'PDN.0.0.1', 'KG', 'CEMENTO GEM (11.3 kg x bls)', 'CEMENTO GEM', 'Preparación y aplicación CEMENTO GEM (11.3 kg x bls)'],
+    ['PAT', '3300', '01.01.01', 'NA', 'UND', 'POZO A TIERRA TIPO VERTICAL CON CAJA DE REGISTRO', 'POZO A TIERRA CON CAJA DE REGISTRO', 'POZO A TIERRA TIPO VERTICAL CON CAJA DE REGISTRO']
   ];
 
-  const widths = [14, 10, 16, 18, 55, 55, 10];
+  const widths = [14, 10, 16, 18, 10, 55, 42, 55];
 
   await downloadTableXlsx({
     sheetName: 'Partidas',
@@ -126,14 +127,20 @@ export async function parsePartidasExcelFile(file: File): Promise<PartidaRecord[
       normalizedRow['DESCRIPCION CORTA'] ||
       pickByFragment(normalizedRow, 'FORECAST') ||
       '';
+    const sicmeDesc =
+      normalizedRow['SICME DESCRIPTION'] ||
+      normalizedRow['DESCRIPCION SICME'] ||
+      pickByFragment(normalizedRow, 'SICME DESCRIPTION', 'DESCRIPCION SICME') ||
+      '';
 
     const descripcionBm =
+      normalizedRow['BM DESCRIPTION'] ||
       normalizedRow['DESCRIPCION BM'] ||
       normalizedRow['DESCRIPCION B'] ||
       normalizedRow['DESCRIPCION OFICIAL'] ||
       normalizedRow['DESCRIPCION'] ||
       normalizedRow['DESCRIPTION'] ||
-      pickByFragment(normalizedRow, 'DESCRIPCION BM', 'DESCRIPCION B') ||
+      pickByFragment(normalizedRow, 'BM DESCRIPTION', 'DESCRIPCION BM', 'DESCRIPCION B') ||
       forecastDesc;
 
     const und =
@@ -142,7 +149,7 @@ export async function parsePartidasExcelFile(file: File): Promise<PartidaRecord[
       normalizedRow['UNIT'] ||
       'UND';
 
-    if (partidaSicme || partidaBalance !== 'NA' || descripcionBm || forecastDesc) {
+    if (partidaSicme || partidaBalance !== 'NA' || descripcionBm || forecastDesc || sicmeDesc) {
       partidas.push({
         actividad: actividad.toUpperCase(),
         wbs: String(wbs).trim(),
@@ -150,6 +157,7 @@ export async function parsePartidasExcelFile(file: File): Promise<PartidaRecord[
         partidaSicme: String(partidaSicme).trim(),
         item: String(partidaSicme).trim(),
         partidaBalance: String(partidaBalance || 'NA').trim() || 'NA',
+        sicmeDesc: String(sicmeDesc).trim(),
         forecastDesc: String(forecastDesc).trim(),
         descripcionBm: String(descripcionBm).trim(),
         descripcion: String(descripcionBm).trim(),

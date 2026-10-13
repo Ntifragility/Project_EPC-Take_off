@@ -1,5 +1,4 @@
 import React from 'react';
-import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
 
 interface RuleCardShellProps {
   trigger: string;
@@ -7,7 +6,6 @@ interface RuleCardShellProps {
   preview?: string[];
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onEdit: () => void;
   onDelete: () => void;
   children?: React.ReactNode;
 }
@@ -20,8 +18,6 @@ export const RuleCardShell: React.FC<RuleCardShellProps> = ({
   preview = [],
   isExpanded,
   onToggleExpand,
-  onEdit,
-  onDelete,
   children
 }) => {
   const normalizedTrigger = trigger.trim().toUpperCase();
@@ -60,16 +56,6 @@ export const RuleCardShell: React.FC<RuleCardShellProps> = ({
           {hiddenCount > 0 ? <span className="rule-card-chip is-more">+{hiddenCount}</span> : null}
         </div>
         <span className="rule-card-badge">{badge}</span>
-        <div
-          className="rule-card-acts"
-          onClick={e => e.stopPropagation()}
-          onKeyDown={e => e.stopPropagation()}
-        >
-          <IconActionGroup>
-            <IconActionButton kind="edit" title="Editar regla" onClick={onEdit} />
-            <IconActionButton kind="delete" title="Eliminar regla" onClick={onDelete} />
-          </IconActionGroup>
-        </div>
       </div>
       {isExpanded && children ? <div className="rule-card-body">{children}</div> : null}
     </div>

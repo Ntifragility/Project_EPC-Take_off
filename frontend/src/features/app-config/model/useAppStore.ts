@@ -53,8 +53,9 @@ export const useAppStore = createStore<AppStore>((set, get) => ({
       useItemsStore.getState().loadItems(section, get().activeArea);
       usePackagesStore.getState().loadPackages(section);
     }
-    const leaveRules = section === 'bductos' && get().tab === 'rules';
-    set({ section, ...(leaveRules ? { tab: 'takeoff' as TabType } : {}) });
+    const tab = get().tab;
+    const leaveSpecial = (section !== 'pat' && tab === 'rules') || (section !== 'bductos' && tab === 'curves');
+    set({ section, ...(leaveSpecial ? { tab: 'takeoff' as TabType } : {}) });
   },
 
   setTab: (tab: TabType) => set({ tab }),

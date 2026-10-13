@@ -19,6 +19,8 @@ export interface BductoSource {
   /** Filled when the tramo comes from the Excel list. */
   desde?: string;
   hasta?: string;
+  /** Table override. When missing, the section comes from the tag. */
+  seccion?: string;
   /** Last answers used to generate this tramo. Restored by Atrás and Editar. */
   prompt?: BductoPrompt;
 }

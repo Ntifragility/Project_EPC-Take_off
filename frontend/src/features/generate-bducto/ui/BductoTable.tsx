@@ -4,14 +4,18 @@ import { applyBductoGroupField, isBductoEditableColumn } from '../../../entities
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 import { cellKey, cellsInRect, extendSelection, isSingleCell, rangeEdgesByCol, type CellRef, type RangeEdges } from '../../../widgets/takeoff-table/model/cellRange';
 import { ExcelColumnFilter } from '../../../widgets/takeoff-table/ui/ExcelColumnFilter';
+import { IconActionButton } from '../../../shared/ui/IconActionButton';
 import { useBductoStore } from '../model/useBductoStore';
 import { BductoDisplayRow, presentBductoRows } from '../model/bductoView';
 import { BDUCTO_COLUMNS, bductoCell } from '../model/exportBductosExcel';
 
-const SELECTABLE = BDUCTO_COLUMNS.map(column => column.key);
 const NUM_WIDTH = 52;
+const OUTLINE_WIDTH = 22;
+const CLASSIFICATION_KEYS = ['partidaSicme', 'partida', 'sector', 'wbs'] as const;
+const CLASSIFICATION = new Set<string>(CLASSIFICATION_KEYS);
 
 const WIDTH_KEY = 'epc-bducto-col-widths-v1';
+const GROUP_KEY = 'epc-bducto-col-group-v2';
 
 const BASE_WIDTHS: Record<string, number> = {
   partidaSicme: 120,
@@ -45,9 +49,8 @@ function clampWidth(key: string, width: number): number {
   return Math.min(maxWidth(key), Math.max(minWidth(key), Math.round(width)));
 }
 
-function fitWidths(paneWidth: number): Record<string, number> {
-  const keys = BDUCTO_COLUMNS.map(column => column.key);
-  const usable = Math.max(320, Math.floor(paneWidth) - 8 - NUM_WIDTH);
+function fitWidths(paneWidth: number, keys: string[], outlineWidth = 0): Record<string, number> {
+  const usable = Math.max(320, Math.floor(paneWidth) - 8 - NUM_WIDTH - outlineWidth);
   const mins = Object.fromEntries(keys.map(key => [key, minWidth(key)]));
   const minSum = keys.reduce((sum, key) => sum + mins[key], 0);
   if (usable <= minSum) return mins;
@@ -142,10 +145,27 @@ function idsInFillRange(rows: BductoDisplayRow[], sourceId: string, targetId: st
 export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
   const fitTableNonce = useUIStore(state => state.fitTableNonce);
   const showToast = useUIStore(state => state.showToast);
+  const searchQuery = useUIStore(state => state.searchQuery);
   const patchRows = useBductoStore(state => state.patchRows);
+  const sources = useBductoStore(state => state.sources);
+  const setWizard = useBductoStore(state => state.setWizard);
   const detailView = useBductoStore(state => state.detailView);
-  const accessoryView = useBductoStore(state => state.accessoryView);
-  const displayRows = useMemo(() => presentBductoRows(rows, detailView, accessoryView), [rows, detailView, accessoryView]);
+  const displayRows = useMemo(() => presentBductoRows(rows, detailView, 'separated'), [rows, detailView]);
+  const [classificationOpen, setClassificationOpen] = useState(() => {
+    try {
+      return localStorage.getItem(GROUP_KEY) === '1';
+    } catch {
+      return true;
+    }
+  });
+  const openRef = useRef(classificationOpen);
+  openRef.current = classificationOpen;
+  const shownColumns = classificationOpen
+    ? BDUCTO_COLUMNS
+    : BDUCTO_COLUMNS.filter(column => !CLASSIFICATION.has(column.key));
+  const selectable = shownColumns.map(column => column.key);
+  const selectableRef = useRef(selectable);
+  selectableRef.current = selectable;
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastPaneRef = useRef(0);
   const resizingRef = useRef<{ key: string; startX: number; startWidth: number } | null>(null);
@@ -159,7 +179,7 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
     } catch {
       /* use the fitted defaults */
     }
-    return fitWidths(typeof window !== 'undefined' ? window.innerWidth : 1400);
+    return fitWidths(typeof window !== 'undefined' ? window.innerWidth : 1400, BDUCTO_COLUMNS.map(column => column.key));
   });
 
   const applyFit = (force = false) => {
@@ -167,13 +187,33 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
     if (!el || !el.clientWidth || resizingRef.current) return;
     if (!force && Math.abs(el.clientWidth - lastPaneRef.current) < 2) return;
     lastPaneRef.current = el.clientWidth;
-    const next = fitWidths(el.clientWidth);
-    setColWidths(next);
+    const outline = openRef.current ? 0 : OUTLINE_WIDTH;
+    const keys = BDUCTO_COLUMNS.map(column => column.key).filter(key => openRef.current || !CLASSIFICATION.has(key));
+    const next = fitWidths(el.clientWidth, keys, outline);
+    setColWidths(current => {
+      const merged = { ...current, ...next };
+      try {
+        localStorage.setItem(WIDTH_KEY, JSON.stringify(merged));
+      } catch {
+        /* ignore quota errors */
+      }
+      return merged;
+    });
+  };
+
+  const toggleClassification = () => {
+    const next = !openRef.current;
+    openRef.current = next;
+    setClassificationOpen(next);
     try {
-      localStorage.setItem(WIDTH_KEY, JSON.stringify(next));
+      localStorage.setItem(GROUP_KEY, next ? '1' : '0');
     } catch {
       /* ignore quota errors */
     }
+    selectedRef.current = null;
+    rangeRef.current = null;
+    setSelectedCell(null);
+    setRangeFocus(null);
   };
 
   useEffect(() => {
@@ -201,6 +241,11 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
     applyFit(true);
     showToast('Columnas ajustadas al ancho de la pantalla', 'success');
   }, [fitTableNonce]);
+
+  useEffect(() => {
+    lastPaneRef.current = 0;
+    applyFit(true);
+  }, [classificationOpen]);
 
   const startResize = (key: string, event: React.MouseEvent) => {
     event.preventDefault();
@@ -255,10 +300,15 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
     return values;
   }, [displayRows]);
 
-  const visibleRows = useMemo(
-    () => displayRows.filter(row => rowMatchesFilters(row, columnFilters)),
-    [displayRows, columnFilters]
-  );
+  const visibleRows = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return displayRows.filter(row => {
+      if (!rowMatchesFilters(row, columnFilters)) return false;
+      if (!query) return true;
+      return [row.partidaSicme, row.partida, row.tagUnico, row.descripcion, row.plano, row.desde, row.hasta, row.seccion, row.diametro, row.sector, row.wbs, row.rev, row.comentario]
+        .some(value => (value || '').toLowerCase().includes(query));
+    });
+  }, [displayRows, columnFilters, searchQuery]);
   const numberById = useMemo(() => new Map(rows.map((row, index) => [row.id, index + 1])), [rows]);
 
   rowsRef.current = rows;
@@ -269,8 +319,8 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
 
   const rangeKeys = useMemo(() => {
     if (!selectedCell) return new Set<string>();
-    return cellsInRect(visibleRows, selectedCell, rangeFocus || selectedCell, SELECTABLE);
-  }, [visibleRows, selectedCell, rangeFocus]);
+    return cellsInRect(visibleRows, selectedCell, rangeFocus || selectedCell, selectable);
+  }, [visibleRows, selectedCell, rangeFocus, classificationOpen]);
 
   const applyColumnFilter = (key: string, values: string[] | null) => {
     setColumnFilters(current => {
@@ -314,6 +364,12 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
       toastRef.current(`Plano aplicado al tramo (${count} filas). Cada tag único usa la nueva raíz.`, 'info');
     } else if (key === 'rev') {
       toastRef.current(`REV aplicada al tramo (${count} filas).`, 'info');
+    } else if (key === 'seccion') {
+      toastRef.current(`SECCIÓN aplicada al tramo (${count} filas).`, 'info');
+    } else if (key === 'desde') {
+      toastRef.current(`DESDE aplicado al tramo (${count} filas).`, 'info');
+    } else if (key === 'hasta') {
+      toastRef.current(`HASTA aplicado al tramo (${count} filas).`, 'info');
     } else if (count > 1) {
       toastRef.current(`Copiado a ${count} filas.`, 'info');
     }
@@ -366,7 +422,7 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
       const cell = el?.closest('td.excel-cell') as HTMLElement | null;
       const itemId = cell?.getAttribute('data-item-id');
       const colKey = cell?.getAttribute('data-col-key');
-      if (!itemId || !colKey || !(SELECTABLE as string[]).includes(colKey)) return;
+      if (!itemId || !colKey || !selectableRef.current.includes(colKey)) return;
       if (rangeRef.current?.itemId === itemId && rangeRef.current.colKey === colKey) return;
       const focus = { itemId, colKey };
       rangeRef.current = focus;
@@ -384,7 +440,7 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
         return;
       }
       if (!event.shiftKey || !selectedRef.current) return;
-      const next = extendSelection(visibleRef.current, SELECTABLE, selectedRef.current, rangeRef.current, event.key);
+      const next = extendSelection(visibleRef.current, selectableRef.current, selectedRef.current, rangeRef.current, event.key);
       if (!next) return;
       event.preventDefault();
       if (next.itemId === (rangeRef.current ?? selectedRef.current).itemId && next.colKey === (rangeRef.current ?? selectedRef.current).colKey) return;
@@ -412,9 +468,21 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
     rangeRef.current = null;
     setSelectedCell(null);
     setRangeFocus(null);
-  }, [detailView, accessoryView]);
+  }, [detailView]);
 
-  const tableWidth = NUM_WIDTH + BDUCTO_COLUMNS.reduce((sum, column) => sum + (colWidths[column.key] || BASE_WIDTHS[column.key]), 0);
+  const outlineWidth = classificationOpen ? 0 : OUTLINE_WIDTH;
+  const tableWidth = NUM_WIDTH + outlineWidth + shownColumns.reduce((sum, column) => sum + (colWidths[column.key] || BASE_WIDTHS[column.key]), 0);
+  const lastColumnKey = shownColumns[shownColumns.length - 1]?.key;
+
+  const openTramo = (row: BductoDisplayRow) => {
+    if (row.viewEdit === 'locked') {
+      showToast('Esta fila junta varios tramos. Vuelve a Separados para editarla.', 'warn');
+      return;
+    }
+    const source = sources.find(item => item.id === row.sourceId);
+    if (!source) return;
+    setWizard([source]);
+  };
 
   const activeFilters = Object.entries(columnFilters);
 
@@ -444,17 +512,52 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
       <div className="takeoff-table-scroll-container" ref={scrollRef}>
         <table className="takeoff-table" style={{ width: tableWidth }}>
           <thead>
-            <tr>
+            <tr className="col-outline">
+              <th className="th-n" style={{ width: NUM_WIDTH }} />
+              {classificationOpen ? (
+                <th className="col-group-span" colSpan={CLASSIFICATION_KEYS.length}>
+                  <button
+                    type="button"
+                    className="col-group-btn"
+                    aria-expanded="true"
+                    aria-label="Ocultar PARTIDA SICME, PARTIDA, SECTOR y WBS"
+                    title="Agrupar PARTIDA SICME, PARTIDA, SECTOR y WBS"
+                    onClick={toggleClassification}
+                  >
+                    −
+                  </button>
+                  <span className="col-group-track" />
+                </th>
+              ) : (
+                <th className="col-group-toggle" style={{ width: OUTLINE_WIDTH }}>
+                  <button
+                    type="button"
+                    className="col-group-btn is-collapsed"
+                    aria-expanded="false"
+                    aria-label="Mostrar PARTIDA SICME, PARTIDA, SECTOR y WBS"
+                    title="Mostrar PARTIDA SICME, PARTIDA, SECTOR y WBS"
+                    onClick={toggleClassification}
+                  >
+                    +
+                  </button>
+                </th>
+              )}
+              {shownColumns.filter(column => !CLASSIFICATION.has(column.key)).map(column => (
+                <th key={column.key} style={{ width: colWidths[column.key] || BASE_WIDTHS[column.key] }} />
+              ))}
+            </tr>
+            <tr className="col-head">
               <th className="th-n" style={{ width: NUM_WIDTH }}>
                 <div className="th-filter-row">
                   <span>N°</span>
                 </div>
               </th>
-              {BDUCTO_COLUMNS.map(column => {
+              {!classificationOpen && <th className="col-group-toggle" style={{ width: OUTLINE_WIDTH }} />}
+              {shownColumns.map(column => {
                 const width = colWidths[column.key] || BASE_WIDTHS[column.key];
                 return (
                   <th key={column.key} className="th-resizable" style={{ width }}>
-                    <div className="th-filter-row">
+                    <div className="th-filter-row has-filter">
                       <span>{column.label}</span>
                       <ExcelColumnFilter
                         values={columnValues[column.key] || []}
@@ -475,23 +578,24 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
           <tbody>
             {visibleRows.length === 0 && (
               <tr>
-                <td className="td-d" colSpan={BDUCTO_COLUMNS.length + 1}>
+                <td className="td-d" colSpan={shownColumns.length + (classificationOpen ? 1 : 2)}>
                   Ninguna fila coincide con el filtro.
                 </td>
               </tr>
             )}
             {visibleRows.map((row, index) => {
-              const edges = rangeEdgesByCol(visibleRows, rangeKeys, row.id, SELECTABLE);
+              const edges = rangeEdgesByCol(visibleRows, rangeKeys, row.id, selectable);
               const memberNumbers = row.viewMemberIds
                 ?.map(id => numberById.get(id))
                 .filter((value): value is number => value != null) ?? [];
               const rowNumber = numberById.get(row.id) ?? (memberNumbers.length > 0 ? Math.min(...memberNumbers) : index + 1);
               return (
-                <tr key={row.id} data-kind={row.kind} data-tag={row.tagUnico}>
+                <tr key={row.id} className="tr-row" data-kind={row.kind} data-tag={row.tagUnico}>
                   <td className="td-n" style={{ width: NUM_WIDTH }}>
                     <span>{rowNumber}</span>
                   </td>
-                  {BDUCTO_COLUMNS.map(column => {
+                  {!classificationOpen && <td className="col-group-gutter" style={{ width: OUTLINE_WIDTH }} />}
+                  {shownColumns.map(column => {
                     const value = bductoCell(row, column.key);
                     const text = cellText(column.key, value);
                     const columnEditable = isBductoEditableColumn(column.key);
@@ -499,15 +603,18 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
                     const isEditing = editingCell?.itemId === row.id && editingCell.colKey === column.key;
                     const isFillTarget = Boolean(dragFill && dragFill.colKey === column.key && dragFill.targetIds.includes(row.id));
                     const showHandle = editable && rangeIsSingle && selectedCell?.itemId === row.id && selectedCell.colKey === column.key && !dragFill && !isEditing;
+                    const groupField = column.key === 'plano' || column.key === 'rev' || column.key === 'seccion' || column.key === 'desde' || column.key === 'hasta';
                     const title = row.viewEdit === 'locked'
                       ? 'Esta fila junta varios tramos. Vuelve a Separados para editarla.'
                       : row.viewEdit === 'group' && column.key === 'tagUnico'
                         ? 'Los tags de esta fila son distintos. Vuelve a Separado para editarlos.'
                         : column.key === 'descripcion'
                           ? 'La descripción no se edita'
-                          : editable
-                            ? 'Doble clic para editar. PLANO y REV se aplican a todo el tramo, y cada tag único sigue la nueva raíz.'
-                            : 'Solo lectura';
+                          : editable && groupField
+                            ? 'Doble clic para editar. El cambio se aplica a todo el tramo.'
+                            : editable
+                              ? 'Doble clic para editar este tag.'
+                              : 'Solo lectura';
                     return (
                       <td
                         key={column.key}
@@ -579,6 +686,11 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
                               document.body.classList.add('is-fill-dragging');
                             }}
                           />
+                        )}
+                        {column.key === lastColumnKey && row.viewEdit !== 'locked' && (
+                          <div className="act-row-floating" onMouseDown={event => event.stopPropagation()}>
+                            <IconActionButton kind="edit" title="Editar tramo" onClick={() => openTramo(row)} />
+                          </div>
                         )}
                       </td>
                     );

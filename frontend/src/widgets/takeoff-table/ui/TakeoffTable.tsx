@@ -223,7 +223,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   );
 
   const totalItems = displayedItems.length;
-  const isPaginated = pageSize > 0 && totalItems > pageSize;
+  const pagingEnabled = section !== 'pat';
+  const isPaginated = pagingEnabled && pageSize > 0 && totalItems > pageSize;
   const totalPages = isPaginated ? Math.ceil(totalItems / pageSize) : 1;
   const safePage = Math.min(Math.max(currentPage, 1), totalPages);
 
@@ -488,9 +489,11 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
 
   const activeColumnFilters = Object.entries(columnFilters);
   const hasActiveFilters = activeColumnFilters.length > 0 || Boolean(searchQuery);
+  const showUtilityBar = pagingEnabled || hasActiveFilters || selectedItemIds.length > 0;
 
   return (
     <div className="takeoff-table-wrapper">
+      {showUtilityBar && (
       <div
         className="table-pagination-bar"
         style={{
@@ -510,6 +513,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {pagingEnabled && (
+            <>
           <span>Mostrar:</span>
           <select
             value={pageSize}
@@ -532,6 +537,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
           <span style={{ color: 'var(--mu)' }}>
             {isMergedView ? `✨ ${totalItems} ítems consolidados` : `Mostrando ${startIndex + 1}-${endIndex} de ${totalItems.toLocaleString()} ítems`}
           </span>
+            </>
+          )}
 
           {activeColumnFilters.map(([key, values]) => (
             <button
@@ -558,7 +565,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             </button>
           ))}
 
-          {selectedItemIds.length > 0 && (
+          {section !== 'pat' && selectedItemIds.length > 0 && (
             <button
               type="button"
               className="btn-sync-selection"
@@ -590,7 +597,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
           )}
         </div>
 
-        {isPaginated && (
+        {pagingEnabled && isPaginated && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <button
               onClick={() => setCurrentPage(1)}
@@ -664,6 +671,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
           </div>
         )}
       </div>
+      )}
 
       <div className="takeoff-table-scroll-container" ref={scrollRef}>
         <table className="takeoff-table">

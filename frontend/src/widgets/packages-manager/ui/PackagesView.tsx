@@ -80,12 +80,13 @@ export const PackagesView: React.FC = () => {
       (p.wbs || p.area || '').toLowerCase().includes(q) ||
       p.actividad.toLowerCase().includes(q) ||
       (p.descripcionBm || p.descripcion || '').toLowerCase().includes(q) ||
+      (p.sicmeDesc || '').toLowerCase().includes(q) ||
       p.forecastDesc.toLowerCase().includes(q)
     );
   });
 
   return (
-    <div>
+    <div className="partidas-page">
       {/* Header */}
       <div className="view-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
         <div>
@@ -126,8 +127,8 @@ export const PackagesView: React.FC = () => {
       </div>
 
       {/* Partidas Master Table Section */}
-      <div style={{ marginBottom: '24px', background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: '8px', padding: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+      <div className="partidas-matrix">
+        <div className="partidas-matrix-hd">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--tx)', letterSpacing: '0.5px' }}>
               MATRIZ DE PARTIDAS MASTER ({partidas.length} REGISTRADAS)
@@ -166,24 +167,25 @@ export const PackagesView: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div style={{ maxHeight: '340px', overflowY: 'auto', border: '1px solid var(--b1)', borderRadius: '6px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+          <div className="partidas-scroll">
+            <table className="partidas-table">
               <thead>
-                <tr style={{ background: 'var(--s2)', position: 'sticky', top: 0, zIndex: 2, borderBottom: '1px solid var(--b1)' }}>
-                  <th style={{ padding: '6px 8px', width: '60px', textAlign: 'center' }}>ACT</th>
-                  <th style={{ padding: '6px 8px', width: '70px', textAlign: 'center' }}>WBS</th>
-                  <th style={{ padding: '6px 8px', width: '100px', textAlign: 'center' }}>PARTIDA SICME</th>
-                  <th style={{ padding: '6px 8px', width: '110px', textAlign: 'center' }}>PARTIDA BALANCE</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'center' }}>FORECAST DESCRIPTION</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'center' }}>DESCRIPCIÓN BM</th>
-                  <th style={{ padding: '6px 8px', width: '60px', textAlign: 'center' }}>UND</th>
-                  <th style={{ padding: '6px 8px', width: '72px', textAlign: 'center' }}>ACCIONES</th>
+                <tr>
+                  <th className="pin c-act">ACT</th>
+                  <th className="pin c-wbs">WBS</th>
+                  <th className="pin c-sicme">PARTIDA SICME</th>
+                  <th className="pin c-balance">PARTIDA BALANCE</th>
+                  <th className="pin c-und">UND</th>
+                  <th className="c-desc">FORECAST DESCRIPTION</th>
+                  <th className="c-desc">SICME DESCRIPTION</th>
+                  <th className="c-desc">BM DESCRIPTION</th>
+                  <th className="c-actions">ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPartidas.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '16px', color: 'var(--mu)' }}>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '16px', color: 'var(--mu)' }}>
                       Sin coincidencias para la búsqueda
                     </td>
                   </tr>
@@ -193,8 +195,8 @@ export const PackagesView: React.FC = () => {
                     const isEditing = editingPartidaId === p.id && partidaDraft;
                     const draft = isEditing ? partidaDraft : p;
                     return (
-                      <tr key={rowId} style={{ borderBottom: '1px solid var(--b1)', background: isEditing ? 'var(--s2)' : undefined }}>
-                        <td style={{ padding: '4px 6px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--mu)' }}>
+                      <tr key={rowId} className={isEditing ? 'is-editing' : undefined}>
+                        <td className="pin c-act" style={{ fontFamily: 'var(--mo)', color: 'var(--mu)' }}>
                           {isEditing ? (
                             <input
                               value={draft.actividad}
@@ -209,7 +211,7 @@ export const PackagesView: React.FC = () => {
                             p.actividad
                           )}
                         </td>
-                        <td style={{ padding: '4px 6px', textAlign: 'center', fontFamily: 'var(--mo)' }}>
+                        <td className="pin c-wbs" style={{ fontFamily: 'var(--mo)' }}>
                           {isEditing ? (
                             <input
                               value={draft.wbs || draft.area}
@@ -224,7 +226,7 @@ export const PackagesView: React.FC = () => {
                             p.wbs || p.area
                           )}
                         </td>
-                        <td style={{ padding: '4px 6px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 700 }}>
+                        <td className="pin c-sicme" style={{ fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 700 }}>
                           {isEditing ? (
                             <input
                               value={draft.partidaSicme || draft.item}
@@ -240,7 +242,7 @@ export const PackagesView: React.FC = () => {
                             p.partidaSicme || p.item
                           )}
                         </td>
-                        <td style={{ padding: '4px 6px', textAlign: 'center', fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 700 }}>
+                        <td className="pin c-balance" style={{ fontFamily: 'var(--mo)', color: 'var(--am)', fontWeight: 700 }}>
                           {isEditing ? (
                             <input
                               value={draft.partidaBalance || 'NA'}
@@ -255,37 +257,7 @@ export const PackagesView: React.FC = () => {
                             p.partidaBalance || 'NA'
                           )}
                         </td>
-                        <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                          {isEditing ? (
-                            <input
-                              value={draft.forecastDesc}
-                              onChange={e => patchDraft('forecastDesc', e.target.value.toUpperCase())}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') void handleSavePartidaEdit();
-                                if (e.key === 'Escape') handleCancelPartidaEdit();
-                              }}
-                              style={{ width: '100%', fontSize: '11px', textTransform: 'uppercase' }}
-                            />
-                          ) : (
-                            p.forecastDesc
-                          )}
-                        </td>
-                        <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                          {isEditing ? (
-                            <input
-                              value={draft.descripcionBm || draft.descripcion}
-                              onChange={e => patchDraft('descripcionBm', e.target.value.toUpperCase())}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') void handleSavePartidaEdit();
-                                if (e.key === 'Escape') handleCancelPartidaEdit();
-                              }}
-                              style={{ width: '100%', fontSize: '11px', textTransform: 'uppercase' }}
-                            />
-                          ) : (
-                            p.descripcionBm || p.descripcion
-                          )}
-                        </td>
-                        <td style={{ padding: '4px 6px', textAlign: 'center', fontFamily: 'var(--mo)' }}>
+                        <td className="pin c-und" style={{ fontFamily: 'var(--mo)' }}>
                           {isEditing ? (
                             <input
                               value={draft.und}
@@ -300,7 +272,52 @@ export const PackagesView: React.FC = () => {
                             p.und
                           )}
                         </td>
-                        <td style={{ padding: '2px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <td className="c-desc">
+                          {isEditing ? (
+                            <input
+                              value={draft.forecastDesc}
+                              onChange={e => patchDraft('forecastDesc', e.target.value.toUpperCase())}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') void handleSavePartidaEdit();
+                                if (e.key === 'Escape') handleCancelPartidaEdit();
+                              }}
+                              style={{ width: '100%', fontSize: '11px', textTransform: 'uppercase' }}
+                            />
+                          ) : (
+                            p.forecastDesc
+                          )}
+                        </td>
+                        <td className="c-desc">
+                          {isEditing ? (
+                            <input
+                              value={draft.sicmeDesc || ''}
+                              onChange={e => patchDraft('sicmeDesc', e.target.value.toUpperCase())}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') void handleSavePartidaEdit();
+                                if (e.key === 'Escape') handleCancelPartidaEdit();
+                              }}
+                              style={{ width: '100%', fontSize: '11px', textTransform: 'uppercase' }}
+                            />
+                          ) : (
+                            p.sicmeDesc
+                          )}
+                        </td>
+                        <td className="c-desc">
+                          {isEditing ? (
+                            <input
+                              value={draft.descripcionBm || draft.descripcion}
+                              onChange={e => patchDraft('descripcionBm', e.target.value.toUpperCase())}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') void handleSavePartidaEdit();
+                                if (e.key === 'Escape') handleCancelPartidaEdit();
+                              }}
+                              style={{ width: '100%', fontSize: '11px', textTransform: 'uppercase' }}
+                            />
+                          ) : (
+                            p.descripcionBm || p.descripcion
+                          )}
+                        </td>
+                        <td className="c-actions" style={{ whiteSpace: 'nowrap' }}>
                           {isEditing ? (
                             <IconActionGroup>
                               <IconActionButton kind="save" title="Guardar (Enter)" onClick={() => void handleSavePartidaEdit()} />

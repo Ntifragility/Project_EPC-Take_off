@@ -4,8 +4,8 @@ import { ModalShell } from '../../../shared/ui/ModalShell';
 import { RESTORE_BUTTON_ID } from '../../../shared/ui/windowMotion';
 import { useBductoStore } from '../model/useBductoStore';
 import { BductoPrompt, BductoSource } from '../../../entities/bducto/model/types';
-import { curvesForDiameter, curveDescription, isRightAngleCurve } from '../../../entities/bducto/model/catalog';
-import { parseBductoSource, parseTagEnPlano, splitSticks } from '../../../entities/bducto/model/expandBducto';
+import { curvesForDiameter, curveDescription, isRightAngleCurve, getCurveCatalog, catalogDiameters, subscribeCurveCatalog } from '../../../entities/bducto/model/catalog';
+import { parseBductoSource, parseTagEnPlano, replaceTagDiameter, splitSticks } from '../../../entities/bducto/model/expandBducto';
 import { parseIntegerInput, parseLengthInput, parsePromptNumber, sanitizeIntegerInput, sanitizeLengthInput } from '../model/promptNumber';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 
@@ -20,7 +20,7 @@ export interface BductoPromptModalProps {
   onMinimize: () => void;
   onBack: () => void;
   onCancel: () => void;
-  onConfirm: (prompt: BductoPrompt) => void;
+  onConfirm: (prompt: BductoPrompt, tagEnPlano: string) => void;
 }
 
 interface CurveDraft {
@@ -43,6 +43,99 @@ function draftsUseRightAngle(drafts: CurveDraft[], diameter: string): boolean {
   });
 }
 
+function savedUsesRightAngle(saved: BductoPrompt | undefined, diameter: string): boolean {
+  if (!saved || !diameter) return false;
+  return saved.curves.some(choice => {
+    if (choice.quantity <= 0) return false;
+    const item = curvesForDiameter(diameter).find(curve => curve.id === choice.catalogId);
+    return Boolean(item && isRightAngleCurve(item));
+  });
+}
+
+interface PromptSeed {
+  desde: string;
+  hasta: string;
+  quantity: string;
+  terminalCount: string;
+  unionCount: string;
+  adaptadorCount: string;
+  adaptadorEdited: boolean;
+  diameter: string;
+  curves: CurveDraft[];
+  elevations: ElevationDraft[];
+}
+
+function draftFrom(source: BductoSource | null): PromptSeed {
+  if (!source) {
+    return {
+      desde: '',
+      hasta: '',
+      quantity: '',
+      terminalCount: '0',
+      unionCount: '0',
+      adaptadorCount: '0',
+      adaptadorEdited: false,
+      diameter: '',
+      curves: [],
+      elevations: [emptyElevation()]
+    };
+  }
+  const parsed = parseBductoSource(source);
+  const saved = source.prompt;
+  const tag = parseTagEnPlano(source.tagEnPlano);
+  const unionCount = saved ? String(saved.unionCount) : typeof parsed === 'string' ? '0' : String(parsed.vias);
+  return {
+    desde: saved?.desde || source.desde || '',
+    hasta: saved?.hasta || source.hasta || '',
+    quantity:
+      saved && typeof saved.quantity === 'number'
+        ? String(saved.quantity)
+        : source.quantity > 0
+          ? String(source.quantity)
+          : '',
+    terminalCount: saved ? String(saved.terminalCount) : '0',
+    unionCount,
+    adaptadorCount: saved ? String(saved.adaptadorCount) : '0',
+    adaptadorEdited: Boolean(
+      saved &&
+        savedUsesRightAngle(saved, typeof parsed === 'string' ? '' : parsed.diameter) &&
+        saved.adaptadorCount !== saved.unionCount
+    ),
+    diameter: tag?.diameter || (typeof parsed === 'string' ? '' : parsed.diameter),
+    elevations:
+      saved && saved.elevations.length > 0
+        ? saved.elevations.map(line => ({ length: String(line.lengthM), quantity: String(line.quantity) }))
+        : [emptyElevation()],
+    curves:
+      typeof parsed === 'string'
+        ? []
+        : curvesForDiameter(parsed.diameter).map(item => {
+            const choice = saved?.curves.find(curve => curve.catalogId === item.id);
+            return {
+              catalogId: item.id,
+              length: String(choice ? choice.lengthM : item.lengthM),
+              quantity: String(choice ? choice.quantity : 0)
+            };
+          })
+  };
+}
+
+function remapCurves(previous: CurveDraft[], nextDiameter: string): CurveDraft[] {
+  const byShape = new Map<string, CurveDraft>();
+  for (const choice of previous) {
+    const item = getCurveCatalog().find(curve => curve.id === choice.catalogId);
+    if (item) byShape.set(`${item.angle}|${item.radius}`, choice);
+  }
+  return curvesForDiameter(nextDiameter).map(item => {
+    const carried = byShape.get(`${item.angle}|${item.radius}`);
+    return {
+      catalogId: item.id,
+      length: String(item.lengthM),
+      quantity: carried ? carried.quantity : '0'
+    };
+  });
+}
+
 export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   source,
   index,
@@ -58,62 +151,71 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   const armRestore = useBductoStore(state => state.armRestore);
   const patchManualDraft = useBductoStore(state => state.patchManualDraft);
   const showToast = useUIStore(state => state.showToast);
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
-  const [quantity, setQuantity] = useState<string | null>(null);
-  const [terminalCount, setTerminalCount] = useState('0');
-  const [unionCount, setUnionCount] = useState('0');
-  const [adaptadorCount, setAdaptadorCount] = useState('0');
-  const [curves, setCurves] = useState<CurveDraft[]>([]);
-  const [elevations, setElevations] = useState<ElevationDraft[]>([emptyElevation()]);
-  const adaptadorEdited = useRef(false);
+  const seed = draftFrom(source);
+  const [desde, setDesde] = useState(seed.desde);
+  const [hasta, setHasta] = useState(seed.hasta);
+  const [quantity, setQuantity] = useState<string | null>(seed.quantity);
+  const [terminalCount, setTerminalCount] = useState(seed.terminalCount);
+  const [unionCount, setUnionCount] = useState(seed.unionCount);
+  const [adaptadorCount, setAdaptadorCount] = useState(seed.adaptadorCount);
+  const [curves, setCurves] = useState<CurveDraft[]>(seed.curves);
+  const [elevations, setElevations] = useState<ElevationDraft[]>(seed.elevations);
+  const [diameterText, setDiameterText] = useState(seed.diameter);
+  const adaptadorEdited = useRef(seed.adaptadorEdited);
+  const diameterBaseline = useRef(seed.diameter);
+  const [catalogSize, setCatalogSize] = useState(() => getCurveCatalog().length);
+
+  useEffect(() => {
+    return subscribeCurveCatalog(() => {
+      setCatalogSize(getCurveCatalog().length);
+      setCurves(current => (current.length > 0 ? current : draftFrom(source).curves));
+    });
+  }, [source]);
 
   useEffect(() => {
     if (!source) return;
-    const parsed = parseBductoSource(source);
-    const saved = source.prompt;
-    setDesde(saved?.desde || source.desde || '');
-    setHasta(saved?.hasta || source.hasta || '');
-    setQuantity(
-      saved && typeof saved.quantity === 'number'
-        ? String(saved.quantity)
-        : source.quantity > 0
-          ? String(source.quantity)
-          : ''
-    );
-    setTerminalCount(saved ? String(saved.terminalCount) : '0');
-    setUnionCount(saved ? String(saved.unionCount) : typeof parsed === 'string' ? '0' : String(parsed.vias));
-    setAdaptadorCount(saved ? String(saved.adaptadorCount) : '0');
-    adaptadorEdited.current = Boolean(saved && typeof parsed !== 'string' && saved.adaptadorCount !== parsed.vias);
-    setElevations(
-      saved && saved.elevations.length > 0
-        ? saved.elevations.map(line => ({ length: String(line.lengthM), quantity: String(line.quantity) }))
-        : [emptyElevation()]
-    );
-    setCurves(
-      typeof parsed === 'string'
-        ? []
-        : curvesForDiameter(parsed.diameter).map(item => {
-            const choice = saved?.curves.find(curve => curve.catalogId === item.id);
-            return {
-              catalogId: item.id,
-              length: String(choice ? choice.lengthM : item.lengthM),
-              quantity: String(choice ? choice.quantity : 0)
-            };
-          })
-    );
+    const next = draftFrom(source);
+    setDesde(next.desde);
+    setHasta(next.hasta);
+    setQuantity(next.quantity);
+    setTerminalCount(next.terminalCount);
+    setUnionCount(next.unionCount);
+    setAdaptadorCount(next.adaptadorCount);
+    adaptadorEdited.current = next.adaptadorEdited;
+    diameterBaseline.current = next.diameter;
+    setDiameterText(next.diameter);
+    setElevations(next.elevations);
+    setCurves(next.curves);
     // Keyed by tramo id (not the object): typing the manual plano/tag must not wipe the form,
     // and table edits behind the window must not reset it either.
   }, [source?.id]);
 
   // Manual tramo: plano/tag arrive keystroke by keystroke, so parse from the live
   // form values (including the typed longitud). File tramos parse from the source.
+  const activeTag = !source
+    ? ''
+    : manual
+      ? source.tagEnPlano
+      : (replaceTagDiameter(source.tagEnPlano, diameterText) ?? source.tagEnPlano);
+
   const parsed = useMemo(() => {
     if (!source) return null;
-    if (!manual) return parseBductoSource(source);
+    if (manual) {
+      const typed = quantity == null ? source.quantity : parseLengthInput(quantity);
+      return parseBductoSource({ plano: source.plano, tagEnPlano: source.tagEnPlano, quantity: typed });
+    }
     const typed = quantity == null ? source.quantity : parseLengthInput(quantity);
-    return parseBductoSource({ plano: source.plano, tagEnPlano: source.tagEnPlano, quantity: typed });
-  }, [source, manual, quantity]);
+    const quantityForParse = typed > 0 ? typed : source.quantity;
+    return parseBductoSource({ plano: source.plano, tagEnPlano: activeTag, quantity: quantityForParse });
+  }, [source, manual, quantity, activeTag]);
+
+  useEffect(() => {
+    if (manual) return;
+    const next = diameterText.trim();
+    if (!next || next === diameterBaseline.current) return;
+    diameterBaseline.current = next;
+    setCurves(current => remapCurves(current, next));
+  }, [manual, diameterText]);
 
   // Manual tramo: diameter/vias resolve from the tag alone so its curvas show
   // at once; the full parse (plano + longitud too) gates the metrado preview.
@@ -139,6 +241,11 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   const usesRightAngle =
     parsed && typeof parsed !== 'string' ? draftsUseRightAngle(curves, parsed.diameter) : false;
 
+  useEffect(() => {
+    if (adaptadorEdited.current) return;
+    setAdaptadorCount(usesRightAngle ? (unionCount === '' ? '0' : unionCount) : '0');
+  }, [usesRightAngle, unionCount]);
+
   const applyCurveQuantity = (catalogId: string, quantity: string) => {
     setCurves(current => {
       const next = current.map(row => (row.catalogId === catalogId ? { ...row, quantity } : row));
@@ -146,8 +253,6 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
       if (!draftsUseRightAngle(next, parsed.diameter)) {
         adaptadorEdited.current = false;
         setAdaptadorCount('0');
-      } else if (!adaptadorEdited.current) {
-        setAdaptadorCount(String(parsed.vias));
       }
       return next;
     });
@@ -160,16 +265,37 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
 
   const savedPrompt = source.prompt;
   const parsedVias = parsed && typeof parsed !== 'string' ? parsed.vias : 0;
-  const nonZeroEntry = (value: string) => value !== '' && value !== '0';
+  const baselineQuantity =
+    savedPrompt && typeof savedPrompt.quantity === 'number'
+      ? String(savedPrompt.quantity)
+      : source.quantity > 0
+        ? String(source.quantity)
+        : '';
+  const elevationBaseline =
+    savedPrompt && savedPrompt.elevations.length > 0 ? savedPrompt.elevations : [{ lengthM: 0, quantity: 0 }];
+  const elevationsDirty =
+    elevations.length !== elevationBaseline.length ||
+    elevations.some((line, lineIndex) => {
+      const base = elevationBaseline[lineIndex];
+      return !base || line.length !== String(base.lengthM) || line.quantity !== String(base.quantity);
+    });
+  const curvesDirty = curves.some(choice => {
+    const savedChoice = savedPrompt?.curves.find(curve => curve.catalogId === choice.catalogId);
+    const catalogLength = curvesForDiameter(diameter).find(item => item.id === choice.catalogId)?.lengthM;
+    const baseLength = String(savedChoice ? savedChoice.lengthM : catalogLength ?? choice.length);
+    const baseQty = String(savedChoice ? savedChoice.quantity : 0);
+    return choice.length !== baseLength || choice.quantity !== baseQty;
+  });
   const isDirty =
     desde !== (savedPrompt?.desde || source.desde || '') ||
     hasta !== (savedPrompt?.hasta || source.hasta || '') ||
-    (quantity ?? '') !== (savedPrompt && typeof savedPrompt.quantity === 'number' ? String(savedPrompt.quantity) : source.quantity > 0 ? String(source.quantity) : '') ||
+    (quantity ?? '') !== baselineQuantity ||
     terminalCount !== (savedPrompt ? String(savedPrompt.terminalCount) : '0') ||
     unionCount !== (savedPrompt ? String(savedPrompt.unionCount) : String(parsedVias)) ||
     adaptadorCount !== (savedPrompt ? String(savedPrompt.adaptadorCount) : '0') ||
-    curves.some(choice => nonZeroEntry(choice.quantity)) ||
-    elevations.some(line => nonZeroEntry(line.length) || nonZeroEntry(line.quantity));
+    (!manual && diameterText !== (parseTagEnPlano(source.tagEnPlano)?.diameter ?? '')) ||
+    curvesDirty ||
+    elevationsDirty;
 
   const lengthM = invalid ? 0 : quantity == null ? source.quantity : parseLengthInput(quantity);
   const sticks = lengthM > 0 ? splitSticks(lengthM) : [];
@@ -183,6 +309,13 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   const submitPrompt = () => {
     if (manual && invalid) {
       showToast(typeof parsed === 'string' ? parsed : 'Escribe el plano, el tag y la longitud.', 'warn');
+      return;
+    }
+    const tagEnPlano = manual
+      ? source.tagEnPlano.trim().toUpperCase().replace(/\s+/g, ' ')
+      : (replaceTagDiameter(source.tagEnPlano, diameterText) ?? '');
+    if (!parseTagEnPlano(tagEnPlano)) {
+      showToast('Elige un diámetro del catálogo.', 'warn');
       return;
     }
     const prompt: BductoPrompt = {
@@ -202,10 +335,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
         quantity: parseIntegerInput(line.quantity)
       }))
     };
-    // #region agent log
-    fetch('http://127.0.0.1:7553/ingest/a68ab0cd-10e6-497e-8979-86720b62c569',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b40dbc'},body:JSON.stringify({sessionId:'b40dbc',location:'BductoPromptModal.tsx:submit',message:'prompt numbers kept',data:{terminalRaw:terminalCount,adaptadorRaw:adaptadorCount,terminalCount:prompt.terminalCount,adaptadorCount:prompt.adaptadorCount,elevationsRaw:elevations,elevations:prompt.elevations,curveQtyRaw:curves.map(choice=>choice.quantity)},timestamp:Date.now(),hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-    // #endregion
-    onConfirm(prompt);
+    onConfirm(prompt, tagEnPlano);
   };
 
   const title = source.prompt ? 'Editar tramo' : 'Completar tramo';
@@ -235,7 +365,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
           if (event.key === 'Enter') event.preventDefault();
         }}
       >
-        <div className="modal-body bducto-prompt">
+        <div className="modal-body prompt bducto-prompt">
           {manual && (
             <>
               <label>
@@ -267,6 +397,27 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
             </p>
           )}
           <div className="bducto-prompt-grid">
+            <label>
+              PULGADAS
+              <select
+                aria-label="Pulgadas"
+                value={(manual ? tagInfo?.diameter : diameterText) || ''}
+                disabled={manual && !tagInfo}
+                onChange={event => {
+                  const value = event.target.value;
+                  if (manual && source) {
+                    const tag = replaceTagDiameter(source.tagEnPlano, value);
+                    if (tag) patchManualDraft({ tagEnPlano: tag });
+                    return;
+                  }
+                  setDiameterText(value);
+                }}
+              >
+                {catalogDiameters(manual ? tagInfo?.diameter : diameterText).map(size => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+            </label>
             <label>
               DESDE
               <input value={desde} onChange={event => setDesde(event.target.value)} placeholder="300-MH-015" />
@@ -312,7 +463,11 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
           {!diameter ? (
             <p className="bducto-preview">Escribe el tag en plano para ver sus curvas.</p>
           ) : curves.length === 0 ? (
-            <p className="bducto-preview">No hay curvas en el catálogo para D={diameter}.</p>
+            <p className="bducto-preview">
+              {catalogSize === 0
+                ? 'El catálogo de curvas se carga desde Supabase.'
+                : `No hay curvas en el catálogo para D=${diameter}.`}
+            </p>
           ) : (
             <table className="bducto-mini">
               <thead>
@@ -444,7 +599,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
                   setAdaptadorCount(sanitizeIntegerInput(event.target.value));
                 }}
               />
-              <span>Junto a la elevación. Por defecto {adaptadorInfo.vias}, igual a las vías. Puede ser mayor, o 0 si no se usa.</span>
+              <span>Por defecto, igual al número de uniones. Puede editarse, o quedar en 0 si no se usa.</span>
             </label>
           ) : (
             <p className="bducto-preview">El adaptador PVC-RGS se pide junto a la elevación solo cuando hay curvas de 90°.</p>

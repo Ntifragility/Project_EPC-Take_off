@@ -2,7 +2,10 @@ import { BductoRow } from './types';
 import { parsePlano } from './expandBducto';
 
 /** Columns the corner drag and the inline editor can change. Description stays fixed. */
-export const BDUCTO_EDITABLE_COLUMNS = ['plano', 'rev', 'tagUnico'] as const;
+export const BDUCTO_EDITABLE_COLUMNS = ['plano', 'rev', 'seccion', 'desde', 'hasta', 'tagUnico'] as const;
+
+/** These belong to the whole tramo: one edit rewrites every row of that source. */
+const GROUP_COLUMNS = new Set<string>(['plano', 'rev', 'seccion', 'desde', 'hasta']);
 
 export type BductoEditableColumn = (typeof BDUCTO_EDITABLE_COLUMNS)[number];
 
@@ -23,13 +26,16 @@ export function applyBductoField(row: BductoRow, key: string, raw: string): Bduc
   }
   if (key === 'plano') return applyPlano(row, raw);
   if (key === 'rev') return { ok: true, row: { ...row, rev: raw.trim().toUpperCase() } };
+  if (key === 'seccion') return { ok: true, row: { ...row, seccion: raw.trim().toUpperCase() } };
+  if (key === 'desde') return { ok: true, row: { ...row, desde: raw.trim().toUpperCase() } };
+  if (key === 'hasta') return { ok: true, row: { ...row, hasta: raw.trim().toUpperCase() } };
   if (key === 'tagUnico') return { ok: true, row: { ...row, tagUnico: raw.trim().toUpperCase() } };
   return { ok: false, error: 'Esa columna es de solo lectura.' };
 }
 
 /**
- * PLANO and REV belong to the whole tramo. Editing either one updates every row
- * that shares the source, and a new plano rewrites each row's own tag único.
+ * PLANO, REV, SECCION, DESDE and HASTA belong to the whole tramo. Editing one
+ * updates every row that shares the source, and a new plano rewrites each tag único.
  */
 export function applyBductoGroupField(
   allRows: BductoRow[],
@@ -37,10 +43,11 @@ export function applyBductoGroupField(
   key: string,
   raw: string
 ): { ok: true; rows: BductoRow[] } | { ok: false; error: string } {
+  if (!isBductoEditableColumn(key)) {
+    return { ok: false, error: 'Esa columna es de solo lectura.' };
+  }
   const sourceIds = new Set(seeds.map(row => row.sourceId));
-  const targets = key === 'plano' || key === 'rev'
-    ? allRows.filter(row => sourceIds.has(row.sourceId))
-    : seeds;
+  const targets = GROUP_COLUMNS.has(key) ? allRows.filter(row => sourceIds.has(row.sourceId)) : seeds;
   const next: BductoRow[] = [];
   for (const row of targets) {
     const result = applyBductoField(row, key, raw);

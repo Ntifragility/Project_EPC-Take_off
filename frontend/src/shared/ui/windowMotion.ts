@@ -1,5 +1,6 @@
 /** Where a minimized prompt collapses, and where it grows back from. */
 export const RESTORE_BUTTON_ID = 'bducto-restore-btn';
+export const RULE_RESTORE_BUTTON_ID = 'rule-restore-btn';
 
 const MINIMIZE_MS = 260;
 const RESTORE_MS = 220;

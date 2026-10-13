@@ -45,6 +45,7 @@
 
 .bducto-form input,
 .bducto-prompt input,
+.bducto-prompt select,
 .bducto-paste textarea,
 .bducto-mini input {
   font-family: var(--mo);
@@ -235,6 +236,115 @@
   max-width: 110px;
 }
 
+.curve-value-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.curve-value-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+table.bducto-mini.curve-catalog {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.curve-catalog th:nth-child(2),
+.curve-catalog td:nth-child(2),
+.curve-catalog th:nth-child(3),
+.curve-catalog td:nth-child(3) {
+  width: 88px;
+}
+
+.curve-catalog th:nth-child(4),
+.curve-catalog td:nth-child(4) {
+  width: 96px;
+}
+
+.curve-catalog th:nth-child(5),
+.curve-catalog td:nth-child(5) {
+  width: 112px;
+}
+
+.curve-catalog th:nth-child(6),
+.curve-catalog td:nth-child(6) {
+  width: 72px;
+}
+
+.curve-catalog td input {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.curve-row-actions {
+  white-space: nowrap;
+}
+
+.curve-row-actions .icon-act-delete {
+  margin-left: 14px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.curve-catalog tbody tr:hover .icon-act-delete,
+.curve-catalog tbody tr:focus-within .icon-act-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.curve-catalog th,
+.curve-catalog td,
+.curve-catalog th *,
+.curve-catalog td * {
+  font-family: Calibri, 'Carlito', 'Segoe UI', Arial, sans-serif !important;
+  font-size: 12px !important;
+  color: var(--tx) !important;
+}
+
+.curve-catalog th {
+  font-weight: 700 !important;
+  background: #f3f2f1;
+}
+
+body:not(.light-theme):not(.light-mode) .curve-catalog th {
+  background: #292827;
+}
+
+.curve-catalog td,
+.curve-catalog td * {
+  font-weight: 400 !important;
+}
+
+.curve-catalog td {
+  height: 28px;
+  padding: 4px 8px;
+}
+
+.curve-catalog td:first-child .curve-value-text {
+  font-family: var(--ui);
+}
+
+.curve-catalog td:not(:first-child):not(:last-child) .curve-value-text {
+  font-family: var(--mo);
+}
+
+.curve-value-cell input {
+  max-width: none;
+  flex: 1;
+  min-width: 72px;
+}
+
+.curve-catalog .icon-act-btn {
+  width: 24px;
+  height: 24px;
+}
+
 .bducto-sources {
   width: 100%;
   border-collapse: collapse;
@@ -258,4 +368,70 @@
   .bducto-form {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+.bducto-sheet .takeoff-table thead tr.col-outline th {
+  top: 0;
+  z-index: 9;
+  height: 18px;
+  padding: 0;
+  background: #f3f2f1 !important;
+  box-shadow: none;
+  border-bottom: none;
+  vertical-align: bottom;
+  overflow: visible;
+}
+
+body:not(.light-theme):not(.light-mode) .bducto-sheet .takeoff-table thead tr.col-outline th {
+  background: #292827 !important;
+}
+
+.bducto-sheet .takeoff-table thead tr.col-head th {
+  top: 18px;
+}
+
+.col-group-span {
+  position: relative;
+  padding: 0 !important;
+}
+
+.col-group-track {
+  display: block;
+  height: 8px;
+  margin: 0 8px 0 20px;
+  border-top: 2px solid #107c41;
+  border-left: 2px solid #107c41;
+  border-right: 2px solid #107c41;
+}
+
+.col-group-btn {
+  position: absolute;
+  left: 2px;
+  bottom: 0;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid #107c41;
+  border-radius: 2px;
+  background: var(--s1);
+  color: #107c41;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 14px;
+  cursor: pointer;
+}
+
+.col-group-btn.is-collapsed {
+  position: static;
+}
+
+.col-group-toggle {
+  padding: 0 !important;
+  text-align: center;
+}
+
+.col-group-gutter {
+  padding: 0;
+  background: var(--s2);
 }

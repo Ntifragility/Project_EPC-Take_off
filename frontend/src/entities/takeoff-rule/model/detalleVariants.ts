@@ -554,6 +554,7 @@ export function updateDynamicVariants(dbRecords: any[]) {
       unit: it.unit,
       ot: it.ot ?? it.qty,
       otDynamic: it.otDynamic || (it.qty === 'Var.' ? 'empty' : undefined),
+      formula: it.formula || undefined,
       material: it.material || it.mat
     }));
 
@@ -567,7 +568,8 @@ export function updateDynamicVariants(dbRecords: any[]) {
           qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
           unit: it.unit,
           material: it.material || 'C',
-          metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+          metradoOt: it.formula || (it.ot !== undefined ? String(it.ot) : '1'),
+          formula: it.formula
         }))
       );
     } else if (rec.category === 'BARRA_INST') {
@@ -577,7 +579,8 @@ export function updateDynamicVariants(dbRecords: any[]) {
           qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
           unit: it.unit,
           material: it.material || 'C',
-          metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+          metradoOt: it.formula || (it.ot !== undefined ? String(it.ot) : '1'),
+          formula: it.formula
         }))
       );
     }
@@ -629,7 +632,8 @@ export function updateSingleDynamicVariant(
         qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
         unit: it.unit,
         material: it.material || 'C',
-        metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+        metradoOt: it.formula || (it.ot !== undefined ? String(it.ot) : '1'),
+        formula: it.formula
       }))
     );
   } else if (category === 'BARRA_INST') {
@@ -639,7 +643,8 @@ export function updateSingleDynamicVariant(
         qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
         unit: it.unit,
         material: it.material || 'C',
-        metradoOt: it.ot !== undefined ? String(it.ot) : '1'
+        metradoOt: it.formula || (it.ot !== undefined ? String(it.ot) : '1'),
+        formula: it.formula
       }))
     );
   }

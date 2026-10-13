@@ -1,5 +1,6 @@
 import { createStore } from '../../../shared/lib/store';
 import { AddModeType, ToastState } from '../../../shared/types/common';
+import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 
 export interface UIState {
   addMode: AddModeType;
@@ -11,6 +12,9 @@ export interface UIState {
   fitTableNonce: number;
   isMergedView: boolean;
   selectedItemIds: string[];
+  pendingRule: TakeoffRule | null;
+  rulePromptMinimized: boolean;
+  ruleRestoreArmed: boolean;
 }
 
 export interface UIActions {
@@ -24,6 +28,9 @@ export interface UIActions {
   requestFitTable: () => void;
   setIsMergedView: (merged: boolean) => void;
   setSelectedItemIds: (ids: string[]) => void;
+  setPendingRule: (rule: TakeoffRule | null) => void;
+  setRulePromptMinimized: (minimized: boolean) => void;
+  setRuleRestoreArmed: (armed: boolean) => void;
 }
 
 export type UIStore = UIState & UIActions;
@@ -38,6 +45,9 @@ export const useUIStore = createStore<UIStore>((set) => ({
   fitTableNonce: 0,
   isMergedView: false,
   selectedItemIds: [],
+  pendingRule: null,
+  rulePromptMinimized: false,
+  ruleRestoreArmed: false,
 
   setAddMode: (addMode: AddModeType) => set({ addMode }),
   setSearchQuery: (searchQuery: string) => set({ searchQuery }),
@@ -56,5 +66,8 @@ export const useUIStore = createStore<UIStore>((set) => ({
   setIsPartidasModalOpen: (isPartidasModalOpen: boolean) => set({ isPartidasModalOpen }),
   requestFitTable: () => set(state => ({ fitTableNonce: state.fitTableNonce + 1 })),
   setIsMergedView: (isMergedView: boolean) => set({ isMergedView }),
-  setSelectedItemIds: (selectedItemIds: string[]) => set({ selectedItemIds })
+  setSelectedItemIds: (selectedItemIds: string[]) => set({ selectedItemIds }),
+  setPendingRule: (pendingRule: TakeoffRule | null) => set({ pendingRule }),
+  setRulePromptMinimized: (rulePromptMinimized: boolean) => set({ rulePromptMinimized }),
+  setRuleRestoreArmed: (ruleRestoreArmed: boolean) => set({ ruleRestoreArmed })
 }));

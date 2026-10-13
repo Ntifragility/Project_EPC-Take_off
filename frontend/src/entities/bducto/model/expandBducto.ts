@@ -87,6 +87,15 @@ export function parseTagEnPlano(
   return { vias, diameter, bankId, section };
 }
 
+/** Swaps the inches in `12 VIAS, 6", BD.K.1` and keeps vías and banco. */
+export function replaceTagDiameter(tagEnPlano: string, diameter: string): string | null {
+  const parsed = parseTagEnPlano(tagEnPlano);
+  const size = diameter.trim().replace(/[″”]/g, '"').replace(/\s+/g, ' ');
+  if (!parsed || !size) return null;
+  const viasLabel = parsed.vias === 1 ? 'VIA' : 'VIAS';
+  return `${parsed.vias} ${viasLabel}, ${size}, ${parsed.bankId}`;
+}
+
 export function parseBductoSource(source: Pick<BductoSource, 'plano' | 'tagEnPlano' | 'quantity'>): ParsedBducto | string {
   if (!Number.isFinite(source.quantity) || source.quantity <= 0) {
     return 'La longitud debe ser mayor que 0.';
@@ -160,7 +169,7 @@ export function expandBducto(
     wbs: parsed.wbs,
     plano,
     rev: '',
-    seccion: parsed.section,
+    seccion: source.seccion != null ? source.seccion : parsed.section,
     desde,
     hasta,
     comentario: ''

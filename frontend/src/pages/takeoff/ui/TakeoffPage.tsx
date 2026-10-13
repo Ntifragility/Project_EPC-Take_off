@@ -4,6 +4,7 @@ import { usePackagesStore } from '../../../features/manage-packages/model/usePac
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { PackageGroupView } from '../../../widgets/takeoff-table/ui/PackageGroupView';
+import { TakeoffTable } from '../../../widgets/takeoff-table/ui/TakeoffTable';
 import { consolidateAccessories } from '../../../entities/takeoff-item/model/itemAggregation';
 import { itemMatchesColumnFilters } from '../../../widgets/takeoff-table/model/columnValue';
 
@@ -15,22 +16,21 @@ export const TakeoffPage: React.FC = () => {
   const searchQuery = useUIStore(state => state.searchQuery);
   const columnFilters = useUIStore(state => state.columnFilters);
 
+  const section = useAppStore(state => state.section);
+
   const filteredItems = items.filter(it => {
     if (!itemMatchesColumnFilters(it, columnFilters)) {
       return false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const tag = (it.tagPlano || '').toLowerCase();
-      const desc = (it.desc || '').toLowerCase();
-      const tagU = (it.tagUnico || '').toLowerCase();
-      const plano = (it.plano || '').toLowerCase();
-      return tag.includes(q) || desc.includes(q) || tagU.includes(q) || plano.includes(q);
+      return [it.partida, it.partidaBalance, it.tagPlano, it.tagUnico, it.desc, it.detalle, it.plano, it.rev]
+        .some(value => (value || '').toLowerCase().includes(q));
     }
     return true;
   });
 
-  const displayItems = accessoryViewMode === 'join'
+  const displayItems = section !== 'pat' && accessoryViewMode === 'join'
     ? consolidateAccessories(filteredItems)
     : filteredItems;
 
@@ -67,6 +67,12 @@ export const TakeoffPage: React.FC = () => {
               <div className="empty-icon">🔍</div>
               <div className="empty-title">Sin resultados</div>
               <div className="empty-sub">Prueba con otra búsqueda o limpia los filtros en el panel lateral</div>
+            </div>
+          ) : section === 'pat' ? (
+            <div className="pkg-group">
+              <div className="pkg-body">
+                <TakeoffTable items={displayItems} />
+              </div>
             </div>
           ) : (
             groups.map(({ pkg, items: groupItems }) => (

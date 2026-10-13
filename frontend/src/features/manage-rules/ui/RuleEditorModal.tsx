@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TakeoffRule, RuleSubitem } from '../../../entities/takeoff-rule/model/types';
+import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
+import { formulaHint, shownFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { uid } from '../../../shared/lib/uid';
 import { ModalShell } from '../../../shared/ui/ModalShell';
 
@@ -26,21 +28,31 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   useEffect(() => {
     if (initialRule) {
       setTrigger(initialRule.trigger);
-      setSubitems(JSON.parse(JSON.stringify(initialRule.subitems)));
+      const copy: RuleSubitem[] = JSON.parse(JSON.stringify(initialRule.subitems));
+      setSubitems(copy.map(item => ({
+        ...item,
+        formula: shownFormula(item, initialRule.trigger),
+        material: componentClass(item.desc, item.material)
+      })));
     } else {
       setTrigger('');
-      setSubitems([{ id: uid(), desc: '', qty: 1, unit: 'UND' }]);
+      setSubitems([{ id: uid(), desc: '', qty: 1, unit: 'UND', formula: '', material: 'C' }]);
     }
   }, [initialRule, isOpen]);
 
   if (!isOpen) return null;
 
   const initialTrigger = initialRule?.trigger ?? '';
-  const subitemsKey = (list: RuleSubitem[]) => JSON.stringify(list.map(s => [s.desc, s.qty, s.unit]));
-  const isDirty = trigger !== initialTrigger || subitemsKey(subitems) !== subitemsKey(initialRule?.subitems ?? [{ id: '', desc: '', qty: 1, unit: 'UND' }]);
+  const baseline = (initialRule?.subitems ?? [{ id: '', desc: '', qty: 1, unit: 'UND' }]).map(item => ({
+    ...item,
+    formula: initialRule ? shownFormula(item, initialRule.trigger) : '',
+    material: componentClass(item.desc, item.material)
+  }));
+  const subitemsKey = (list: RuleSubitem[]) => JSON.stringify(list.map(s => [s.desc, s.qty, s.unit, s.formula || '', s.material || '']));
+  const isDirty = trigger !== initialTrigger || subitemsKey(subitems) !== subitemsKey(baseline);
 
   const handleAddSubitem = () => {
-    setSubitems(prev => [...prev, { id: uid(), desc: '', qty: 1, unit: 'UND' }]);
+    setSubitems(prev => [...prev, { id: uid(), desc: '', qty: 1, unit: 'UND', formula: '', material: 'C' }]);
   };
 
   const handleUpdateSubitem = (id: string, field: keyof RuleSubitem, value: any) => {
@@ -76,98 +88,108 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   };
 
   return (
-    <ModalShell title={isNew ? 'Nueva regla' : 'Editar regla'} onClose={onClose} maxWidth="640px" dismiss="dirty-confirm" isDirty={isDirty}>
-        <div className="modal-body">
-          <div className="mb-16">
-            <div className="field-label" style={{ marginBottom: '6px' }}>
-              DISPARADOR
-            </div>
+    <ModalShell
+      title={isNew ? 'Nueva regla' : 'Editar regla'}
+      subtitle={trigger.trim() || 'Regla PAT'}
+      onClose={onClose}
+      maxWidth="1040px"
+      dismiss="dirty-confirm"
+      isDirty={isDirty}
+    >
+        <div className="modal-body prompt">
+          <label>
+            Disparador
             <input
               id="modal-trigger"
               type="text"
               value={trigger}
-              style={{ width: '100%', fontFamily: 'var(--mo)', fontSize: '12px' }}
-              placeholder="Ej: CABLE DESNUDO 4/0 AWG"
+              placeholder="CABLE DESNUDO 4/0 AWG"
               onChange={e => setTrigger(e.target.value.toUpperCase())}
             />
+          </label>
+
+          <div className="prompt-hd">
+            <h3>Ítems asociados</h3>
+            <button type="button" className="btn-ghost btn-sm" onClick={handleAddSubitem}>
+              Agregar línea
+            </button>
           </div>
 
-          <div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '10px'
-              }}
-            >
-              <div className="field-label">ÍTEMS ASOCIADOS</div>
-              <button className="btn-ghost btn-sm" onClick={handleAddSubitem}>
-                + ÍTEM
-              </button>
-            </div>
-
-            <div id="modal-subitems">
-              {subitems.length === 0 ? (
-                <div style={{ color: 'var(--mu)', fontSize: '12px', textAlign: 'center', padding: '14px 0' }}>
-                  Sin ítems — agrega al menos uno
-                </div>
-              ) : (
-                subitems.map((s, i) => (
-                  <div className="sub-row" key={s.id} id={`sub-row-${s.id}`}>
-                    <span className="sub-n">{i + 1}</span>
-                    <input
-                      type="text"
-                      value={s.desc}
-                      style={{ flex: 3, fontFamily: 'var(--mo)', fontSize: '11px' }}
-                      placeholder="Descripción del material..."
-                      onChange={e => handleUpdateSubitem(s.id, 'desc', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      value={s.qty}
-                      style={{ width: '130px', fontFamily: 'var(--mo)', fontSize: '11px' }}
-                      onChange={e => handleUpdateSubitem(s.id, 'qty', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      value={s.unit}
-                      style={{ width: '70px', textTransform: 'uppercase' }}
-                      onChange={e => handleUpdateSubitem(s.id, 'unit', e.target.value.toUpperCase())}
-                    />
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={() => handleRemoveSubitem(s.id)}
-                      title="Eliminar ítem"
-                    >
-                      Quitar
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          {subitems.length === 0 ? (
+            <p className="prompt-note">Sin ítems. Agrega al menos una línea.</p>
+          ) : (
+            <table className="prompt-table" id="modal-subitems">
+              <thead>
+                <tr>
+                  <th>MAT</th>
+                  <th>Descripción</th>
+                  <th>Cantidad</th>
+                  <th>Cálculo</th>
+                  <th>Unidad</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {subitems.map((s, i) => (
+                  <tr key={s.id} id={`sub-row-${s.id}`}>
+                    <td>
+                      <select
+                        value={s.material === 'P' ? 'P' : 'C'}
+                        aria-label={`MAT ${i + 1}`}
+                        onChange={e => handleUpdateSubitem(s.id, 'material', e.target.value)}
+                      >
+                        <option value="P">P</option>
+                        <option value="C">C</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={s.desc}
+                        aria-label={`Descripción ${i + 1}`}
+                        placeholder="Descripción del material"
+                        onChange={e => handleUpdateSubitem(s.id, 'desc', e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={s.qty}
+                        aria-label={`Cantidad ${i + 1}`}
+                        onChange={e => handleUpdateSubitem(s.id, 'qty', e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={s.formula || ''}
+                        aria-label={`Cálculo ${i + 1}`}
+                        placeholder="length * 0.375 * 0.5"
+                        onChange={e => handleUpdateSubitem(s.id, 'formula', e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={s.unit}
+                        aria-label={`Unidad ${i + 1}`}
+                        onChange={e => handleUpdateSubitem(s.id, 'unit', e.target.value.toUpperCase())}
+                      />
+                    </td>
+                    <td>
+                      <button type="button" className="btn-ghost btn-sm" onClick={() => handleRemoveSubitem(s.id)}>
+                        Quitar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="prompt-note">{formulaHint(subitems.map(item => item.formula || ''))}</p>
         </div>
 
-        <div className="modal-ft" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {!isNew && initialRule && onDelete ? (
-            <button
-              type="button"
-              className="btn-danger"
-              onClick={() => {
-                if (window.confirm(`¿Estás seguro de que deseas eliminar completamente la regla "${initialRule.trigger}"?`)) {
-                  onDelete(initialRule.id);
-                  onClose();
-                }
-              }}
-            >
-              Eliminar regla
-            </button>
-          ) : (
-            <div />
-          )}
-
+        <div className="modal-ft" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button className="btn-ghost" onClick={onClose}>
               Cancelar

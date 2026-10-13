@@ -4,10 +4,11 @@ import { AreaType, SectionType } from '../../../shared/types/common';
 import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico, getSequentialTag, assignTagUnicoSuffixes } from '../../../entities/takeoff-item/model/tagGenerator';
 import { findIntroducedTagCollision, tagCollisionMessage, normalizeTagPlano } from '../../../entities/takeoff-item/model/itemIdentity';
-import { isPrimaryMaterial } from '../../../entities/takeoff-item/model/materialClassifier';
+import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
 import { DEFAULT_CABLE_TRAY_MATRIX, getCableTrayMatrixValue } from '../../../entities/takeoff-rule/model/cableTrayRules';
 import { getCalculatedVariantItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../../entities/takeoff-rule/model/ruleExpander';
+import { evaluateMetradoFormula, lengthVar, shownFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { correlateItemsWithPartidas } from '../../../entities/partida/model/partidaMatcher';
 import { useItemsStore } from '../../manage-items/model/useItemsStore';
 import { usePackagesStore } from '../../manage-packages/model/usePackagesStore';
@@ -26,6 +27,7 @@ export function executeApplyRule(
     numJumpers?: number;
     cableTrayWidth?: string;
     incluirTuberia?: boolean;
+    cableLength?: string;
   }
 ): boolean {
   const { count, baseTag, detalleCode } = params;
@@ -33,6 +35,7 @@ export function executeApplyRule(
   const numJumpers = params.numJumpers ?? 1;
   const cableTrayWidth = params.cableTrayWidth || '600 mm';
   const incluirTuberia = params.incluirTuberia === true;
+  const cableLength = (params.cableLength || '').trim().replace(',', '.');
 
   const { items, customPlano, customRev, setItems, saveUndoSnapshot } = useItemsStore.getState();
   const { selPkg, packages } = usePackagesStore.getState();
@@ -47,8 +50,6 @@ export function executeApplyRule(
   const revVal = (customRev || '').toUpperCase();
   const pkgId = selPkg || packages[0]?.id || 'p1';
   const upTrigger = currentRule.trigger.toUpperCase();
-  const isSoldaduraPozo = upTrigger.includes('SOLDADURA') || upTrigger.includes('POZO');
-  const isPozoTrigger = upTrigger.includes('POZO');
   const isCableTrayRule =
     Boolean(currentRule.cableTrayMatrix && currentRule.cableTrayMatrix.length > 0) ||
     currentRule.id === 'r-001-2b-x1' ||
@@ -112,7 +113,7 @@ export function executeApplyRule(
         );
         variantItems.forEach(v => {
           const isVar = v.qty === 'Var.' || String(v.ot).toUpperCase() === 'VAR.';
-          const mat = v.material || (isPrimaryMaterial(v.desc) ? 'P' : 'C');
+          const mat = componentClass(v.desc, v.material);
           const finalQty = typeof v.qty === 'number' ? v.qty : 1;
           const finalOt = isVar ? '' : (v.ot !== undefined ? String(v.ot) : '');
 
@@ -137,37 +138,22 @@ export function executeApplyRule(
         currentRule.subitems
           .filter(s => !(currentRule.id === 'r1' && s.desc.toUpperCase().includes('CEMENTO GEM') && detalleCode.toUpperCase() !== '008/3B'))
           .forEach(s => {
-          const mat = isPrimaryMaterial(s.desc) ? 'P' : 'C';
-          let metradoOt = '';
+          const mat = componentClass(s.desc, s.material);
           const descUp = s.desc.toUpperCase();
-
-          if (isPozoTrigger && descUp.includes('TIERRA DE CULTIVO')) {
-            metradoOt = '4.71';
-          } else if (isPozoTrigger && descUp.includes('CEMENTO GEM')) {
-            metradoOt = '22.6';
-          } else if (isSoldaduraPozo) {
-            metradoOt = '1';
-          } else if (upTrigger.includes('CABLE DESNUDO 2/0 AWG')) {
-            if (
-              descUp.includes('TERMINAL') ||
-              descUp.includes('PERNO') ||
-              descUp.includes('SOLDADURA') ||
-              descUp.includes('CARGA') ||
-              descUp.includes('TUBERIA')
-            ) {
-              metradoOt = '1';
-            }
-          }
-
-          if (descUp.includes('MOLDE')) {
-            metradoOt = '0.0167';
-          }
-
+          const formula = shownFormula(s, currentRule.trigger);
+          const result = evaluateMetradoFormula(formula, {
+            length: lengthVar(cableLength),
+            soportes: numSoportes,
+            jumpers: numJumpers
+          });
+          const metradoOt = result.status === 'value' ? result.text : '';
+          const qtyOverride = result.status === 'value' ? result.number : undefined;
+          const cableMeters = descUp.includes('CABLE DESNUDO 2/0') && !descUp.includes('JUMPER') ? Number(cableLength) : NaN;
           newItems.push({
             id: uid(),
             pkgId,
             desc: s.desc,
-            qty: s.qty,
+            qty: qtyOverride !== undefined ? qtyOverride : Number.isFinite(cableMeters) && cableMeters > 0 ? cableMeters : s.qty,
             unit: s.unit,
             notes: '',
             ruleId: currentRule.id,
@@ -190,7 +176,10 @@ export function executeApplyRule(
             id: uid(),
             pkgId,
             desc: 'CEMENTO GEM (11.3 Kg x bls)',
-            qty: 'length x 11.3 / 2',
+            qty: (() => {
+              const cemento = evaluateMetradoFormula('length * 11.3 / 2', { length: lengthVar(cableLength) });
+              return cemento.status === 'value' ? cemento.number : 'length * 11.3 / 2';
+            })(),
             unit: 'kg',
             notes: '',
             ruleId: currentRule.id,
@@ -200,14 +189,17 @@ export function executeApplyRule(
             tagUnico: '',
             tagPlano: currentTagPlano,
             detalle: detalleCode,
-            metradoOt: ''
+            metradoOt: (() => {
+              const cemento = evaluateMetradoFormula('length * 11.3 / 2', { length: lengthVar(cableLength) });
+              return cemento.status === 'value' ? cemento.text : '';
+            })()
           });
         }
 
-        // Optional TUBERIA for horizontal runs on 008/3A (user-managed OT).
+        const detalleUp = detalleCode.toUpperCase();
         if (
           currentRule.id === 'r1' &&
-          detalleCode.toUpperCase() === '008/3A' &&
+          (detalleUp === '008/3A' || detalleUp === '008/3B') &&
           incluirTuberia &&
           !newItems.some(it => it.tagPlano === currentTagPlano && it.desc.toUpperCase().includes('TUBERIA'))
         ) {

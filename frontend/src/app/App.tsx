@@ -5,17 +5,20 @@ import { Header } from '../widgets/header/ui/Header';
 import { TakeoffPage } from '../pages/takeoff/ui/TakeoffPage';
 import { BductosPage } from '../features/generate-bducto/ui/BductosPage';
 import { RulesPage } from '../pages/rules/ui/RulesPage';
+import { CurveCatalogPage } from '../features/generate-bducto/ui/CurveCatalogPage';
 import { PackagesPage } from '../pages/packages/ui/PackagesPage';
 import { ModalsHost } from '../widgets/modals-host/ui/ModalsHost';
+import { CatalogDrawer } from '../shared/ui/CatalogDrawer';
 
 export const App: React.FC = () => {
   const tab = useAppStore(state => state.tab);
   const section = useAppStore(state => state.section);
+  const setTab = useAppStore(state => state.setTab);
   const isBductos = section === 'bductos';
+  const showRules = section === 'pat' && tab === 'rules';
+  const showCurves = isBductos && tab === 'curves';
 
-  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [areaModalOpen, setAreaModalOpen] = useState(false);
-  const [tagSummaryModalOpen, setTagSummaryModalOpen] = useState(false);
 
   useEffect(() => {
     // Load initial cloud configuration asynchronously
@@ -29,24 +32,26 @@ export const App: React.FC = () => {
 
   return (
     <>
-      <Header
-        onOpenSummaryModal={() => setSummaryModalOpen(true)}
-        onOpenAreaModal={() => setAreaModalOpen(true)}
-        onOpenTagSummaryModal={() => setTagSummaryModalOpen(true)}
-      />
+      <Header onOpenAreaModal={() => setAreaModalOpen(true)} />
 
       <main className="main" id="main-content">
-        {isBductos && tab === 'takeoff' && <BductosPage />}
-        {!isBductos && tab === 'takeoff' && <TakeoffPage />}
-        {!isBductos && tab === 'rules' && <RulesPage />}
+        {isBductos && tab !== 'packages' && <BductosPage />}
+        {!isBductos && tab !== 'packages' && <TakeoffPage />}
         {tab === 'packages' && <PackagesPage />}
       </main>
 
+      {showRules && (
+        <CatalogDrawer title="Reglas" onClose={() => setTab('takeoff')}>
+          <RulesPage />
+        </CatalogDrawer>
+      )}
+      {showCurves && (
+        <CatalogDrawer title="Curvas" onClose={() => setTab('takeoff')}>
+          <CurveCatalogPage />
+        </CatalogDrawer>
+      )}
+
       <ModalsHost
-        summaryModalOpen={summaryModalOpen}
-        onCloseSummaryModal={() => setSummaryModalOpen(false)}
-        tagSummaryModalOpen={tagSummaryModalOpen}
-        onCloseTagSummaryModal={() => setTagSummaryModalOpen(false)}
         areaModalOpen={areaModalOpen}
         onCloseAreaModal={() => setAreaModalOpen(false)}
       />

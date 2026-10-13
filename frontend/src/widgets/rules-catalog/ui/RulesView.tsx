@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRulesStore } from '../../../features/manage-rules/model/useRulesStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
@@ -48,6 +49,11 @@ export const RulesView: React.FC = () => {
   const [editingRule, setEditingRule] = useState<TakeoffRule | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
+  const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setActionSlot(document.getElementById('catalog-subnav-actions'));
+  }, []);
 
   // Cable tray matrix modal state
   const [cableTrayModalOpen, setCableTrayModalOpen] = useState(false);
@@ -91,12 +97,6 @@ export const RulesView: React.FC = () => {
       items: items && items.length > 0 ? items : getDetalleItemsForCode(code, category)
     });
     setDetalleModalOpen(true);
-  };
-
-  const handleOpenDirectDetalle = () => {
-    const firstCode = currentAreaCodes[0] || 'ND';
-    const items = getDetalleItemsForCode(firstCode, 'CABLE_2_0');
-    handleOpenDetalleEdit(firstCode, items, 'CABLE_2_0');
   };
 
   const handleOpenNew = () => {
@@ -150,40 +150,26 @@ export const RulesView: React.FC = () => {
   };
 
   return (
-    <div>
-      <div className="view-hd">
-        <div>
-          <div className="view-title">
-            REGLAS DE AUTO-LLENADO &bull; {activeArea === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'}
-          </div>
-          <div className="view-sub">
-            {activeArea === 'AREA HUMEDA'
-              ? 'Reglas y matrices constructivas para Área Húmeda.'
-              : 'Reglas y matrices estándar para Área Seca.'}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+    <div className="catalog-pane">
+      {actionSlot && createPortal(
+        <>
           {catalogRules.length > 0 && (
-            <button
-              className="btn-ghost"
-              onClick={toggleAllExpand}
-              style={{ fontSize: '11px', padding: '6px 12px' }}
-            >
-              {allExpanded ? '▲ COLAPSAR TODAS' : '▼ EXPANDIR TODAS'}
+            <button type="button" className="btn-ghost" onClick={toggleAllExpand}>
+              {allExpanded ? '▲ Colapsar todas' : '▼ Expandir todas'}
             </button>
           )}
-          <button
-            className="btn-secondary"
-            onClick={handleOpenDirectDetalle}
-            style={{ fontSize: '11px', padding: '6px 14px' }}
-            title="Abrir editor para cualquier detalle constructivo de esta área"
-          >
-            EDITAR DETALLES
+          <button type="button" className="btn-primary" onClick={handleOpenNew}>
+            + Nueva regla
           </button>
-          <button className="btn-primary" onClick={handleOpenNew}>
-            + NUEVA REGLA
-          </button>
-        </div>
+        </>,
+        actionSlot
+      )}
+      <div className="catalog-hd">
+        <p className="catalog-note">
+          {activeArea === 'AREA HUMEDA'
+            ? 'Reglas y matrices constructivas para Área Húmeda.'
+            : 'Reglas y matrices estándar para Área Seca.'}
+        </p>
       </div>
 
       {catalogRules.length === 0 ? (
@@ -220,7 +206,6 @@ export const RulesView: React.FC = () => {
                 activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onEdit={handleOpenEdit}
                 onDelete={handleDeleteRule}
                 onEditDetalle={(code, items) => handleOpenDetalleEdit(code, items, 'CABLE_2_0')}
               />
@@ -237,7 +222,6 @@ export const RulesView: React.FC = () => {
                 activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onEdit={handleOpenEdit}
                 onDelete={handleDeleteRule}
                 onEditDetalle={handleOpenDetalleEdit}
               />
@@ -254,7 +238,6 @@ export const RulesView: React.FC = () => {
                 activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onEdit={handleOpenEdit}
                 onDelete={handleDeleteRule}
                 onEditDetalle={handleOpenDetalleEdit}
               />

@@ -35,7 +35,7 @@ export function getRuleInsertPreview(rule: TakeoffRule, activeArea: string): str
 
   if (up.includes('CABLE DESNUDO 4/0')) {
     return isHumedaArea(activeArea)
-      ? '008/3A: cable, cinta, tierra, tubería opcional. 008/3B: + cemento GEM'
+      ? '008/3A y 008/3B: cable, cinta, tierra y tubería opcional. 008/3B suma cemento GEM'
       : '167/G1: cable desnudo 4/0, cinta amarilla y tierra de cultivo';
   }
 

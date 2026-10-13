@@ -8,6 +8,7 @@ import {
   saveDetalleVariantToSupabase,
   deleteDetalleVariantFromSupabase
 } from '../../../shared/api/supabase';
+import { deleteRuleLines, replaceRuleLines } from '../../sync-cloud/model/publishRuleCatalog';
 import { updateSingleDynamicVariant, deleteSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
 
 export interface RulesState {

@@ -22,6 +22,8 @@ import {
   type RebuildExtras
 } from '../../../entities/takeoff-rule/model/instanceRebuild';
 import { normalizeDetalle, isKnownDetalle } from '../../../entities/takeoff-rule/model/detalleRegistry';
+import { recalculateInstanceLength } from '../../../entities/takeoff-rule/model/metradoFormula';
+import { DYNAMIC_DETALLE_VARIANTS, DYNAMIC_DETALLE_VARIANTS_BY_AREA } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 import { findMatchingPartida, correlateItemsWithPartidas } from '../../../entities/partida/model/partidaMatcher';
@@ -45,6 +47,7 @@ export interface ItemsState {
   editingItemId: string | null;
   highlightedTag: string | null;
   undoSnapshot: string | null;
+  redoSnapshot: string | null;
   pendingDetalleEdit: PendingDetalleEdit | null;
 }
 
@@ -60,7 +63,8 @@ export interface ItemsActions {
     unit: string,
     pkgId: string,
     section: SectionType,
-    activeArea: string
+    activeArea: string,
+    metradoOt?: string
   ) => void;
   updateItem: (
     id: string,
@@ -89,6 +93,7 @@ export interface ItemsActions {
   ) => boolean;
   cancelDetalleChange: () => void;
   undoLastAction: (section: SectionType) => boolean;
+  redoLastAction: (section: SectionType) => boolean;
   clearCache: (section: SectionType) => void;
   syncGlobalContext: (section: SectionType) => void;
   syncContextToItemIds: (itemIds: string[], section: SectionType) => boolean;
@@ -119,13 +124,15 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   editingItemId: null,
   highlightedTag: null,
   undoSnapshot: null,
+  redoSnapshot: null,
   pendingDetalleEdit: null,
 
   loadItems: (section: SectionType, activeArea = 'AREA SECA') => {
     const raw = backfillInstanceIds(loadStoredItems(section));
     const partidas = loadStoredPartidas();
     const correlated = correlateItemsWithPartidas(raw, partidas, activeArea);
-    set({ items: correlated, undoSnapshot: null });
+    itemsUndo.clear();
+    set({ items: correlated, undoSnapshot: null, redoSnapshot: null });
   },
 
   setCustomPlano: (customPlano: string) => {
@@ -155,7 +162,7 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
 
   saveUndoSnapshot: () => {
     itemsUndo.remember(get().items);
-    set({ undoSnapshot: itemsUndo.snapshot });
+    set({ undoSnapshot: itemsUndo.snapshot, redoSnapshot: itemsUndo.redoSnapshot });
   },
 
   addCustomItem: (
@@ -164,7 +171,8 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     unit: string,
     pkgId: string,
     section: SectionType,
-    activeArea: string
+    activeArea: string,
+    metradoOt = ''
   ) => {
     const { customPlano, customRev, items, saveUndoSnapshot } = get();
     saveUndoSnapshot();
@@ -184,7 +192,7 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
       tagUnico: '',
       tagPlano: '',
       detalle: '',
-      metradoOt: '',
+      metradoOt,
       instanceId: uid()
     };
 
@@ -304,34 +312,20 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
 
     if (updates.metradoOt !== undefined && instanceId) {
       const descUp = (oldItem.desc || '').toUpperCase();
-      if (oldItem.ruleId === 'r1' && descUp.includes('CABLE DESNUDO 4/0 AWG')) {
-        const cableVal = parseFloat(String(updates.metradoOt)) || 0;
-        const tierraVal = String(parseFloat((0.375 * 0.5 * cableVal).toFixed(4)));
-        const cementoVal = String(parseFloat(((cableVal * 11.3) / 2).toFixed(4)));
-        updated = updated.map(sib => {
-          if (sib.instanceId !== instanceId) return sib;
-          if (sib.desc.toUpperCase().includes('CINTA AMARILLA')) return { ...sib, metradoOt: String(updates.metradoOt) };
-          if (sib.desc.toUpperCase().includes('TIERRA DE CULTIVO')) return { ...sib, metradoOt: tierraVal };
-          if (sib.desc.toUpperCase().includes('CEMENTO GEM')) return { ...sib, metradoOt: cementoVal };
-          return sib;
-        });
-      }
-      if (
-        oldItem.ruleId === 'r2' &&
-        descUp.includes('CABLE DESNUDO 2/0 AWG') &&
-        (target.detalle || oldItem.detalle) === '153'
-      ) {
-        const cableVal = parseFloat(String(updates.metradoOt)) || 0;
-        const prensaVal = Math.ceil(cableVal / 3).toString();
-        updated = updated.map(sib => {
-          if (
-            sib.instanceId === instanceId &&
-            sib.desc.toUpperCase().includes('PRENSA PARALELA 1 CONDUCTOR')
-          ) {
-            return { ...sib, metradoOt: prensaVal };
-          }
-          return sib;
-        });
+      const isCable =
+        descUp.includes('CABLE DESNUDO 4/0') ||
+        (descUp.includes('CABLE DESNUDO 2/0') && !descUp.includes('JUMPER'));
+      if ((oldItem.ruleId === 'r1' || oldItem.ruleId === 'r2') && isCable) {
+        const cableVal = parseFloat(String(updates.metradoOt).replace(',', '.'));
+        if (Number.isFinite(cableVal)) {
+          const rule = useRulesStore.getState().rules.find(entry => entry.id === oldItem.ruleId);
+          const detalle = target.detalle || oldItem.detalle || '';
+          const variant =
+            DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA SECA']?.[detalle] ||
+            DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA HUEMDA']?.[detalle] ||
+            DYNAMIC_DETALLE_VARIANTS[detalle];
+          updated = recalculateInstanceLength(updated, instanceId, cableVal, rule, variant);
+        }
       }
     }
 
@@ -444,6 +438,26 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
         upd.tagUnico = upd.material === 'P' ? generateTagUnico(upd.plano, upd.tagPlano, 'P') : '';
         return upd;
       });
+      if (field === 'metradoOt' || field === 'qty') {
+        const touched = currentItems.filter(it => idSet.has(it.id));
+        for (const row of touched) {
+          const descUp = row.desc.toUpperCase();
+          const isCable =
+            descUp.includes('CABLE DESNUDO 4/0') ||
+            (descUp.includes('CABLE DESNUDO 2/0') && !descUp.includes('JUMPER'));
+          if ((row.ruleId !== 'r1' && row.ruleId !== 'r2') || !row.instanceId || !isCable) continue;
+          const raw = field === 'metradoOt' ? row.metradoOt : row.qty;
+          const length = parseFloat(String(raw).replace(',', '.'));
+          if (!Number.isFinite(length)) continue;
+          const rule = useRulesStore.getState().rules.find(entry => entry.id === row.ruleId);
+          const detalle = row.detalle || '';
+          const variant =
+            DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA SECA']?.[detalle] ||
+            DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA HUEMDA']?.[detalle] ||
+            DYNAMIC_DETALLE_VARIANTS[detalle];
+          currentItems = recalculateInstanceLength(currentItems, row.instanceId, length, rule, variant);
+        }
+      }
     }
 
     if (field === 'desc') {
@@ -596,11 +610,20 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
   },
 
   undoLastAction: (section: SectionType) => {
-    if (!get().undoSnapshot) return false;
-    const restored = itemsUndo.undo();
+    if (!itemsUndo.snapshot) return false;
+    const restored = itemsUndo.undo(get().items);
     if (!restored) return false;
     saveStoredItems(section, restored);
-    set({ items: restored, undoSnapshot: itemsUndo.snapshot });
+    set({ items: restored, undoSnapshot: itemsUndo.snapshot, redoSnapshot: itemsUndo.redoSnapshot });
+    return true;
+  },
+
+  redoLastAction: (section: SectionType) => {
+    if (!itemsUndo.redoSnapshot) return false;
+    const restored = itemsUndo.redo(get().items);
+    if (!restored) return false;
+    saveStoredItems(section, restored);
+    set({ items: restored, undoSnapshot: itemsUndo.snapshot, redoSnapshot: itemsUndo.redoSnapshot });
     return true;
   },
 

@@ -6,7 +6,7 @@ export type BductoAccessoryView = 'separated' | 'joined';
 /** A table row. Merged rows point back at the stored rows they add up. */
 export interface BductoDisplayRow extends BductoRow {
   viewMemberIds?: string[];
-  /** group: one tramo, plano and rev still edit. locked: several tramos, read-only. */
+  /** group: one tramo, shared fields still edit. locked: several tramos, read-only. */
   viewEdit?: 'group' | 'locked';
 }
 

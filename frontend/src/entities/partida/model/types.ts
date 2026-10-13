@@ -9,7 +9,9 @@ export interface PartidaRecord {
   item: string;
   partidaBalance: string;
   forecastDesc: string;
-  /** DESCRIPCIÓN BM. Legacy field `descripcion` kept as alias. */
+  /** SICME DESCRIPTION. */
+  sicmeDesc: string;
+  /** BM DESCRIPTION. Legacy field `descripcion` kept as alias. */
   descripcionBm: string;
   descripcion: string;
   und: string;

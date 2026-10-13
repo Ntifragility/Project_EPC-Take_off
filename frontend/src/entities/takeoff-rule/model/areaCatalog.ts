@@ -107,6 +107,13 @@ function matchSoldaduraT4020(trigger: string): boolean {
   );
 }
 
+/** Área húmeda keeps these rules on a fixed detalle. */
+export function isDetalleFieldLocked(trigger: string, area: string): boolean {
+  if (normalizeArea(area) !== 'AREA HUMEDA') return false;
+  const up = (trigger || '').toUpperCase().trim();
+  return up.includes('POZO CON CAJA') || up.includes('POZO SIN CAJA') || up.includes('SOLDADURA X');
+}
+
 function matchSoldaduraT40(trigger: string): boolean {
   const up = (trigger || '').toUpperCase().trim();
   return !matchSoldaduraT4020(trigger) && (up === 'SOLDADURA T 4/0' || up.startsWith('SOLDADURA T 4/0'));

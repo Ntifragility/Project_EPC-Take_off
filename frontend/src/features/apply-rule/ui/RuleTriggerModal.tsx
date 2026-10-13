@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { AreaType } from '../../../shared/types/common';
 import { CABLE_TRAY_WIDTHS } from '../../../entities/takeoff-rule/model/cableTrayRules';
@@ -9,6 +10,8 @@ import { hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
 import { getRuleInsertPreview } from '../../../entities/takeoff-rule/model/ruleInsertPreview';
 import { ModalShell } from '../../../shared/ui/ModalShell';
+import { RULE_RESTORE_BUTTON_ID } from '../../../shared/ui/windowMotion';
+import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 
 export interface RuleTriggerModalProps {
   isOpen: boolean;
@@ -25,6 +28,9 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
 }) => {
   const storeRule = useRulesStore(state => state.rules.find(r => r.id === rule?.id));
   const activeRule = storeRule || rule;
+  const minimized = useUIStore(state => state.rulePromptMinimized);
+  const setRulePromptMinimized = useUIStore(state => state.setRulePromptMinimized);
+  const armRuleRestore = useUIStore(state => state.armRuleRestore);
 
   const [count, setCount] = useState<number>(1);
   const [baseTag, setBaseTag] = useState<string>('01');
@@ -33,6 +39,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   const [numJumpers, setNumJumpers] = useState<number>(1);
   const [cableTrayWidth, setCableTrayWidth] = useState<string>('900 mm');
   const [incluirTuberia, setIncluirTuberia] = useState<boolean>(false);
+  const [cableLength, setCableLength] = useState('');
 
   useEffect(() => {
     if (isOpen && activeRule) {
@@ -43,11 +50,12 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
       setNumSoportes(1);
       setNumJumpers(1);
       setIncluirTuberia(false);
+      setCableLength('');
       setCableTrayWidth(prev => (prev && ['900 mm', '600 mm', '450 mm', '300 mm'].includes(prev)) ? prev : '900 mm');
     }
   }, [isOpen, activeRule?.id, activeArea]);
 
-  if (!isOpen || !activeRule) return null;
+  if (!isOpen || !activeRule || minimized) return null;
 
   const req = resolveRuleRequirements(activeRule, activeArea);
   const effCount = Math.max(1, count);
@@ -71,6 +79,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
     numSoportes !== 1 ||
     numJumpers !== 1 ||
     incluirTuberia ||
+    cableLength.trim() !== '' ||
     cableTrayWidth !== '900 mm';
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,17 +92,31 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
       detalleCode: detalleCode.trim().toUpperCase(),
       numSoportes: showSoportes ? effSoportes : 1,
       numJumpers: showJumpers ? effJumpers : 1,
-      incluirTuberia: incluirTuberia && detalleCode.trim().toUpperCase() === '008/3A',
-      cableTrayWidth
+      incluirTuberia:
+        incluirTuberia &&
+        (detalleCode.trim().toUpperCase() === '008/3A' || detalleCode.trim().toUpperCase() === '008/3B'),
+      cableTrayWidth,
+      cableLength: cableLength.trim()
     });
 
     if (applied) onClose();
   };
 
   return (
-    <ModalShell title="Aplicar regla" subtitle={activeRule.trigger} onClose={onClose} maxWidth="600px" dismiss="dirty-confirm" isDirty={isDirty}>
+    <ModalShell
+      title="Aplicar regla"
+      subtitle={activeRule.trigger}
+      onClose={onClose}
+      maxWidth="880px"
+      dismiss="dirty-confirm"
+      isDirty={isDirty}
+      dismissOnOverlay={false}
+      onMinimize={() => setRulePromptMinimized(true)}
+      onPrepareMinimize={() => flushSync(() => armRuleRestore())}
+      minimizeTargetId={RULE_RESTORE_BUTTON_ID}
+    >
         <form onSubmit={handleSubmit}>
-        <div className="modal-body">
+        <div className="modal-body prompt">
           <div
             style={{
               marginBottom: '1.2rem',
@@ -204,7 +227,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                     type="button"
                     onClick={() => {
                       setDetalleCode(d);
-                      if (d !== '008/3A') setIncluirTuberia(false);
+                      if (d !== '008/3A' && d !== '008/3B') setIncluirTuberia(false);
                     }}
                     className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
                     style={{ flex: 1, padding: '0.5rem' }}
@@ -216,7 +239,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             </div>
           )}
 
-          {req.isCable40 && detalleCode === '008/3A' && (
+          {req.isCable40 && (detalleCode === '008/3A' || detalleCode === '008/3B') && (
             <label
               style={{
                 display: 'flex',
@@ -281,18 +304,44 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             </div>
           )}
 
-          {/* INSTANCES COUNT & BASE TAG */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1rem', marginBottom: '1.35rem' }}>
-            <div>
+          {(req.isPozo || req.isSoldaduraX) && (
+            <div style={{ marginBottom: '1.35rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                CANTIDAD (INSTANCIAS):
+                DETALLE CONSTRUCTIVO:
               </label>
+              {req.availableDetalles.length > 0 ? (
+                <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  {req.availableDetalles.map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDetalleCode(d)}
+                      className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
+                      style={{ flex: 1, padding: '0.5rem' }}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <input
+                  className="input"
+                  style={{ width: '100%' }}
+                  value={detalleCode}
+                  placeholder="Código de detalle"
+                  onChange={e => setDetalleCode(e.target.value.toUpperCase())}
+                />
+              )}
+            </div>
+          )}
+
+          <div className="prompt-grid" style={{ marginBottom: '12px' }}>
+            <label>
+              Cantidad
               <input
                 type="number"
                 min={0}
                 max={500}
-                className="input"
-                style={{ width: '100%' }}
                 value={count}
                 onFocus={e => e.target.select()}
                 onChange={e => {
@@ -300,22 +349,30 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                   setCount(isNaN(v) ? 0 : Math.max(0, v));
                 }}
               />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                TAG EN PLANO (BASE):
-              </label>
+            </label>
+            <label>
+              Tag en plano
               <input
                 type="text"
-                className="input"
-                style={{ width: '100%' }}
                 value={baseTag}
                 onFocus={e => e.target.select()}
                 onChange={e => setBaseTag(e.target.value)}
-                placeholder="ej: M01, C01, SE01"
+                placeholder="M01"
                 required
               />
-            </div>
+            </label>
+            {(req.isCable20 || req.isCable40) && (
+              <label>
+                Longitud de cable (m)
+                <input
+                  inputMode="decimal"
+                  value={cableLength}
+                  aria-label="Longitud de cable"
+                  placeholder="12.5"
+                  onChange={e => setCableLength(e.target.value.replace(/[^\d.,]/g, ''))}
+                />
+              </label>
+            )}
           </div>
 
           {effCount > 1 && (

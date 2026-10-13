@@ -1,6 +1,6 @@
-import { TakeoffItem, MaterialType } from '../../takeoff-item/model/types';
+import { TakeoffItem } from '../../takeoff-item/model/types';
 import { uid } from '../../../shared/lib/uid';
-import { isPrimaryMaterial, getAbsoluteUnit } from '../../takeoff-item/model/materialClassifier';
+import { componentClass, getAbsoluteUnit } from '../../takeoff-item/model/materialClassifier';
 import { generateTagUnico, assignTagUnicoSuffixes } from '../../takeoff-item/model/tagGenerator';
 import {
   DYNAMIC_DETALLE_VARIANTS,
@@ -9,6 +9,7 @@ import {
   R2_SWAPPABLE,
   shouldAutoManageTuberia
 } from './detalleVariants';
+import { evaluateMetradoFormula, isMetradoExpression, lengthVar, shownVariantFormula } from './metradoFormula';
 
 /**
  * Applies DETALLE variant substitutions for CABLE DESNUDO (r1 / r2)
@@ -155,6 +156,20 @@ export function applyDetalleVariant(
     .map(v => {
       let finalOt = v.ot !== undefined ? String(v.ot) : '';
       let finalQty = v.qty;
+      const formula = shownVariantFormula(v);
+      if (isMetradoExpression(formula)) {
+        const result = evaluateMetradoFormula(formula, {
+          length: lengthVar(cableOt),
+          soportes: numSoportes,
+          jumpers: numJumpers
+        });
+        if (result.status === 'value') {
+          finalOt = result.text;
+          finalQty = result.number;
+        } else {
+          finalOt = '';
+        }
+      } else {
       const isJumper = v.unit.toLowerCase().includes('jumper') || v.desc.toUpperCase().includes('JUMPER');
       const isSoporte = v.unit.toLowerCase().includes('soporte') || v.desc.toUpperCase().includes('SOPORTE');
 
@@ -201,8 +216,9 @@ export function applyDetalleVariant(
       } else if (v.otDynamic === 'empty') {
         finalOt = '';
       }
+      }
 
-      const isP = isPrimaryMaterial(v.desc);
+      const mat = componentClass(v.desc, v.material);
       return {
         id: uid(),
         pkgId: refItem.pkgId,
@@ -211,10 +227,10 @@ export function applyDetalleVariant(
         unit: getAbsoluteUnit(v.unit, v.desc),
         notes: '',
         ruleId: 'r2',
-        material: (isP ? 'P' : 'C') as MaterialType,
+        material: mat,
         plano: refItem.plano,
         rev: refItem.rev,
-        tagUnico: isP ? generateTagUnico(refItem.plano, tagPlano, 'P') : '',
+        tagUnico: mat === 'P' ? generateTagUnico(refItem.plano, tagPlano, 'P') : '',
         tagPlano: tagPlano,
         detalle: detalleCode,
         metradoOt: finalOt,
@@ -275,8 +291,16 @@ export function applyBarraPotDetalleVariant(
 
   const newItems: TakeoffItem[] = variant.map(v => {
     const isSoporte = v.unit.toLowerCase().includes('soporte');
-    const finalQty = isSoporte ? v.qty * numSoportes : v.qty;
-    const finalOt = isSoporte ? String(parseFloat(v.metradoOt || '1') * numSoportes) : v.metradoOt;
+    const storedFormula = (v as { formula?: string }).formula || '';
+    const evaluated = storedFormula && isMetradoExpression(storedFormula)
+      ? evaluateMetradoFormula(storedFormula, { soportes: numSoportes })
+      : null;
+    const finalQty = evaluated?.status === 'value'
+      ? evaluated.number
+      : isSoporte ? v.qty * numSoportes : v.qty;
+    const finalOt = evaluated?.status === 'value'
+      ? evaluated.text
+      : isSoporte ? String(parseFloat(v.metradoOt || '1') * numSoportes) : v.metradoOt;
 
     return {
       id: uid(),

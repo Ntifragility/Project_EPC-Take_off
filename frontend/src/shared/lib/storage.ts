@@ -60,7 +60,7 @@ export function loadStoredRules(section: SectionType): TakeoffRule[] {
         if (up === 'SOLDADURA T 4/0') {
           return {
             ...r,
-            tagPrefix: 'T'
+            tagPrefix: 'TT'
           };
         }
         if (up === 'CABLE DESNUDO 4/0 AWG') {
