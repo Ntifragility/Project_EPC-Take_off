@@ -135,7 +135,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                             </div>
                           </td>
                         )}
-                        <MatCell desc={s.desc} />
+                        <MatCell desc={s.desc} material={s.material} />
                         <td
                           className="rule-desc"
                           style={{

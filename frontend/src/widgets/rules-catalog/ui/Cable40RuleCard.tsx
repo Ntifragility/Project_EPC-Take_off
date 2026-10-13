@@ -20,9 +20,9 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
   onEdit,
   onDelete
 }) => {
-  const metradoFor = (desc: string, fallback: string) => {
+  const lineFor = (desc: string) => {
     const up = desc.toUpperCase();
-    const line = rule.subitems.find(item => {
+    return rule.subitems.find(item => {
       const text = item.desc.toUpperCase();
       if (up.includes('CINTA')) return text.includes('CINTA');
       if (up.includes('TIERRA')) return text.includes('TIERRA');
@@ -31,9 +31,15 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
       if (up.includes('CABLE')) return text.includes('CABLE DESNUDO 4/0');
       return false;
     });
+  };
+
+  const metradoFor = (desc: string, fallback: string) => {
+    const line = lineFor(desc);
     if (!line) return fallback;
     return shownFormula(line, rule.trigger) || fallback;
   };
+
+  const materialFor = (desc: string) => lineFor(desc)?.material;
 
   const cable40Detalles = [
     {
@@ -104,7 +110,7 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
                             </div>
                           </td>
                         )}
-                        <MatCell desc={item.desc} />
+                        <MatCell desc={item.desc} material={materialFor(item.desc)} />
                         <td className="rule-desc" style={{ borderRight: '1px solid var(--b1)', padding: '8px 10px', color: 'var(--tx)' }}>{item.desc}</td>
                         <td title={item.formula} style={{ borderRight: '1px solid var(--b1)', padding: '8px 10px', color: 'var(--tx)', fontWeight: 'bold', textAlign: 'center' }}>{metradoFor(item.desc, item.metrado)}</td>
                         <td style={{ padding: '8px 10px', color: 'var(--tx)', fontWeight: 600, textAlign: 'center' }}>{item.unit}</td>

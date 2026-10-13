@@ -200,9 +200,14 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
   },
 
   removeSource: (id) => {
+    const wizardIds = get().wizardIds.filter(sourceId => sourceId !== id);
     remember(get, set, 'removeSource', {
       sources: get().sources.filter(source => source.id !== id),
       rows: get().rows.filter(row => row.sourceId !== id)
+    });
+    set({
+      wizardIds,
+      wizardIndex: wizardIds.length === 0 ? 0 : Math.min(get().wizardIndex, wizardIds.length - 1)
     });
   },
 

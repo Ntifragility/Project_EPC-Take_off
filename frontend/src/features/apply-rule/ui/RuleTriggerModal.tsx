@@ -130,7 +130,12 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             }}
           >
             <div style={{ fontWeight: 700, color: 'var(--tx-hd)', marginBottom: '2px' }}>Se insertará</div>
-            {getRuleInsertPreview(activeRule, activeArea)}
+            {getRuleInsertPreview(activeRule, activeArea, {
+              detalleCode,
+              numSoportes: effSoportes,
+              numJumpers: effJumpers,
+              incluirTuberia
+            })}
           </div>
 
           {/* CABLE TRAY WIDTH SELECTION */}

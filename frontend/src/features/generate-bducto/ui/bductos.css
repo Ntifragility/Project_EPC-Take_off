@@ -345,6 +345,13 @@ body:not(.light-theme):not(.light-mode) .curve-catalog th {
   height: 24px;
 }
 
+.curve-catalog td .icon-act-delete,
+.curve-catalog td .icon-act-delete svg,
+.bducto-sheet td .icon-act-delete,
+.bducto-sheet td .icon-act-delete svg {
+  color: #c5221f !important;
+}
+
 .bducto-sources {
   width: 100%;
   border-collapse: collapse;

@@ -20,6 +20,7 @@ import { useItemsStore } from '../../manage-items/model/useItemsStore';
 import { usePackagesStore } from '../../manage-packages/model/usePackagesStore';
 import { useAppStore } from '../../app-config/model/useAppStore';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
+import { siteConfirm } from '../../../shared/ui/askSite';
 
 export async function loadInitialCloudConfig() {
   const { section, activeArea } = useAppStore.getState();
@@ -115,12 +116,12 @@ export async function executeSyncToDatabase(skipConfirm = false) {
 
   if (!skipConfirm) {
     const confirmMessage =
-      `ℹ️ CONFIRMAR ENVÍO A BASE DE DATOS:\n\n` +
+      `Confirmar envío a base de datos\n\n` +
       `Vas a depositar ${itemsToSync.length} filas en Supabase.\n\n` +
-      `• Los accesorios base y jumpers se guardarán en líneas independientes.\n\n` +
+      `Los accesorios base y jumpers se guardarán en líneas independientes.\n\n` +
       `¿Deseas proceder y enviar los ${itemsToSync.length} ítems a la base de datos?`;
 
-    if (typeof window !== 'undefined' && !window.confirm(confirmMessage)) {
+    if (!(await siteConfirm(confirmMessage))) {
       return;
     }
   }
@@ -147,8 +148,8 @@ export async function executeSyncBductosToDatabase(skipConfirm = false) {
     return;
   }
 
-  if (!skipConfirm && typeof window !== 'undefined') {
-    const accepted = window.confirm(
+  if (!skipConfirm) {
+    const accepted = await siteConfirm(
       `Vas a depositar ${rows.length} filas en main_BDUCTOS_table y el catálogo de curvas en bducto_curve_catalog.\n\n` +
         `Cada guardado agrega las filas de nuevo. El catálogo se actualiza por id.\n\n` +
         `¿Deseas enviar los ${rows.length} ítems?`

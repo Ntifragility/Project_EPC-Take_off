@@ -272,6 +272,8 @@ export function executeApplyRule(
   combined = correlateItemsWithPartidas(combined, partidas, activeArea);
 
   setItems(combined, section);
-  showToast(`${newItems.length} ítems agregados`, 'success');
+  const added = Math.max(0, combined.length - items.length);
+  const addedLabel = added === 1 ? '1 ítem agregado' : `${added} ítems agregados`;
+  showToast(addedLabel, 'success');
   return true;
 }

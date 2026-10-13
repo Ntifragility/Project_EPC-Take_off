@@ -84,6 +84,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     try {
       const orderIndex = isNew ? nextRules.length - 1 : Math.max(0, nextRules.findIndex(r => r.id === rule.id));
       await saveTakeoffRuleToSupabase(rule, section, orderIndex);
+      await replaceRuleLines(rule);
     } catch (err) {
       console.warn('Supabase sync background notice:', err);
     }
@@ -95,6 +96,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     set({ rules: nextRules });
     try {
       await deleteTakeoffRuleFromSupabase(id);
+      await deleteRuleLines(id);
     } catch (err) {
       console.warn('Supabase delete background notice:', err);
     }

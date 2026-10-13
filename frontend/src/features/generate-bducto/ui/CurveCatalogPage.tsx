@@ -12,6 +12,7 @@ import {
 } from '../../../entities/bducto/model/catalog';
 import { deleteCurveCatalogFromSupabase, syncCurveCatalogToSupabase } from '../../../shared/api/supabase';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { siteConfirm } from '../../../shared/ui/askSite';
 import { useCurveCatalogHistory } from '../model/curveCatalogHistory';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 import './bductos.css';
@@ -155,13 +156,15 @@ export const CurveCatalogPage: React.FC = () => {
 
   const remove = (row: CurveDraft) => {
     const label = (row.descripcion || curveDescription(row)).trim() || row.id;
-    if (!window.confirm(`¿Quitar "${label}" del catálogo?`)) return;
+    void (async () => {
+    if (!(await siteConfirm(`¿Quitar "${label}" del catálogo?`))) return;
     useCurveCatalogHistory.getState().remember({ rows, removedIds });
     setRows(current => current.filter(item => item.id !== row.id));
     if (row.stored) {
       setRemovedIds(current => (current.includes(row.id) ? current : [...current, row.id]));
     }
     if (editor?.id === row.id) setEditor(null);
+    })();
   };
 
   const beginEdit = (row: CurveDraft) => {
@@ -195,7 +198,7 @@ export const CurveCatalogPage: React.FC = () => {
     }
     const label = (row.descripcion || curveDescription(row)).trim();
     const lines = changes.map(field => `${FIELD_LABELS[field]}: "${fieldValue(row, field)}" → "${draft[field].trim()}"`);
-    const accepted = window.confirm(`¿Guardar los cambios de esta curva?\n\n${label}\n${lines.join('\n')}`);
+    const accepted = await siteConfirm(`¿Guardar los cambios de esta curva?\n\n${label}\n${lines.join('\n')}`);
     if (!accepted) return;
 
     let updated = row;

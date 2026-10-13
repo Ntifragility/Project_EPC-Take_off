@@ -8,6 +8,7 @@ import { IconActionButton } from '../../../shared/ui/IconActionButton';
 import { useBductoStore } from '../model/useBductoStore';
 import { BductoDisplayRow, presentBductoRows } from '../model/bductoView';
 import { BDUCTO_COLUMNS, bductoCell } from '../model/exportBductosExcel';
+import { siteConfirm } from '../../../shared/ui/askSite';
 
 const NUM_WIDTH = 52;
 const OUTLINE_WIDTH = 22;
@@ -149,6 +150,7 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
   const patchRows = useBductoStore(state => state.patchRows);
   const sources = useBductoStore(state => state.sources);
   const setWizard = useBductoStore(state => state.setWizard);
+  const removeSource = useBductoStore(state => state.removeSource);
   const detailView = useBductoStore(state => state.detailView);
   const displayRows = useMemo(() => presentBductoRows(rows, detailView, 'separated'), [rows, detailView]);
   const [classificationOpen, setClassificationOpen] = useState(() => {
@@ -484,6 +486,21 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
     setWizard([source]);
   };
 
+  const deleteTramo = async (row: BductoDisplayRow) => {
+    if (row.viewEdit === 'locked') {
+      showToast('Esta fila junta varios tramos. Vuelve a Separados para quitar uno.', 'warn');
+      return;
+    }
+    const source = sources.find(item => item.id === row.sourceId);
+    if (!source) return;
+    const count = rows.filter(item => item.sourceId === source.id).length;
+    const tag = source.tagEnPlano?.trim() || row.tagUnico?.trim() || '—';
+    const plano = (source.plano || row.plano || '—').trim() || '—';
+    if (!(await siteConfirm(`¿Eliminar ítems asociados al tramo «${tag}» de plano "${plano}"?`))) return;
+    removeSource(source.id);
+    showToast(`Tramo eliminado (${count} fila${count === 1 ? '' : 's'})`, 'success');
+  };
+
   const activeFilters = Object.entries(columnFilters);
 
   return (
@@ -690,6 +707,7 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
                         {column.key === lastColumnKey && row.viewEdit !== 'locked' && (
                           <div className="act-row-floating" onMouseDown={event => event.stopPropagation()}>
                             <IconActionButton kind="edit" title="Editar tramo" onClick={() => openTramo(row)} />
+                            <IconActionButton kind="delete" title="Eliminar el tramo completo" onClick={() => void deleteTramo(row)} />
                           </div>
                         )}
                       </td>

@@ -1,5 +1,6 @@
 import { BductoRow } from '../../../entities/bducto/model/types';
 import { downloadTableXlsx } from '../../../shared/lib/excelTemplates';
+import { sitePrompt } from '../../../shared/ui/askSite';
 
 export const BDUCTO_TEMPLATE_HEADERS = ['DESDE', 'HASTA', 'PLANO', 'TAG EN PLANO', 'Quantity'] as const;
 
@@ -55,7 +56,7 @@ export async function exportBductosExcel(rows: BductoRow[]): Promise<void> {
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const defaultName = `bductos_${dateStr}`;
-  const userFileName = window.prompt('Ingresa el nombre del archivo Excel a exportar:', defaultName);
+  const userFileName = await sitePrompt('Ingresa el nombre del archivo Excel a exportar:', defaultName);
   if (userFileName === null) return;
 
   let finalFileName = (userFileName && userFileName.trim()) || defaultName;
@@ -84,7 +85,7 @@ export async function exportBductosSummaryExcel(rows: BductoRow[]): Promise<void
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const defaultName = `resumen_bductos_${dateStr}`;
-  const userFileName = window.prompt('Ingresa el nombre del archivo Excel a exportar:', defaultName);
+  const userFileName = await sitePrompt('Ingresa el nombre del archivo Excel a exportar:', defaultName);
   if (userFileName === null) return;
 
   let finalFileName = (userFileName && userFileName.trim()) || defaultName;

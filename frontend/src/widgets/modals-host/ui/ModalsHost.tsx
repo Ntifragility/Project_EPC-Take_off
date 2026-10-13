@@ -7,6 +7,7 @@ import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { RuleTriggerModal } from '../../../features/apply-rule/ui/RuleTriggerModal';
 import { Toast } from '../../../shared/ui/Toast';
+import { SitePrompt } from '../../../shared/ui/SitePromptDialog';
 
 export interface ModalsHostProps {
   areaModalOpen: boolean;
@@ -52,6 +53,7 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
       />
 
       <Toast toast={toast} />
+      <SitePrompt />
     </>
   );
 };

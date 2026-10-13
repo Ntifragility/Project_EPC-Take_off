@@ -1,5 +1,6 @@
 import { TakeoffItem, PackageGroup } from '../../entities/takeoff-item/model/types';
 import { downloadTableXlsx } from './excelTemplates';
+import { siteAlert, sitePrompt } from '../ui/askSite';
 
 export async function exportTakeoffExcel(items: TakeoffItem[], packages: PackageGroup[], section = 'pat', fileNamePrompt?: string): Promise<void> {
   if (items.length === 0) return;
@@ -46,7 +47,7 @@ export async function exportTakeoffExcel(items: TakeoffItem[], packages: Package
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const defaultName = `metrado_${dateStr}`;
-  const userFileName = fileNamePrompt !== undefined ? fileNamePrompt : window.prompt('Ingresa el nombre del archivo Excel a exportar:', defaultName);
+  const userFileName = fileNamePrompt !== undefined ? fileNamePrompt : await sitePrompt('Ingresa el nombre del archivo Excel a exportar:', defaultName);
 
   if (userFileName === null) return;
 
@@ -198,7 +199,7 @@ export function generateTagSummary(items: TakeoffItem[]): TagSummaryRow[] {
 export async function exportTagSummaryExcel(items: TakeoffItem[], defaultFileName?: string, fileNamePrompt?: string): Promise<void> {
   const summaryRows = generateTagSummary(items);
   if (summaryRows.length === 0) {
-    window.alert('No hay datos en la tabla principal para generar el resumen.');
+    await siteAlert('No hay datos en la tabla principal para generar el resumen.');
     return;
   }
 
@@ -224,7 +225,7 @@ export async function exportTagSummaryExcel(items: TakeoffItem[], defaultFileNam
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const baseName = defaultFileName || `resumen_tags_${dateStr}`;
-  const userFileName = fileNamePrompt !== undefined ? fileNamePrompt : window.prompt('Ingresa el nombre del archivo Excel a exportar:', baseName);
+  const userFileName = fileNamePrompt !== undefined ? fileNamePrompt : await sitePrompt('Ingresa el nombre del archivo Excel a exportar:', baseName);
 
   if (userFileName === null) return;
 

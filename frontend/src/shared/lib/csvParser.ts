@@ -7,6 +7,7 @@ import { generateTagUnico, assignTagUnicoSuffixes } from '../../entities/takeoff
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../entities/takeoff-rule/model/ruleExpander';
 import { findIntroducedTagCollision, tagCollisionMessage } from '../../entities/takeoff-item/model/itemIdentity';
 import { normalizeDetalle, isKnownDetalle } from '../../entities/takeoff-rule/model/detalleRegistry';
+import { sitePrompt } from '../ui/askSite';
 
 export interface RejectedRowInfo {
   fila: number;
@@ -205,7 +206,7 @@ export async function convertSpreadsheetToCsvText(file: File, opts?: { allSheets
   return normalizedRows.length > 1 ? normalizedRows.join('\n') : '';
 }
 
-export function parseTakeoffCsv(
+export async function parseTakeoffCsv(
   csvText: string,
   rules: TakeoffRule[],
   pkgId: string,
@@ -486,11 +487,11 @@ export function parseTakeoffCsv(
           } else {
             const val = promptSoportesFallback
               ? promptSoportesFallback(rowDetalle)
-              : (() => {
-                  const resp = typeof window !== 'undefined' ? window.prompt(
+              : await (async () => {
+                  const resp = await sitePrompt(
                     `DETALLE ${rowDetalle}: Incluye materiales con SOPORTE y la columna 6 (SOPORTES) está vacía.\n\n¿Cuántos soportes se requieren por mecha?`,
                     '1'
-                  ) : null;
+                  );
                   return resp !== null && !isNaN(parseInt(resp, 10)) && parseInt(resp, 10) > 0 ? parseInt(resp, 10) : 1;
                 })();
             soportesPromptCache[rowDetalle] = val;

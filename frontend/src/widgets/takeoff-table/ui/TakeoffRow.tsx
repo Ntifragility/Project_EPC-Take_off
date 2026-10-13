@@ -5,6 +5,8 @@ import { generateTagUnico } from '../../../entities/takeoff-item/model/tagGenera
 import { getDetallesForArea, hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
+import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
+import { siteConfirm, sitePrompt } from '../../../shared/ui/askSite';
 import { isDetalleTriggerRow } from '../../../entities/takeoff-rule/model/instanceRebuild';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
 import type { RangeEdges } from '../model/cellRange';
@@ -50,8 +52,9 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
   onStartFillDrag,
   onCellMouseEnter
 }) => {
-  const { updateItem, highlightedTag, items: allStoreItems } = useItemsStore();
+  const { updateItem, highlightedTag, items: allStoreItems, deleteInstance } = useItemsStore();
   const { section, activeArea } = useAppStore();
+  const showToast = useUIStore(state => state.showToast);
   const rowRef = useRef<HTMLTableRowElement>(null);
 
   const [material, setMaterial] = useState<MaterialType>(item.material || 'P');
@@ -248,17 +251,18 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
               onChange={e => {
                 const newDet = e.target.value;
                 setDetalle(newDet);
+                void (async () => {
                 let numSoportes = 1;
                 let numJumpers = 1;
                 if (hasSoporteItems(newDet, activeArea)) {
-                  const sAns = window.prompt(
+                  const sAns = await sitePrompt(
                     `¿Cuántos soportes se requieren por mecha para el detalle ${newDet}?\n(Multiplica los materiales "u / soporte" y "m/ soporte")`,
                     '1'
                   );
                   if (sAns !== null) numSoportes = parseInt(sAns, 10) || 1;
                 }
                 if (hasJumperItems(newDet, activeArea)) {
-                  const jAns = window.prompt(
+                  const jAns = await sitePrompt(
                     `¿Cuántos jumpers se requieren por mecha para el detalle ${newDet}?\n(Multiplica los materiales con Jumper)`,
                     '1'
                   );
@@ -273,6 +277,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
                   },
                   section
                 );
+                })();
               }}
               style={{
                 width: '100%',
@@ -540,6 +545,24 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
         <div className="act-row-floating">
           {isMainItem && (
             <IconActionButton kind="edit" title="Editar fila completa" onClick={onStartEdit} />
+          )}
+          {isMainItem && allStoreItems.some(it => it.id === item.id) && (
+            <IconActionButton
+              kind="delete"
+              title="Eliminar el grupo completo"
+              onClick={() => {
+                void (async () => {
+                const key = item.instanceId || item.id;
+                const count = allStoreItems.filter(it => (it.instanceId || it.id) === key).length;
+                if (count === 0) return;
+                const detalle = (item.detalle || '—').trim() || '—';
+                const plano = (item.plano || '—').trim() || '—';
+                if (!(await siteConfirm(`¿Eliminar ítems asociados a detalle ${detalle} de plano "${plano}"?`))) return;
+                const removed = deleteInstance(item.id, section);
+                if (removed > 0) showToast(`Grupo eliminado (${removed} fila${removed === 1 ? '' : 's'})`, 'success');
+                })();
+              }}
+            />
           )}
         </div>
       </td>

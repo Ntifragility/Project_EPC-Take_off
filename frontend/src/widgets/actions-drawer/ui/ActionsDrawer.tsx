@@ -9,6 +9,7 @@ import { AddPanel } from '../../add-panel/ui/AddPanel';
 import { BductoInsertPanel } from '../../../features/generate-bducto/ui/BductoInsertPanel';
 import { useBductoStore } from '../../../features/generate-bducto/model/useBductoStore';
 import { exportBductosExcel, exportBductosSummaryExcel } from '../../../features/generate-bducto/model/exportBductosExcel';
+import { siteConfirm } from '../../../shared/ui/askSite';
 
 type ToolsTab = 'metadatos' | 'acciones';
 
@@ -43,17 +44,19 @@ export const ToolsPanel: React.FC = () => {
   };
 
   const handleClear = () => {
-    if (section === 'bductos') {
-      if (window.confirm('¿Seguro que deseas limpiar el metrado de BDUCTOS?')) {
-        clearBducto();
+    void (async () => {
+      if (section === 'bductos') {
+        if (await siteConfirm('¿Seguro que deseas limpiar el metrado de BDUCTOS?')) {
+          clearBducto();
+          setOpen(false);
+        }
+        return;
+      }
+      if (await siteConfirm('¿Seguro que deseas limpiar todos los datos locales de la pantalla?')) {
+        clearCache(section);
         setOpen(false);
       }
-      return;
-    }
-    if (window.confirm('¿Seguro que deseas limpiar todos los datos locales de la pantalla?')) {
-      clearCache(section);
-      setOpen(false);
-    }
+    })();
   };
 
   const isBductos = section === 'bductos';

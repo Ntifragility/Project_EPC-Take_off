@@ -8,7 +8,7 @@ import { usePartidasStore } from '../../manage-partidas/model/usePartidasStore';
 import { useAppStore } from '../../app-config/model/useAppStore';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 
-export function executeImportExcel(csvText: string) {
+export async function executeImportExcel(csvText: string) {
   const { items, customPlano, customRev, setItems, saveUndoSnapshot } = useItemsStore.getState();
   const { rules } = useRulesStore.getState();
   const { selPkg, packages } = usePackagesStore.getState();
@@ -19,7 +19,7 @@ export function executeImportExcel(csvText: string) {
   const pkgId = selPkg || packages[0]?.id || 'p1';
   saveUndoSnapshot();
 
-  const { newItems, addedCount, rejectedRows } = parseTakeoffCsv(
+  const { newItems, addedCount, rejectedRows } = await parseTakeoffCsv(
     csvText,
     rules,
     pkgId,

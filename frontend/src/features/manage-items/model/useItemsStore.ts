@@ -78,6 +78,8 @@ export interface ItemsActions {
     section: SectionType
   ) => boolean;
   deleteItem: (id: string, section: SectionType) => void;
+  /** Removes every row that belongs to the same inserted group. */
+  deleteInstance: (id: string, section: SectionType) => number;
   setItems: (items: TakeoffItem[], section: SectionType) => void;
   saveUndoSnapshot: () => void;
   requestDetalleChange: (
@@ -601,6 +603,21 @@ export const useItemsStore = createStore<ItemsStore>((set, get) => ({
     const updated = get().items.filter(it => it.id !== id);
     saveStoredItems(section, updated);
     set({ items: updated });
+  },
+
+  deleteInstance: (id: string, section: SectionType) => {
+    const items = get().items;
+    const target = items.find(it => it.id === id);
+    if (!target) return 0;
+    const key = target.instanceId || target.id;
+    const removed = items.filter(it => (it.instanceId || it.id) === key);
+    if (removed.length === 0) return 0;
+    get().saveUndoSnapshot();
+    const updated = items.filter(it => (it.instanceId || it.id) !== key);
+    const editingItemId = updated.some(it => it.id === get().editingItemId) ? get().editingItemId : null;
+    saveStoredItems(section, updated);
+    set({ items: updated, editingItemId });
+    return removed.length;
   },
 
   setItems: (items: TakeoffItem[], section: SectionType) => {

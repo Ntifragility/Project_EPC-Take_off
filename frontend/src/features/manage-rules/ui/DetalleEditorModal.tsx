@@ -3,6 +3,7 @@ import { DetalleVariantItem } from '../../../entities/takeoff-rule/model/types';
 import { AVAILABLE_CUSTOM_ITEMS } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { formulaHint, isMetradoExpression, shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { ModalShell } from '../../../shared/ui/ModalShell';
+import { siteConfirm } from '../../../shared/ui/askSite';
 
 export interface DetalleEditorModalProps {
   isOpen: boolean;
@@ -541,7 +542,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                 type="button"
                 className="btn-danger"
                 onClick={async () => {
-                  if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el detalle "${activeCode}"? Esta acción borrará todas sus partidas asignadas.`)) {
+                  if (await siteConfirm(`¿Estás seguro de que deseas eliminar permanentemente el detalle "${activeCode}"? Esta acción borrará todas sus partidas asignadas.`)) {
                     setIsSaving(true);
                     try {
                       const ok = await onDelete(area, activeCode, category);

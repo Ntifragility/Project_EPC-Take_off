@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { growWindow, prefersReducedMotion, shrinkWindow, takeRestoreAnchor } from './windowMotion';
+import { siteConfirm } from './askSite';
 
 export type ModalDismissPolicy = 'safe' | 'dirty-confirm' | 'locked';
 
@@ -57,9 +58,11 @@ export const ModalShell: React.FC<ModalShellProps> = ({
   }, []);
 
   const tryDismiss = () => {
-    if (locked) return;
-    if (dismiss === 'dirty-confirm' && isDirty && !window.confirm(DIRTY_DISCARD_MESSAGE)) return;
-    onClose();
+    void (async () => {
+      if (locked) return;
+      if (dismiss === 'dirty-confirm' && isDirty && !(await siteConfirm(DIRTY_DISCARD_MESSAGE))) return;
+      onClose();
+    })();
   };
 
   useEffect(() => {
@@ -69,8 +72,10 @@ export const ModalShell: React.FC<ModalShellProps> = ({
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (dismiss === 'dirty-confirm' && isDirty && !window.confirm(DIRTY_DISCARD_MESSAGE)) return;
-      onClose();
+      void (async () => {
+        if (dismiss === 'dirty-confirm' && isDirty && !(await siteConfirm(DIRTY_DISCARD_MESSAGE))) return;
+        onClose();
+      })();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);

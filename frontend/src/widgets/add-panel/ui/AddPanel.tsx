@@ -6,6 +6,7 @@ import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { convertSpreadsheetToCsvText } from '../../../shared/lib/csvParser';
+import { downloadMetradoTemplateXlsx } from '../../../shared/lib/excelTemplates';
 import { executeImportExcel } from '../../../features/import-excel/model/useImportExcel';
 import { ExcelGuideModal } from '../../../features/import-excel/ui/ExcelGuideModal';
 import { PartidasGuideModal } from '../../../features/manage-partidas/ui/PartidasGuideModal';
@@ -484,6 +485,16 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
             onChange={handleFileUpload}
           />
         </label>
+
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ flex: 1, padding: '7px 10px', fontSize: '11.5px' }}
+          onClick={() => void downloadMetradoTemplateXlsx()}
+          title="Descargar plantilla de metrado (.xlsx) con las pestañas de mechas y cables"
+        >
+          Plantilla
+        </button>
 
         <button
           type="button"

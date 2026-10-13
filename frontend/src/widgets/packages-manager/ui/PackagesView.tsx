@@ -3,6 +3,7 @@ import { usePartidasStore } from '../../../features/manage-partidas/model/usePar
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
+import { siteConfirm } from '../../../shared/ui/askSite';
 import { PartidasGuideModal } from '../../../features/manage-partidas/ui/PartidasGuideModal';
 import { PartidaRecord } from '../../../entities/partida/model/types';
 import { IconActionButton, IconActionGroup } from '../../../shared/ui/IconActionButton';
@@ -57,7 +58,7 @@ export const PackagesView: React.FC = () => {
   const handleDeletePartida = async (p: PartidaRecord) => {
     if (!p.id) return;
     const label = p.partidaSicme || p.item || p.forecastDesc || 'esta partida';
-    if (!window.confirm(`¿Eliminar la partida "${label}" de la matriz master? Esta acción también la quita de Supabase.`)) {
+    if (!(await siteConfirm(`¿Eliminar la partida "${label}" de la matriz master? Esta acción también la quita de Supabase.`))) {
       return;
     }
     try {
