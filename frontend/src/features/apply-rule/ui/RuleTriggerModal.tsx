@@ -30,7 +30,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   const activeRule = storeRule || rule;
   const minimized = useUIStore(state => state.rulePromptMinimized);
   const setRulePromptMinimized = useUIStore(state => state.setRulePromptMinimized);
-  const armRuleRestore = useUIStore(state => state.armRuleRestore);
+  const setRuleRestoreArmed = useUIStore(state => state.setRuleRestoreArmed);
 
   const [count, setCount] = useState<number>(1);
   const [baseTag, setBaseTag] = useState<string>('01');
@@ -112,7 +112,7 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
       isDirty={isDirty}
       dismissOnOverlay={false}
       onMinimize={() => setRulePromptMinimized(true)}
-      onPrepareMinimize={() => flushSync(() => armRuleRestore())}
+      onPrepareMinimize={() => flushSync(() => setRuleRestoreArmed(true))}
       minimizeTargetId={RULE_RESTORE_BUTTON_ID}
     >
         <form onSubmit={handleSubmit}>

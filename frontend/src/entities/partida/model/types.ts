@@ -27,6 +27,7 @@ export interface SupabasePartidaRecord {
   item: string;
   partida_balance: string;
   forecast_desc: string;
+  descripcion_sicme: string;
   descripcion_bm: string;
   descripcion: string;
   und: string;

@@ -422,7 +422,7 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
       const cell = el?.closest('td.excel-cell') as HTMLElement | null;
       const itemId = cell?.getAttribute('data-item-id');
       const colKey = cell?.getAttribute('data-col-key');
-      if (!itemId || !colKey || !selectableRef.current.includes(colKey)) return;
+      if (!itemId || !colKey || !selectableRef.current.some(key => key === colKey)) return;
       if (rangeRef.current?.itemId === itemId && rangeRef.current.colKey === colKey) return;
       const focus = { itemId, colKey };
       rangeRef.current = focus;

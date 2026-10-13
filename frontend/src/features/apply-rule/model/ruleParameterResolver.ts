@@ -37,6 +37,8 @@ export function resolveRuleRequirements(rule: TakeoffRule, activeArea: AreaType)
   const isCable20 = triggerUp.includes('CABLE DESNUDO 2/0');
   const isBarraPot = triggerUp.includes('BARRA POT');
   const isBarraInst = triggerUp.includes('BARRA INST');
+  const isPozo = triggerUp.includes('POZO');
+  const isSoldaduraX = triggerUp.includes('SOLDADURA X');
 
   const defaultTagPrefix = rule.tagPrefix || getDefaultTagPrefixByRule(rule.trigger) || 'M';
   const storedDetalle = (rule.detalle || '').trim();

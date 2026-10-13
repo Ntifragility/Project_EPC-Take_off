@@ -26,7 +26,6 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   activeArea,
   isExpanded,
   onToggleExpand,
-  onEdit,
   onDelete,
   onEditDetalle
 }) => {
@@ -40,7 +39,6 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
       badge={`${entries.length} ${entries.length === 1 ? 'detalle' : 'detalles'}`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onEdit={() => onEdit(rule)}
       onDelete={() => onDelete(rule.id)}
     >
           <div
