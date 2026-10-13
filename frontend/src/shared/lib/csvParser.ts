@@ -215,7 +215,7 @@ export async function parseTakeoffCsv(
   existingItems: TakeoffItem[] = [],
   activeArea: 'AREA SECA' | 'AREA HUMEDA' = 'AREA SECA',
   promptSoportesFallback?: (detalleCode: string) => number
-): { newItems: TakeoffItem[]; addedCount: number; rejectedRows: RejectedRowInfo[] } {
+): Promise<{ newItems: TakeoffItem[]; addedCount: number; rejectedRows: RejectedRowInfo[] }> {
   const rejectedRows: RejectedRowInfo[] = [];
   let itemsResult: TakeoffItem[] = [...existingItems];
   let addedCount = 0;
