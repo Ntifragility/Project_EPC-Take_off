@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Key, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../model/useAuthStore';
+import { UserRole } from '../model/authTypes';
 import { submitAccessRequest } from '../api/authApi';
 
 export const LoginScreen: React.FC = () => {
@@ -14,7 +15,7 @@ export const LoginScreen: React.FC = () => {
   const [regFullName, setRegFullName] = useState('');
   const [regDni, setRegDni] = useState('');
   const [regArea, setRegArea] = useState('Todas las áreas');
-  const [regRole, setRegRole] = useState<'Admin' | 'Operario' | 'Supervisor'>('Operario');
+  const [regRole, setRegRole] = useState<UserRole>('Operario');
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
   const [regMsg, setRegMsg] = useState('');
@@ -561,9 +562,9 @@ export const LoginScreen: React.FC = () => {
                         boxSizing: 'border-box'
                       }}
                     >
-                      <option value="Operario">Operario</option>
-                      <option value="Supervisor">Supervisor</option>
-                      <option value="Admin">Admin</option>
+                      <option value="Operario">Level 1 - Operario</option>
+                      <option value="Superv">Level 2 - Superv</option>
+                      <option value="Admin">Level 3 - Admin</option>
                     </select>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { UserPlus, Bell, ShieldCheck, User, X } from 'lucide-react';
+import { UserPlus, Bell, ShieldCheck, Shield, User, X } from 'lucide-react';
+import { UserRole } from '../model/authTypes';
 import { useAuthStore } from '../model/useAuthStore';
 import { RegisterUserModal } from './RegisterUserModal';
 import { UserRequestsModal } from './UserRequestsModal';
@@ -10,7 +11,8 @@ export const UserManagementModal: React.FC = () => {
     setShowUserManagement,
     currentUser,
     users,
-    requests
+    requests,
+    updateRoleAndArea
   } = useAuthStore();
 
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -348,43 +350,85 @@ export const UserManagementModal: React.FC = () => {
 
                     {/* ROL */}
                     <td style={{ padding: '16px 14px', verticalAlign: 'middle' }}>
-                      {user.role === 'Admin' ? (
-                        <span
-                          style={{
-                            backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                            color: '#34d399',
-                            border: '1px solid rgba(16, 185, 129, 0.4)',
-                            borderRadius: '9999px',
-                            padding: '4px 14px',
-                            fontSize: '12.5px',
-                            fontWeight: 500,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <ShieldCheck size={14} color="#34d399" />
-                          <span>Admin</span>
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            backgroundColor: '#1b1c23',
-                            color: '#d1d5db',
-                            border: '1px solid #2d2e3b',
-                            borderRadius: '9999px',
-                            padding: '4px 14px',
-                            fontSize: '12.5px',
-                            fontWeight: 500,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <User size={13} color="#d1d5db" />
-                          <span>{user.role}</span>
-                        </span>
-                      )}
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        {user.role === 'Admin' ? (
+                          <span
+                            style={{
+                              backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                              color: '#34d399',
+                              border: '1px solid rgba(16, 185, 129, 0.4)',
+                              borderRadius: '9999px',
+                              padding: '4px 12px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <ShieldCheck size={14} color="#34d399" />
+                            <span>Level 3 - Admin</span>
+                          </span>
+                        ) : user.role === 'Superv' ? (
+                          <span
+                            style={{
+                              backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                              color: '#fbbf24',
+                              border: '1px solid rgba(245, 158, 11, 0.4)',
+                              borderRadius: '9999px',
+                              padding: '4px 12px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <Shield size={14} color="#fbbf24" />
+                            <span>Level 2 - Superv</span>
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                              color: '#93c5fd',
+                              border: '1px solid rgba(59, 130, 246, 0.35)',
+                              borderRadius: '9999px',
+                              padding: '4px 12px',
+                              fontSize: '12px',
+                              fontWeight: 500,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <User size={13} color="#93c5fd" />
+                            <span>Level 1 - Operario</span>
+                          </span>
+                        )}
+
+                        {!isCurrent && (
+                          <select
+                            value={user.role}
+                            onChange={e => void updateRoleAndArea(user.id, user.email, e.target.value as UserRole, user.area)}
+                            title="Cambiar nivel"
+                            style={{
+                              backgroundColor: '#1b1c23',
+                              color: '#9ca3af',
+                              border: '1px solid #2d2e3b',
+                              borderRadius: '4px',
+                              padding: '2px 6px',
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              outline: 'none'
+                            }}
+                          >
+                            <option value="Operario">Level 1</option>
+                            <option value="Superv">Level 2</option>
+                            <option value="Admin">Level 3</option>
+                          </select>
+                        )}
+                      </div>
                     </td>
 
                     {/* ÁREA */}

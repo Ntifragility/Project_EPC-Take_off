@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, ShieldCheck, LogOut, UserPlus } from 'lucide-react';
+import { User, ShieldCheck, Shield, LogOut, UserPlus } from 'lucide-react';
+import { getRoleDisplayName } from '../model/authTypes';
 import { useAuthStore } from '../model/useAuthStore';
 
 export const UserProfileButton: React.FC = () => {
@@ -34,7 +35,7 @@ export const UserProfileButton: React.FC = () => {
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
-        title={`Sesión activa: ${currentUser.email} (${currentUser.role})`}
+        title={`Sesión activa: ${currentUser.email} (${getRoleDisplayName(currentUser.role)})`}
         aria-label="Perfil de usuario"
         style={{
           width: '28px',
@@ -120,7 +121,7 @@ export const UserProfileButton: React.FC = () => {
                 {currentUser.email}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
-                {isAdmin ? (
+                {currentUser.role === 'Admin' ? (
                   <span
                     style={{
                       backgroundColor: 'rgba(16, 185, 129, 0.15)',
@@ -136,14 +137,32 @@ export const UserProfileButton: React.FC = () => {
                     }}
                   >
                     <ShieldCheck size={11} />
-                    <span>Admin</span>
+                    <span>Level 3 - Admin</span>
+                  </span>
+                ) : currentUser.role === 'Superv' ? (
+                  <span
+                    style={{
+                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                      color: '#fbbf24',
+                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      borderRadius: '9999px',
+                      padding: '1px 8px',
+                      fontSize: '10.5px',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Shield size={11} />
+                    <span>Level 2 - Superv</span>
                   </span>
                 ) : (
                   <span
                     style={{
-                      backgroundColor: '#1c1d25',
-                      color: '#d1d5db',
-                      border: '1px solid #2d2f3d',
+                      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                      color: '#93c5fd',
+                      border: '1px solid rgba(59, 130, 246, 0.35)',
                       borderRadius: '9999px',
                       padding: '1px 8px',
                       fontSize: '10.5px',
@@ -154,7 +173,7 @@ export const UserProfileButton: React.FC = () => {
                     }}
                   >
                     <User size={10} />
-                    <span>{currentUser.role}</span>
+                    <span>Level 1 - Operario</span>
                   </span>
                 )}
               </div>

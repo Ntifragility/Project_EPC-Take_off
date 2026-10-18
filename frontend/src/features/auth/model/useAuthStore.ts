@@ -1,6 +1,6 @@
 import { createStore } from '../../../shared/lib/store';
 import { supabase } from '../../../shared/api/supabase';
-import { UserProfile, UserRequest, RegisterUserPayload } from './authTypes';
+import { UserProfile, UserRequest, RegisterUserPayload, UserRole } from './authTypes';
 import {
   fetchAllUsers,
   fetchUserRequests,
@@ -35,7 +35,7 @@ export interface AuthActions {
   loadRequests: () => Promise<void>;
   registerUser: (payload: RegisterUserPayload) => Promise<{ success: boolean; error?: string }>;
   removeUser: (userId: string, email: string) => Promise<boolean>;
-  updateRoleAndArea: (userId: string, email: string, role: 'Admin' | 'Operario' | 'Supervisor', area: string) => Promise<boolean>;
+  updateRoleAndArea: (userId: string, email: string, role: UserRole, area: string) => Promise<boolean>;
   approveUserRequest: (request: UserRequest) => Promise<boolean>;
   rejectUserRequest: (requestId: string) => Promise<boolean>;
   setShowUserManagement: (show: boolean) => void;
@@ -225,7 +225,7 @@ export const useAuthStore = createStore<AuthStore>((set, get) => ({
     return ok;
   },
 
-  updateRoleAndArea: async (userId: string, email: string, role: 'Admin' | 'Operario' | 'Supervisor', area: string) => {
+  updateRoleAndArea: async (userId: string, email: string, role: UserRole, area: string) => {
     const ok = await updateUserRoleAndArea(userId, email, role, area);
     if (ok) {
       const users = await fetchAllUsers();

@@ -202,9 +202,9 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ isOpen, on
                   boxSizing: 'border-box'
                 }}
               >
-                <option value="Operario">Operario</option>
-                <option value="Admin">Admin</option>
-                <option value="Supervisor">Supervisor</option>
+                <option value="Operario">Level 1 - Operario</option>
+                <option value="Superv">Level 2 - Superv</option>
+                <option value="Admin">Level 3 - Admin</option>
               </select>
             </div>
 

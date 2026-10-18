@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Bell, Check, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../model/useAuthStore';
+import { getRoleDisplayName } from '../model/authTypes';
 
 interface UserRequestsModalProps {
   isOpen: boolean;
@@ -117,7 +118,7 @@ export const UserRequestsModal: React.FC<UserRequestsModalProps> = ({ isOpen, on
                     {req.fullName && <span><strong>Nombre:</strong> {req.fullName}</span>}
                     {req.dni && <span><strong>DNI:</strong> {req.dni}</span>}
                     <span><strong>Área:</strong> {req.area}</span>
-                    <span><strong>Rol:</strong> {req.roleRequested}</span>
+                    <span><strong>Rol:</strong> {getRoleDisplayName(req.roleRequested)}</span>
                   </div>
                 </div>
 

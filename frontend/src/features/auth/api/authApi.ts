@@ -1,5 +1,5 @@
 import { supabase } from '../../../shared/api/supabase';
-import { UserProfile, UserRequest, RegisterUserPayload } from '../model/authTypes';
+import { UserProfile, UserRequest, RegisterUserPayload, UserRole, normalizeRole } from '../model/authTypes';
 
 const STORAGE_USERS_KEY = 'epc_registered_users_v1';
 const STORAGE_REQUESTS_KEY = 'epc_user_requests_v1';
@@ -75,7 +75,7 @@ function mapRecordToProfile(record: any): UserProfile {
     id: record.id || record.user_id || record.email,
     userId: record.user_id,
     email: record.email,
-    role: (record.role as any) || 'Operario',
+    role: normalizeRole(record.role),
     area: record.area || 'Todas las áreas',
     adminName: record.admin_name || null,
     dni: record.dni || null,
@@ -120,7 +120,7 @@ export async function fetchUserRequests(): Promise<UserRequest[]> {
           fullName: d.full_name,
           dni: d.dni,
           area: d.area || 'Todas las áreas',
-          roleRequested: d.role_requested || 'Operario',
+          roleRequested: normalizeRole(d.role_requested),
           status: d.status || 'pending',
           notes: d.notes,
           createdAt: d.created_at || new Date().toISOString()
@@ -220,7 +220,7 @@ export async function deleteUserProfile(userId: string, email: string): Promise<
 export async function updateUserRoleAndArea(
   userId: string,
   email: string,
-  role: 'Admin' | 'Operario' | 'Supervisor',
+  role: UserRole,
   area: string
 ): Promise<boolean> {
   if (supabase) {
