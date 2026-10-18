@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { AreaType } from '../../../shared/types/common';
@@ -40,6 +40,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   const [cableTrayWidth, setCableTrayWidth] = useState<string>('900 mm');
   const [incluirTuberia, setIncluirTuberia] = useState<boolean>(false);
   const [cableLength, setCableLength] = useState('');
+  const [isCustomDetalle, setIsCustomDetalle] = useState(false);
+  const [customDetalleValue, setCustomDetalleValue] = useState('');
 
   useEffect(() => {
     if (isOpen && activeRule) {
@@ -52,6 +54,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
       setIncluirTuberia(false);
       setCableLength('');
       setCableTrayWidth(prev => (prev && ['900 mm', '600 mm', '450 mm', '300 mm'].includes(prev)) ? prev : '900 mm');
+      setIsCustomDetalle(false);
+      setCustomDetalleValue('');
     }
   }, [isOpen, activeRule?.id, activeArea]);
 
@@ -71,6 +75,58 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
     req.requiresJumpers ||
     (req.isCable20 && hasJumperItems(detalleCode, activeArea)) ||
     detalleCode.toUpperCase().includes('JUMPER');
+
+  const availableOptions = useMemo(() => {
+    const list =
+      req.availableDetalles && req.availableDetalles.length > 0
+        ? [...req.availableDetalles]
+        : [
+            req.defaultDetalle,
+            ...(activeArea === 'AREA HUMEDA'
+              ? [
+                  '008/3A',
+                  '008/3B',
+                  '008/05',
+                  '009/07',
+                  '009/08A',
+                  '009/09',
+                  '009/10',
+                  '009/11',
+                  '009/12A',
+                  '009/12B',
+                  '010/13',
+                  '010/14',
+                  '010/15',
+                  '010/16',
+                  '010/17A',
+                  '010/17B',
+                  '010/17C',
+                  '010/17D',
+                  '010/18',
+                  '008/4T1',
+                  '008/4T2',
+                  'ND'
+                ]
+              : [
+                  '151',
+                  '020',
+                  '022',
+                  '166A',
+                  '166B',
+                  '166C',
+                  '167/G1',
+                  '167/X1',
+                  '167/X2',
+                  '001/2B-X1',
+                  'ND'
+                ])
+          ];
+    const unique = Array.from(new Set(list.filter(Boolean)));
+    if (detalleCode && !unique.includes(detalleCode) && detalleCode !== '__CUSTOM__') {
+      unique.unshift(detalleCode);
+    }
+    return unique;
+  }, [req.availableDetalles, req.defaultDetalle, activeArea, detalleCode]);
 
   const isDirty =
     count !== 1 ||
@@ -177,73 +233,79 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             </div>
           )}
 
-          {/* UNIVERSAL DETALLE CONSTRUCTIVO SELECTION (Available for ALL rules) */}
+          {/* UNIVERSAL DETALLE CONSTRUCTIVO SELECTION (Selected from a clean dropdown menu) */}
           <div style={{ marginBottom: '1.35rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                DETALLE CONSTRUCTIVO ({activeArea}):
-              </label>
-              {detalleCode && (
-                <span style={{ fontSize: '0.78rem', color: 'var(--accent, #60a5fa)', fontWeight: 600 }}>
-                  Activo: {detalleCode}
-                </span>
-              )}
-            </div>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+              DETALLE CONSTRUCTIVO ({activeArea}):
+            </label>
 
-            {/* Quick-select pill buttons if rule has specific variant details */}
-            {req.availableDetalles && req.availableDetalles.length > 0 && (
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
-                {req.availableDetalles.map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => {
-                      setDetalleCode(d);
-                      if (d !== '008/3A' && d !== '008/3B') setIncluirTuberia(false);
-                    }}
-                    className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
-                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.82rem' }}
-                  >
-                    {d} {d === '008/3B' ? '(Con Cemento)' : ''}
-                  </button>
-                ))}
+            <select
+              id="trigger-modal-detalle-select"
+              className="input"
+              value={isCustomDetalle ? '__CUSTOM__' : detalleCode}
+              onChange={e => {
+                const val = e.target.value;
+                if (val === '__CUSTOM__') {
+                  setIsCustomDetalle(true);
+                  setCustomDetalleValue('');
+                } else {
+                  setIsCustomDetalle(false);
+                  setDetalleCode(val);
+                  if (val !== '008/3A' && val !== '008/3B') setIncluirTuberia(false);
+                }
+              }}
+              style={{
+                width: '100%',
+                height: '38px',
+                padding: '6px 12px',
+                fontSize: '13px',
+                fontFamily: 'var(--mo)',
+                fontWeight: 600,
+                background: 'var(--s1)',
+                color: 'var(--tx)',
+                border: '1px solid var(--b1)',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              {availableOptions.map(d => (
+                <option key={d} value={d}>
+                  {d} {d === '008/3B' ? '(Con Cemento)' : d === 'ND' ? '(ND - Sin Detalle)' : ''}
+                </option>
+              ))}
+              <option value="__CUSTOM__">+ Otro detalle personalizado...</option>
+            </select>
+
+            {isCustomDetalle && (
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  className="input"
+                  style={{ flex: 1, height: '36px', fontFamily: 'var(--mo)', fontSize: '12px' }}
+                  placeholder="Escribe el código de DETALLE personalizado (ej. 151, 167/G1)"
+                  value={customDetalleValue}
+                  autoFocus
+                  onChange={e => {
+                    const up = e.target.value.toUpperCase();
+                    setCustomDetalleValue(up);
+                    setDetalleCode(up);
+                    if (up !== '008/3A' && up !== '008/3B') setIncluirTuberia(false);
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  style={{ height: '36px', fontSize: '11px' }}
+                  onClick={() => {
+                    setIsCustomDetalle(false);
+                    const fallback = req.defaultDetalle || availableOptions[0] || 'ND';
+                    setDetalleCode(fallback);
+                  }}
+                >
+                  Cancelar
+                </button>
               </div>
             )}
-
-            {/* Editable Detalle field for ANY rule (type custom code or pick from suggestions) */}
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                className="input"
-                style={{ flex: 1 }}
-                value={detalleCode}
-                placeholder="Código de DETALLE (ej. 151, 167/G1, 001/2B-X1)"
-                onChange={e => setDetalleCode(e.target.value.toUpperCase())}
-                list="trigger-detalles-catalog"
-              />
-            </div>
-            <datalist id="trigger-detalles-catalog">
-              {(req.availableDetalles || []).map(d => (
-                <option key={d} value={d} />
-              ))}
-              <option value="151" />
-              <option value="020" />
-              <option value="022" />
-              <option value="166A" />
-              <option value="166B" />
-              <option value="166C" />
-              <option value="167/G1" />
-              <option value="167/X1" />
-              <option value="167/X2" />
-              <option value="010/17A" />
-              <option value="010/17B" />
-              <option value="010/17C" />
-              <option value="010/17D" />
-              <option value="008/05" />
-              <option value="008/3A" />
-              <option value="008/3B" />
-              <option value="001/2B-X1" />
-              <option value="001/1" />
-            </datalist>
           </div>
 
           {/* Optional Tuberia PVC (if applicable for cable or explicitly defined) */}
