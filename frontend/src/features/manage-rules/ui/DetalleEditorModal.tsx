@@ -84,6 +84,19 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
     return Array.from(set).sort();
   }, [items]);
 
+  const serializeForDirtyCheck = (code: string, currentItems: EditableItem[]) =>
+    JSON.stringify({
+      code: code.trim().toUpperCase(),
+      items: currentItems.map(it => ({
+        desc: it.desc.trim().toUpperCase(),
+        ot: String(it.ot).trim(),
+        unit: it.unit.trim().toUpperCase(),
+        material: it.material
+      }))
+    });
+
+  const [initialSnapshot, setInitialSnapshot] = useState<string>('');
+
   useEffect(() => {
     if (isOpen) {
       setActiveCode(initialCode);
@@ -91,30 +104,26 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
       setCustomNewCode('');
       setIsRenaming(false);
       setRenamedCode('');
-      setItems(
-        (initialItems || []).map((it, idx) => ({
-          id: `item-${idx}-${Date.now()}`,
-          desc: it.desc || '',
-          ot: displayOt(it),
-          unit: it.unit || 'und',
-          material: it.material || 'C'
-        }))
-      );
+
+      const mapped: EditableItem[] = initialItems.map((item, idx) => ({
+        id: `item-${idx}-${Date.now()}`,
+        desc: item.desc || '',
+        ot: displayOt(item),
+        unit: item.unit || '',
+        material: item.material === 'P' ? 'P' : 'C'
+      }));
+      setItems(mapped);
+      setInitialSnapshot(serializeForDirtyCheck(initialCode, mapped));
     }
   }, [isOpen, initialCode, initialItems]);
 
   if (!isOpen) return null;
 
-  const normalizeVariant = (list: DetalleVariantItem[]) =>
-    JSON.stringify(list.map(it => [it.desc || '', displayOt(it), it.unit || 'und', it.material || 'C']));
-  const isDirty =
-    JSON.stringify(items.map(it => [it.desc || '', it.ot ?? '', it.unit || '', it.material || ''])) !==
-      normalizeVariant(initialItems || []) ||
-    activeCode !== initialCode ||
-    isCreatingNew ||
-    isRenaming ||
-    customNewCode !== '' ||
-    renamedCode !== '';
+  const currentSnapshot = serializeForDirtyCheck(
+    isCreatingNew ? customNewCode : isRenaming ? renamedCode : activeCode,
+    items
+  );
+  const isDirty = initialSnapshot !== '' && currentSnapshot !== initialSnapshot;
 
   const handleAddItem = () => {
     setItems(prev => [
@@ -222,209 +231,159 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   return (
     <ModalShell
       title={isCreatingNew ? 'Nuevo detalle' : 'Editar detalle'}
-      subtitle={`${area} · ${category}. Materiales, cantidades y unidades se guardan en Supabase.`}
+      subtitle={`${activeCode || 'DETALLE'} · ${area === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'}`}
       onClose={onClose}
       closeDisabled={isSaving}
       dismiss="dirty-confirm"
       isDirty={isDirty}
-      maxWidth="900px"
+      maxWidth="1050px"
     >
-        <div className="modal-body">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              flexWrap: 'wrap',
-              marginBottom: '16px',
-              padding: '12px',
-              background: 'var(--s2)',
-              border: '1px solid var(--b1)',
-              borderRadius: '8px'
-            }}
-          >
-              {!isCreatingNew && !isRenaming ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  {availableCodes.length > 0 ? (
-                    <select
-                      value={activeCode}
-                      onChange={e => handleCodeChange(e.target.value)}
-                      style={{
-                        background: 'var(--s1)',
-                        color: 'var(--tx)',
-                        border: '1px solid var(--b1)',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontFamily: 'var(--mo)',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        cursor: 'pointer'
-                      }}
-                      title="Cambiar de detalle para editar"
-                    >
-                      {availableCodes.map(code => (
-                        <option key={code} value={code}>
-                          Detalle: {code}
-                        </option>
-                      ))}
-                      <option value="__NEW__">Crear nuevo detalle...</option>
-                    </select>
-                  ) : (
-                    <span
-                      style={{
-                        background: 'var(--s1)',
-                        color: 'var(--tx)',
-                        border: '1px solid var(--b1)',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontFamily: 'var(--mo)',
-                        fontSize: '13px',
-                        fontWeight: 700
-                      }}
-                    >
-                      {activeCode}
-                    </span>
-                  )}
+      <div className="modal-body prompt">
+        {/* ROW 1: CÓDIGO DE DETALLE, GRUPO ASOCIADO, ACCIONES */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.6fr 1fr', gap: '1rem', marginBottom: '1.2rem', alignItems: 'end' }}>
+          <label style={{ margin: 0 }}>
+            Código de Detalle:
+            {!isCreatingNew && !isRenaming ? (
+              <select
+                value={activeCode}
+                onChange={e => handleCodeChange(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  background: 'var(--s1)',
+                  color: 'var(--tx)',
+                  border: '1px solid var(--b1)',
+                  borderRadius: '4px',
+                  padding: '6px 10px',
+                  fontFamily: 'var(--mo)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {availableCodes.map(code => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+                <option value="__NEW__">+ Crear nuevo detalle...</option>
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={isCreatingNew ? customNewCode : renamedCode}
+                onChange={e => isCreatingNew ? setCustomNewCode(e.target.value.toUpperCase()) : setRenamedCode(e.target.value.toUpperCase())}
+                placeholder={isCreatingNew ? 'NUEVO CÓDIGO (ej. 010/17B)' : 'EDITAR CÓDIGO'}
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  fontFamily: 'var(--mo)',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}
+              />
+            )}
+          </label>
 
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => {
-                      setIsRenaming(true);
-                      setRenamedCode(activeCode);
-                    }}
-                    title="Cambiar el nombre / código de este detalle constructivo"
-                  >
-                    Renombrar código
-                  </button>
-                </div>
-              ) : isRenaming ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--mu)', fontWeight: 600 }}>CÓDIGO</span>
-                  <input
-                    type="text"
-                    value={renamedCode}
-                    onChange={e => setRenamedCode(e.target.value)}
-                    placeholder="NUEVO CÓDIGO (ej. 010/17B)"
-                    style={{
-                      background: 'var(--s1)',
-                      color: 'var(--tx)',
-                      border: '1px solid var(--b1)',
-                      padding: '6px 10px',
-                      borderRadius: '6px',
-                      fontFamily: 'var(--mo)',
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      width: '210px',
-                      textTransform: 'uppercase'
-                    }}
-                    autoFocus
-                  />
-                  <span style={{ fontSize: '11px', color: 'var(--mu)' }}>
-                    (actual: <strong style={{ color: 'var(--tx)' }}>{activeCode}</strong>)
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => {
-                      setIsRenaming(false);
-                      setRenamedCode('');
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              ) : isCreatingNew ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
-                    value={customNewCode}
-                    onChange={e => setCustomNewCode(e.target.value)}
-                    placeholder="CÓDIGO (ej. 009/13 o 010/19)"
-                    style={{
-                      background: 'var(--s1)',
-                      color: 'var(--tx)',
-                      border: '1px solid var(--b1)',
-                      padding: '6px 10px',
-                      borderRadius: '6px',
-                      fontFamily: 'var(--mo)',
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      width: '200px'
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => {
-                      setIsCreatingNew(false);
-                      setActiveCode(initialCode);
-                    }}
-                  >
-                    Volver a existentes
-                  </button>
-                </div>
-              ) : null}
+          <label style={{ margin: 0 }}>
+            Grupo / Categoría Asociada:
+            <input
+              type="text"
+              value={category.replace(/_/g, ' ')}
+              disabled
+              style={{
+                width: '100%',
+                height: '36px',
+                background: 'var(--s2)',
+                color: 'var(--mu)',
+                border: '1px solid var(--b1)',
+                borderRadius: '4px',
+                padding: '6px 10px',
+                fontFamily: 'var(--mo)',
+                fontSize: '12px'
+              }}
+            />
+          </label>
+
+          <div>
+            {!isCreatingNew && !isRenaming ? (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => {
+                  setIsRenaming(true);
+                  setRenamedCode(activeCode);
+                }}
+                style={{ width: '100%', height: '36px', fontSize: '12px' }}
+              >
+                Renombrar código
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => {
+                  setIsRenaming(false);
+                  setIsCreatingNew(false);
+                  setRenamedCode('');
+                  setCustomNewCode('');
+                }}
+                style={{ width: '100%', height: '36px', fontSize: '12px' }}
+              >
+                Cancelar edición
+              </button>
+            )}
           </div>
-          <datalist id="detalle-materials-list">
-            {suggestedMaterials.map((mat: string, i: number) => (
-              <option key={i} value={mat} />
-            ))}
-          </datalist>
+        </div>
 
-          <datalist id="detalle-units-list">
-            {COMMON_UNITS.map((u: string, i: number) => (
-              <option key={i} value={u} />
-            ))}
-          </datalist>
+        {/* SUBITEMS TABLE */}
+        <div className="prompt-hd" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
+          <h3 style={{ margin: 0 }}>Ítems asociados (Lista de Materiales P / C)</h3>
+          <button type="button" className="btn-ghost btn-sm" onClick={handleAddItem}>
+            + Agregar material
+          </button>
+        </div>
 
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '12px',
-              fontFamily: 'var(--mo)',
-              marginBottom: '16px'
-            }}
-          >
+        <datalist id="detalle-materials-list">
+          {suggestedMaterials.map((m: string, i: number) => (
+            <option key={i} value={m} />
+          ))}
+        </datalist>
+
+        <datalist id="detalle-units-list">
+          {COMMON_UNITS.map((u: string, i: number) => (
+            <option key={i} value={u} />
+          ))}
+        </datalist>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table className="prompt-table" id="modal-detalle-items" style={{ width: '100%' }}>
             <thead>
-              <tr style={{ background: 'var(--s2)', borderBottom: '2px solid var(--b1)' }}>
-                <th style={{ padding: '10px 8px', width: '105px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
-                  MAT
-                </th>
-                <th style={{ padding: '10px 10px', textAlign: 'left', color: 'var(--tx)', fontWeight: 'bold' }}>
-                  DESCRIPCIÓN DEL MATERIAL
-                </th>
-                <th style={{ padding: '10px 8px', width: '180px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
-                  METRADO OT / CÁLCULO
-                </th>
-                <th style={{ padding: '10px 8px', width: '140px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
-                  UNIDAD
-                </th>
-                <th style={{ padding: '10px 8px', width: '45px', textAlign: 'center' }}></th>
+              <tr>
+                <th style={{ width: '105px' }}>MAT</th>
+                <th>Descripción del Material</th>
+                <th style={{ width: '200px', textAlign: 'center' }}>Metrado OT / Cálculo</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Unidad</th>
+                <th style={{ width: '50px' }} />
               </tr>
             </thead>
             <tbody>
-              {items.map((it, idx) => (
-                <tr
-                  key={it.id}
-                  style={{
-                    borderBottom: '1px solid var(--b1)',
-                    background: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)'
-                  }}
-                >
-                  <td style={{ padding: '8px', textAlign: 'center' }}>
+              {items.map((it, i) => (
+                <tr key={it.id}>
+                  <td>
                     <select
                       value={it.material}
+                      aria-label={`MAT ${i + 1}`}
                       onChange={e => handleUpdateItem(it.id, 'material', e.target.value as 'P' | 'C')}
                       style={{
+                        width: '100%',
+                        minWidth: '95px',
                         padding: '6px 4px',
                         fontSize: '11px',
                         fontFamily: 'var(--mo)',
                         fontWeight: 500,
-                        borderRadius: '4px',
                         border: it.material === 'P' ? '1px solid #a7f3d0' : '1px solid #d1d5db',
+                        borderRadius: '4px',
                         background: it.material === 'P' ? '#f0fdf4' : '#ffffff',
                         color: it.material === 'P' ? '#107c41' : '#111827',
                         cursor: 'pointer'
@@ -434,7 +393,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       <option value="C">C (Cons.)</option>
                     </select>
                   </td>
-                  <td style={{ padding: '8px 10px' }}>
+                  <td>
                     <input
                       type="text"
                       list="detalle-materials-list"
@@ -453,8 +412,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       }}
                     />
                   </td>
-
-                  <td style={{ padding: '8px' }}>
+                  <td>
                     <input
                       type="text"
                       value={it.ot}
@@ -474,8 +432,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       }}
                     />
                   </td>
-
-                  <td style={{ padding: '8px' }}>
+                  <td>
                     <input
                       type="text"
                       list="detalle-units-list"
@@ -495,48 +452,29 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       }}
                     />
                   </td>
-
-                  <td style={{ padding: '8px', textAlign: 'center' }}>
+                  <td style={{ textAlign: 'center' }}>
                     <button
                       type="button"
-                      className="btn-ghost btn-sm"
+                      className="btn-danger btn-sm"
+                      aria-label={`Eliminar fila ${i + 1}`}
                       onClick={() => handleRemoveItem(it.id)}
-                      title="Eliminar este ítem"
+                      style={{ padding: '0.2rem 0.5rem' }}
                     >
-                      Quitar
+                      ✕
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="prompt-note">{formulaHint(items.map(item => String(item.ot ?? '')))}</p>
-
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={handleAddItem}
-            style={{
-              fontSize: '11px',
-              fontFamily: 'var(--mo)',
-              padding: '8px 16px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              border: '1px dashed var(--b1)',
-              borderRadius: '4px'
-            }}
-          >
-            Agregar material
-          </button>
         </div>
 
+        <p className="prompt-note" style={{ margin: '8px 0 16px', fontSize: '11.5px', color: 'var(--mu)' }}>
+          {formulaHint(items.map(item => String(item.ot ?? '')))}
+        </p>
+
         <div className="modal-ft" style={{ justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--mu)' }}>
-              Ítems configurados: <strong style={{ color: 'var(--tx)' }}>{items.length}</strong>
-            </span>
+          <div>
             {onDelete && !isCreatingNew && (
               <button
                 type="button"
@@ -565,10 +503,11 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
               Cancelar
             </button>
             <button type="button" className="btn-primary" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'Guardando...' : 'Guardar'}
+              {isSaving ? 'Guardando...' : 'Guardar detalle'}
             </button>
           </div>
         </div>
+      </div>
     </ModalShell>
   );
 };
