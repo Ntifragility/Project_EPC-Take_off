@@ -72,8 +72,8 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
       onToggleExpand={onToggleExpand}
       onDelete={() => onDelete(rule.id)}
     >
-            <div style={{ overflowX: 'auto', border: '1px solid var(--b1)', borderRadius: '4px', background: 'var(--s2)' }}>
-              <table style={{ width: 'max-content', borderCollapse: 'collapse', fontFamily: 'var(--mo)', fontSize: '12px' }}>
+            <div style={{ overflowX: 'hidden', border: '1px solid var(--b1)', borderRadius: '4px', background: 'var(--s2)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--mo)', fontSize: '12px' }}>
                 <colgroup>
                   <col className="rule-col-det" />
                   <col className="rule-col-mat" />

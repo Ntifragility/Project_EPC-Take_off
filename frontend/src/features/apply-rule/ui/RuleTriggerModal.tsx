@@ -177,55 +177,22 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
             </div>
           )}
 
-          {/* DETALLE CONSTRUCTIVO SELECTION */}
-          {req.isSoldadura40_20 && req.availableDetalles.length > 0 && (
-            <div style={{ marginBottom: '1.35rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                DETALLE CONSTRUCTIVO:
+          {/* UNIVERSAL DETALLE CONSTRUCTIVO SELECTION (Available for ALL rules) */}
+          <div style={{ marginBottom: '1.35rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <label style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                DETALLE CONSTRUCTIVO ({activeArea}):
               </label>
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
-                {req.availableDetalles.map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDetalleCode(d)}
-                    className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
-                    style={{ flex: 1, padding: '0.5rem' }}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
+              {detalleCode && (
+                <span style={{ fontSize: '0.78rem', color: 'var(--accent, #60a5fa)', fontWeight: 600 }}>
+                  Activo: {detalleCode}
+                </span>
+              )}
             </div>
-          )}
 
-          {req.isSoldadura40 && req.availableDetalles.length > 0 && (
-            <div style={{ marginBottom: '1.35rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                DETALLE CONSTRUCTIVO:
-              </label>
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
-                {req.availableDetalles.map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDetalleCode(d)}
-                    className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
-                    style={{ flex: 1, padding: '0.5rem' }}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {req.isCable40 && req.availableDetalles.length > 0 && (
-            <div style={{ marginBottom: '1.35rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                DETALLE CONSTRUCTIVO:
-              </label>
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
+            {/* Quick-select pill buttons if rule has specific variant details */}
+            {req.availableDetalles && req.availableDetalles.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
                 {req.availableDetalles.map(d => (
                   <button
                     key={d}
@@ -235,16 +202,52 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                       if (d !== '008/3A' && d !== '008/3B') setIncluirTuberia(false);
                     }}
                     className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
-                    style={{ flex: 1, padding: '0.5rem' }}
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.82rem' }}
                   >
                     {d} {d === '008/3B' ? '(Con Cemento)' : ''}
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {req.isCable40 && (detalleCode === '008/3A' || detalleCode === '008/3B') && (
+            {/* Editable Detalle field for ANY rule (type custom code or pick from suggestions) */}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                className="input"
+                style={{ flex: 1 }}
+                value={detalleCode}
+                placeholder="Código de DETALLE (ej. 151, 167/G1, 001/2B-X1)"
+                onChange={e => setDetalleCode(e.target.value.toUpperCase())}
+                list="trigger-detalles-catalog"
+              />
+            </div>
+            <datalist id="trigger-detalles-catalog">
+              {(req.availableDetalles || []).map(d => (
+                <option key={d} value={d} />
+              ))}
+              <option value="151" />
+              <option value="020" />
+              <option value="022" />
+              <option value="166A" />
+              <option value="166B" />
+              <option value="166C" />
+              <option value="167/G1" />
+              <option value="167/X1" />
+              <option value="167/X2" />
+              <option value="010/17A" />
+              <option value="010/17B" />
+              <option value="010/17C" />
+              <option value="010/17D" />
+              <option value="008/05" />
+              <option value="008/3A" />
+              <option value="008/3B" />
+              <option value="001/2B-X1" />
+              <option value="001/1" />
+            </datalist>
+          </div>
+
+          {/* Optional Tuberia PVC (if applicable for cable or explicitly defined) */}
+          {(req.isCable40 || req.isCable20 || detalleCode === '008/3A' || detalleCode === '008/3B') && (
             <label
               style={{
                 display: 'flex',
@@ -264,80 +267,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                 checked={incluirTuberia}
                 onChange={e => setIncluirTuberia(e.target.checked)}
               />
-              Incluir TUBERÍA PVC SCH 80 Ø3/4" (opcional, tramos horizontales)
+              Incluir TUBERÍA PVC SCH 80 Ø3/4" (opcional)
             </label>
-          )}
-
-          {req.isCable20 && (
-            <div style={{ marginBottom: '1.35rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                DETALLE CONSTRUCTIVO ({activeArea}):
-              </label>
-              <select
-                className="input"
-                style={{ width: '100%' }}
-                value={detalleCode}
-                onChange={e => setDetalleCode(e.target.value)}
-              >
-                {req.availableDetalles.map(d => (
-                  <option key={d} value={d}>
-                    DETALLE {d}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {(req.isBarraPot || req.isBarraInst) && req.availableDetalles.length > 0 && (
-            <div style={{ marginBottom: '1.35rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                DETALLE CONSTRUCTIVO:
-              </label>
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
-                {req.availableDetalles.map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDetalleCode(d)}
-                    className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
-                    style={{ flex: 1, padding: '0.5rem' }}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {(req.isPozo || req.isSoldaduraX) && (
-            <div style={{ marginBottom: '1.35rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                DETALLE CONSTRUCTIVO:
-              </label>
-              {req.availableDetalles.length > 0 ? (
-                <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                  {req.availableDetalles.map(d => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setDetalleCode(d)}
-                      className={`modal-choice${detalleCode === d ? ' is-active' : ''}`}
-                      style={{ flex: 1, padding: '0.5rem' }}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <input
-                  className="input"
-                  style={{ width: '100%' }}
-                  value={detalleCode}
-                  placeholder="Código de detalle"
-                  onChange={e => setDetalleCode(e.target.value.toUpperCase())}
-                />
-              )}
-            </div>
           )}
 
           <div className="prompt-grid" style={{ marginBottom: '12px' }}>

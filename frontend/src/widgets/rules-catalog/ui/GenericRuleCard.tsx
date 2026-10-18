@@ -42,9 +42,11 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
   onEdit,
   onDelete
 }) => {
-  const detalleCodes = getRuleCatalogDetalles(rule.trigger, activeArea, rule.detalle);
-  const currentDetalle = getDefaultDetalleByRule(rule.trigger, activeArea) || detalleCodes[0] || '';
-  const shownCodes = detalleCodes.length > 0 ? detalleCodes : [currentDetalle || '—'];
+  const configuredDetalle = (rule.areaDetalles?.[activeArea] || rule.defaultDetalle || rule.detalle || '').trim();
+  const detalleCodes = getRuleCatalogDetalles(rule.trigger, activeArea, configuredDetalle);
+  const currentDetalle = configuredDetalle || getDefaultDetalleByRule(rule.trigger, activeArea) || detalleCodes[0] || '';
+  const shownCodes = Array.from(new Set([currentDetalle, ...detalleCodes].filter(Boolean)));
+  const finalShownCodes = shownCodes.length > 0 ? shownCodes : ['—'];
   const rows = rule.subitems.length > 0 ? rule.subitems : [{ id: 'empty', desc: '', qty: '', unit: '' }];
 
   return (
@@ -58,7 +60,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
     >
             <div
               style={{
-                overflowX: 'auto',
+                overflowX: 'hidden',
                 WebkitOverflowScrolling: 'touch',
                 border: '1px solid var(--b1)',
                 borderRadius: '4px',
@@ -67,7 +69,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
             >
               <table
                 style={{
-                  width: 'max-content',
+                  width: '100%',
                   borderCollapse: 'collapse',
                   fontFamily: 'var(--mo)',
                   fontSize: '11px'
@@ -85,7 +87,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                     <th style={thStyle}>DETALLE</th>
                     <MatHeader />
                     <th className="rule-desc" style={{ ...thStyle, textAlign: 'left' }}>DESCRIPCIÓN</th>
-                    <th style={thStyle}>METRADO OT / CANT.</th>
+                    <th style={thStyle}>METRADO OT</th>
                     <th style={{ ...thStyle, borderRight: 'none' }}>UNIDAD</th>
                   </tr>
                 </thead>
@@ -111,7 +113,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                             }}
                           >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-                              {shownCodes.map(code => (
+                              {finalShownCodes.map(code => (
                                 <span
                                   key={code}
                                   style={{
@@ -149,7 +151,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                         <td
                           style={{
                             ...tdStyle,
-                            fontWeight: 'bold',
+                            fontWeight: 'normal',
                             textAlign: 'center'
                           }}
                         >

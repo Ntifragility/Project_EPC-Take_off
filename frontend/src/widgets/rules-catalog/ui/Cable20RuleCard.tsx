@@ -41,7 +41,7 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
             <>
             <div
               style={{
-                overflowX: 'auto',
+                overflowX: 'hidden',
                 WebkitOverflowScrolling: 'touch',
                 border: '1px solid var(--b1)',
                 borderRadius: '6px',
@@ -50,7 +50,7 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
             >
               <table
                 style={{
-                  width: 'max-content',
+                  width: '100%',
                   borderCollapse: 'collapse',
                   fontFamily: 'var(--mo)',
                   fontSize: '11px'

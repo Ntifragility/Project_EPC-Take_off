@@ -10,6 +10,7 @@ import {
 } from '../../../shared/api/supabase';
 import { deleteRuleLines, replaceRuleLines } from '../../sync-cloud/model/publishRuleCatalog';
 import { updateSingleDynamicVariant, deleteSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { fetchUnifiedRules, saveUnifiedRule } from '../../../entities/takeoff-rule/api/ruleRepository';
 
 export interface RulesState {
   rules: TakeoffRule[];
@@ -47,9 +48,20 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
   collapsedRuleAreas: new Set<string>(['AREA SECA', 'AREA HUEMDA']),
   detalleVariantsVersion: 0,
 
-  loadRules: (section: SectionType) => {
-    const rules = loadStoredRules(section);
-    set({ rules });
+  loadRules: async (section: SectionType) => {
+    // 1. Instant local state
+    const cachedRules = loadStoredRules(section);
+    set({ rules: cachedRules });
+
+    // 2. Refresh from Supabase in background
+    try {
+      const remoteRules = await fetchUnifiedRules(section);
+      if (remoteRules && remoteRules.length > 0) {
+        set({ rules: remoteRules });
+      }
+    } catch (e) {
+      console.warn('Background rule fetch failed:', e);
+    }
   },
 
   toggleRuleAreaCollapse: (area: string) => {
@@ -83,7 +95,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     // Sync with Supabase asynchronously without blocking local state
     try {
       const orderIndex = isNew ? nextRules.length - 1 : Math.max(0, nextRules.findIndex(r => r.id === rule.id));
-      await saveTakeoffRuleToSupabase(rule, section, orderIndex);
+      await saveUnifiedRule(rule, section, orderIndex);
       await replaceRuleLines(rule);
     } catch (err) {
       console.warn('Supabase sync background notice:', err);

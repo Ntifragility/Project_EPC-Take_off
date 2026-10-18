@@ -195,15 +195,21 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                           onChange={e => handleUpdateItem(idx, 'material', e.target.value as 'P' | 'C')}
                           style={{
                             width: '100%',
-                            fontSize: '10.5px',
-                            padding: '4px',
+                            minWidth: '95px',
+                            fontSize: '11px',
+                            fontFamily: 'var(--mo)',
+                            fontWeight: 500,
+                            padding: '6px 4px',
                             textAlign: 'center',
-                            fontWeight: 'bold',
-                            color: item.material === 'P' ? 'var(--tx)' : 'var(--mu)'
+                            borderRadius: '4px',
+                            border: (item.material || (item.unit === 'm' ? 'P' : 'C')) === 'P' ? '1px solid #a7f3d0' : '1px solid #d1d5db',
+                            background: (item.material || (item.unit === 'm' ? 'P' : 'C')) === 'P' ? '#f0fdf4' : '#ffffff',
+                            color: (item.material || (item.unit === 'm' ? 'P' : 'C')) === 'P' ? '#107c41' : '#111827',
+                            cursor: 'pointer'
                           }}
                         >
-                          <option value="P">P (Ppal)</option>
-                          <option value="C">C (Acc)</option>
+                          <option value="P">P (Prin.)</option>
+                          <option value="C">C (Cons.)</option>
                         </select>
                       </td>
                       <td style={{ textAlign: 'center', color: 'var(--mu)', fontWeight: 'bold', padding: '6px' }}>
@@ -238,7 +244,7 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                           type="text"
                           value={item.w900}
                           onChange={e => handleUpdateItem(idx, 'w900', e.target.value)}
-                          style={{ width: '100%', fontSize: '11px', padding: '4px', textAlign: 'center', fontWeight: 'bold' }}
+                          style={{ width: '100%', fontSize: '11px', padding: '4px', textAlign: 'center', fontWeight: 'normal' }}
                         />
                       </td>
                       <td style={{ padding: '4px 6px', background: 'rgba(245, 158, 11, 0.06)' }}>
@@ -246,7 +252,7 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                           type="text"
                           value={item.w600}
                           onChange={e => handleUpdateItem(idx, 'w600', e.target.value)}
-                          style={{ width: '100%', fontSize: '11px', padding: '4px', textAlign: 'center', fontWeight: 'bold' }}
+                          style={{ width: '100%', fontSize: '11px', padding: '4px', textAlign: 'center', fontWeight: 'normal' }}
                           title="Estándar 600 mm"
                         />
                       </td>
@@ -255,7 +261,7 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                           type="text"
                           value={item.w450}
                           onChange={e => handleUpdateItem(idx, 'w450', e.target.value)}
-                          style={{ width: '100%', fontSize: '11px', padding: '4px', textAlign: 'center', fontWeight: 'bold' }}
+                          style={{ width: '100%', fontSize: '11px', padding: '4px', textAlign: 'center', fontWeight: 'normal' }}
                         />
                       </td>
                       <td style={{ padding: '4px 6px' }}>
@@ -263,7 +269,7 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
                           type="text"
                           value={item.w300}
                           onChange={e => handleUpdateItem(idx, 'w300', e.target.value)}
-                          style={{ width: '100%', fontSize: '11px', padding: '4px', textAlign: 'center', fontWeight: 'bold' }}
+                          style={{ width: '100%', fontSize: '11px', padding: '4px', textAlign: 'center', fontWeight: 'normal' }}
                         />
                       </td>
                       <td style={{ textAlign: 'center', padding: '4px' }}>

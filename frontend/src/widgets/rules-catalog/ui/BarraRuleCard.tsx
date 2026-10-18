@@ -43,7 +43,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
     >
           <div
             style={{
-              overflowX: 'auto',
+              overflowX: 'hidden',
               WebkitOverflowScrolling: 'touch',
               border: '1px solid var(--b1)',
               borderRadius: '4px',
@@ -52,7 +52,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
           >
             <table
               style={{
-                width: 'max-content',
+                width: '100%',
                 borderCollapse: 'collapse',
                 fontFamily: 'var(--mo)',
                 fontSize: '11px',

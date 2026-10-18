@@ -257,7 +257,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                         borderRadius: '6px',
                         fontFamily: 'var(--mo)',
                         fontSize: '13px',
-                        fontWeight: 700,
+                        fontWeight: 500,
                         cursor: 'pointer'
                       }}
                       title="Cambiar de detalle para editar"
@@ -314,7 +314,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       borderRadius: '6px',
                       fontFamily: 'var(--mo)',
                       fontSize: '13px',
-                      fontWeight: 700,
+                      fontWeight: 500,
                       width: '210px',
                       textTransform: 'uppercase'
                     }}
@@ -349,7 +349,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                       borderRadius: '6px',
                       fontFamily: 'var(--mo)',
                       fontSize: '13px',
-                      fontWeight: 700,
+                      fontWeight: 500,
                       width: '200px'
                     }}
                     autoFocus
@@ -390,7 +390,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
           >
             <thead>
               <tr style={{ background: 'var(--s2)', borderBottom: '2px solid var(--b1)' }}>
-                <th style={{ padding: '10px 8px', width: '95px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
+                <th style={{ padding: '10px 8px', width: '105px', textAlign: 'center', color: 'var(--tx)', fontWeight: 'bold' }}>
                   MAT
                 </th>
                 <th style={{ padding: '10px 10px', textAlign: 'left', color: 'var(--tx)', fontWeight: 'bold' }}>
@@ -422,11 +422,11 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                         padding: '6px 4px',
                         fontSize: '11px',
                         fontFamily: 'var(--mo)',
-                        fontWeight: 700,
-                        border: '1px solid var(--b1)',
+                        fontWeight: 500,
                         borderRadius: '4px',
-                        background: it.material === 'P' ? '#eff6ff' : 'var(--s1)',
-                        color: it.material === 'P' ? '#1d4ed8' : 'var(--tx)',
+                        border: it.material === 'P' ? '1px solid #a7f3d0' : '1px solid #d1d5db',
+                        background: it.material === 'P' ? '#f0fdf4' : '#ffffff',
+                        color: it.material === 'P' ? '#107c41' : '#111827',
                         cursor: 'pointer'
                       }}
                     >
@@ -466,7 +466,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
                         padding: '6px 8px',
                         fontSize: '11.5px',
                         fontFamily: 'var(--mo)',
-                        fontWeight: 'bold',
+                        fontWeight: 'normal',
                         border: '1px solid var(--b1)',
                         borderRadius: '4px',
                         background: 'var(--s1)',

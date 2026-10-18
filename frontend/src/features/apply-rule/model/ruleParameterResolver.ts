@@ -42,7 +42,9 @@ export function resolveRuleRequirements(rule: TakeoffRule, activeArea: AreaType)
 
   const defaultTagPrefix = rule.tagPrefix || getDefaultTagPrefixByRule(rule.trigger) || 'M';
   const storedDetalle = (rule.detalle || '').trim();
+  const areaSpecificDetalle = (rule.areaDetalles?.[activeArea] || '').trim();
   const defaultDetalle =
+    areaSpecificDetalle ||
     (storedDetalle && detalleBelongsToArea(storedDetalle, activeArea)
       ? storedDetalle
       : getDefaultDetalleByRule(rule.trigger, activeArea)) || '';

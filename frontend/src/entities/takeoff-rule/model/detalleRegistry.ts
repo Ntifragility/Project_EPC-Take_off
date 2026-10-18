@@ -69,7 +69,17 @@ export function isKnownDetalle(code: string | undefined | null, rules: TakeoffRu
   const allRules = [...(rules || []), ...SEED_RULES, ...SEED_CANALIZADO_RULES];
   for (const r of allRules) {
     if (r.detalle && normalizeDetalle(r.detalle) === norm) return true;
+    if (r.defaultDetalle && normalizeDetalle(r.defaultDetalle) === norm) return true;
   }
+  try {
+    const rawCatalog = localStorage.getItem('epc-detalle-catalog');
+    if (rawCatalog) {
+      const parsed = JSON.parse(rawCatalog);
+      if (Array.isArray(parsed) && parsed.some(d => normalizeDetalle(d.code) === norm)) {
+        return true;
+      }
+    }
+  } catch {}
   return false;
 }
 

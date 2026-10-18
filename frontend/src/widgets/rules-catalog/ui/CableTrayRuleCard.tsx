@@ -39,6 +39,7 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
     >
 
             <div
+              className="rule-tray-scroll"
               style={{
                 overflowX: 'auto',
                 WebkitOverflowScrolling: 'touch',

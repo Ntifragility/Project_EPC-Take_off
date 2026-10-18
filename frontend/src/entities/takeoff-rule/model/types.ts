@@ -1,4 +1,14 @@
-import { AreaType } from '../../../shared/types/common';
+import { AreaType, SectionType } from '../../../shared/types/common';
+import { MaterialType } from '../../takeoff-item/model/types';
+export type { MaterialType };
+
+export interface DetalleDefinition {
+  code: string;
+  section: SectionType;
+  area: AreaType | string;
+  description?: string;
+  drawingReference?: string;
+}
 
 export interface RuleSubitem {
   id: string;
@@ -7,17 +17,40 @@ export interface RuleSubitem {
   unit: string;
   ot?: number | string;
   otDynamic?: string | boolean;
-  material?: 'P' | 'C';
-  /** Stored formula. Empty when qty is a fixed number. */
+  material?: MaterialType;
+  /** Stored formula or expression. */
   formula?: string;
   optional?: boolean;
+  /** Specific detail code override if this subitem points to a distinct detail drawing */
+  subitemDetalle?: string;
+  ruleId?: string;
+  orderIndex?: number;
+}
+
+export interface RuleItemOverride {
+  id: string;
+  ruleItemId: string;
+  detalleCode: string;
+  overrideDescripcion?: string;
+  overrideQty?: string;
+  overrideUnit?: string;
+  overrideFormula?: string;
+}
+
+export interface RuleParameterOption {
+  id: string;
+  ruleId: string;
+  paramKey: string;       // e.g. 'width'
+  optionLabel: string;    // e.g. '900 mm'
+  optionValue: string;    // e.g. '900'
+  multiplierMap: Record<string, number | string>; // item_id -> quantity multiplier or value
 }
 
 export interface CableTrayMatrixItem {
   id?: string;
   desc: string;
   unit: string;
-  material?: 'P' | 'C';
+  material?: MaterialType;
   w900: string | number;
   w600: string | number;
   w450: string | number;
@@ -26,14 +59,24 @@ export interface CableTrayMatrixItem {
 
 export interface TakeoffRule {
   id: string;
+  section?: SectionType | string;
   trigger: string;
   subitems: RuleSubitem[];
   detalle?: string;
+  defaultDetalle?: string;
   tagPrefix?: string;
+  allowDetalleEdit?: boolean;
+  hasDimensionParam?: boolean;
+  dimensionParamName?: string;
   cableTrayMatrix?: CableTrayMatrixItem[];
-  /** Catalog membership. Missing/empty is inferred (see areaCatalog). */
+  overrides?: RuleItemOverride[];
+  parameterOptions?: RuleParameterOption[];
   areas?: AreaType[];
+  areaDetalles?: Record<string, string>;
+  orderIndex?: number;
 }
+
+export type UnifiedTakeoffRule = TakeoffRule;
 
 export interface DetalleVariantItem {
   desc: string;
@@ -41,7 +84,23 @@ export interface DetalleVariantItem {
   unit: string;
   ot?: number | string;
   otDynamic?: string | boolean;
-  material?: 'P' | 'C';
-  /** Expression written to METRADO OT. Empty means the person fills the cell. */
+  material?: MaterialType;
   formula?: string;
+}
+
+export interface ApplyRuleContext {
+  ruleId: string;
+  pkgId?: string;
+  plano?: string;
+  rev?: string;
+  area: AreaType;
+  detalleCode: string;     // Universal for every rule
+  count: number;
+  baseTag?: string;
+  selectedDimension?: string; // e.g. '900 mm'
+  optionalItemIds?: string[];
+  cableLength?: string;
+  numSoportes?: number;
+  numJumpers?: number;
+  incluirTuberia?: boolean;
 }

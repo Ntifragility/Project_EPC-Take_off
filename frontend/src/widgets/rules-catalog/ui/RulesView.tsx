@@ -285,6 +285,7 @@ export const RulesView: React.FC = () => {
         isOpen={modalOpen}
         initialRule={editingRule}
         isNew={isNew}
+        activeArea={activeArea}
         onClose={() => setModalOpen(false)}
         onSave={handleSaveRule}
         onDelete={handleDeleteRule}
