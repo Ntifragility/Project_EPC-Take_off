@@ -6,10 +6,11 @@ import {
   saveTakeoffRuleToSupabase,
   deleteTakeoffRuleFromSupabase,
   saveDetalleVariantToSupabase,
-  deleteDetalleVariantFromSupabase
+  deleteDetalleVariantFromSupabase,
+  fetchDetalleVariantsFromSupabase
 } from '../../../shared/api/supabase';
 import { deleteRuleLines, replaceRuleLines } from '../../sync-cloud/model/publishRuleCatalog';
-import { updateSingleDynamicVariant, deleteSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { updateDynamicVariants, updateSingleDynamicVariant, deleteSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { fetchUnifiedRules, saveUnifiedRule } from '../../../entities/takeoff-rule/api/ruleRepository';
 
 export interface RulesState {
@@ -58,6 +59,13 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       const remoteRules = await fetchUnifiedRules(section);
       if (remoteRules && remoteRules.length > 0) {
         set({ rules: remoteRules });
+      }
+
+      // Also hydrate detalle variants from Supabase as single source of truth
+      const { data: cloudVariants, error: varErr } = await fetchDetalleVariantsFromSupabase();
+      if (!varErr && cloudVariants && cloudVariants.length > 0) {
+        updateDynamicVariants(cloudVariants);
+        set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
       }
     } catch (e) {
       console.warn('Background rule fetch failed:', e);

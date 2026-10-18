@@ -229,6 +229,10 @@ export async function deleteTakeoffRuleFromSupabase(
     return { success: false, error: 'Supabase no está configurado' };
   }
   try {
+    // Delete any dependent child records first to prevent foreign key constraint rejections
+    await supabase.from('rule_items').delete().eq('rule_id', ruleId);
+    await supabase.from('rule_area_detalles').delete().eq('rule_id', ruleId);
+    await supabase.from('rule_parameter_options').delete().eq('rule_id', ruleId);
     const { error } = await supabase.from('takeoff_rules').delete().eq('id', ruleId);
     if (error) throw error;
     return { success: true };

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
+import { useRulesStore } from '../../../features/manage-rules/model/useRulesStore';
 import {
   getDetallesForArea,
   shouldAutoManageTuberia,
@@ -27,7 +28,10 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   onDelete,
   onEditDetalle
 }) => {
-  const areaDetalles = getDetallesForArea(activeArea);
+  const variantsVersion = useRulesStore(state => state.detalleVariantsVersion);
+  const areaDetalles = useMemo(() => {
+    return getDetallesForArea(activeArea);
+  }, [activeArea, variantsVersion]);
 
   return (
     <RuleCardShell

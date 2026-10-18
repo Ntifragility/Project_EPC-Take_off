@@ -6,7 +6,7 @@ interface RuleCardShellProps {
   preview?: string[];
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   children?: React.ReactNode;
 }
 
@@ -18,6 +18,7 @@ export const RuleCardShell: React.FC<RuleCardShellProps> = ({
   preview = [],
   isExpanded,
   onToggleExpand,
+  onDelete,
   children
 }) => {
   const normalizedTrigger = trigger.trim().toUpperCase();
@@ -55,7 +56,41 @@ export const RuleCardShell: React.FC<RuleCardShellProps> = ({
           ))}
           {hiddenCount > 0 ? <span className="rule-card-chip is-more">+{hiddenCount}</span> : null}
         </div>
-        <span className="rule-card-badge">{badge}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+          <span className="rule-card-badge">{badge}</span>
+          {onDelete && (
+            <button
+              type="button"
+              className="btn-danger-ghost"
+              title={`Eliminar regla "${trigger}"`}
+              aria-label={`Eliminar regla "${trigger}"`}
+              onClick={e => {
+                e.stopPropagation();
+                if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente la regla "${trigger}"?`)) {
+                  onDelete();
+                }
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ef4444',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0.75,
+                transition: 'opacity 0.15s ease'
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '0.75')}
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
       {isExpanded && children ? <div className="rule-card-body">{children}</div> : null}
     </div>

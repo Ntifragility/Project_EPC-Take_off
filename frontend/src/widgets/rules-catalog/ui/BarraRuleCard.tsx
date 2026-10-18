@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
+import { useRulesStore } from '../../../features/manage-rules/model/useRulesStore';
 import {
   DYNAMIC_BARRA_POT_VARIANTS,
   DYNAMIC_BARRA_INST_VARIANTS,
@@ -29,8 +30,11 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   onDelete,
   onEditDetalle
 }) => {
+  const variantsVersion = useRulesStore(state => state.detalleVariantsVersion);
   const variantMap = category === 'BARRA_POT' ? DYNAMIC_BARRA_POT_VARIANTS : DYNAMIC_BARRA_INST_VARIANTS;
-  const entries = Object.entries(variantMap).filter(([code]) => detalleBelongsToArea(code, activeArea));
+  const entries = useMemo(() => {
+    return Object.entries(variantMap).filter(([code]) => detalleBelongsToArea(code, activeArea));
+  }, [variantMap, activeArea, variantsVersion]);
 
   return (
     <RuleCardShell

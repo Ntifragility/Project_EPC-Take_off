@@ -54,10 +54,14 @@ async function fillMissingVariants(): Promise<void> {
     if (!missingRelation(existing.error)) console.warn('[Rules] detalle_variants:', existing.error.message);
     return;
   }
-  const have = new Set((existing.data || []).map(row => row.id as string));
-  const missing = detalleVariantRows().filter(row => !have.has(row.id));
+  // Only bootstrap if the table is completely empty (first time run on new database)
+  // Never re-seed missing rows if the user deliberately deleted them
+  if ((existing.data || []).length > 0) {
+    return;
+  }
+  const missing = detalleVariantRows();
   const error = await upsertChunked('detalle_variants', missing);
-  if (error) console.warn('[Rules] No se pudieron completar los detalles:', error);
+  if (error) console.warn('[Rules] No se pudieron inicializar los detalles:', error);
 }
 
 export async function ensureRuleCatalog(): Promise<{ published: boolean; unavailable: boolean; rules: number }> {
