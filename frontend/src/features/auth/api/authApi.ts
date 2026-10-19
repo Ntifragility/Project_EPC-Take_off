@@ -7,9 +7,9 @@ const STORAGE_REQUESTS_KEY = 'epc_user_requests_v1';
 // Seed accounts matching the user's exact specification
 export const SEED_USERS: UserProfile[] = [
   {
-    id: 'user-operario-01',
+    id: 'user-level-1',
     email: 'co.villaf@gmail.com',
-    role: 'Operario',
+    role: 'Level 1',
     area: 'Área Húmeda',
     adminName: null,
     dni: null,
@@ -17,21 +17,21 @@ export const SEED_USERS: UserProfile[] = [
     createdAt: '2026-08-01T00:00:00Z'
   },
   {
-    id: 'user-superv-01',
+    id: 'user-level-2',
     email: 'supervisor@cosapi.pe',
-    role: 'Superv',
+    role: 'Level 2',
     area: 'Todas las Áreas',
-    adminName: 'Supervisor OT',
+    adminName: 'Usuario Nivel 2',
     dni: '10293847',
     status: 'active',
     createdAt: '2026-07-01T00:00:00Z'
   },
   {
-    id: 'user-admin-01',
+    id: 'user-level-3',
     email: 'mvillafuerte@ccp.pe',
-    role: 'Admin',
+    role: 'Level 3',
     area: 'Todas las Áreas',
-    adminName: 'Administrador Principal 1',
+    adminName: 'Usuario Nivel 3',
     dni: '48204199',
     status: 'active',
     createdAt: '2026-06-11T00:00:00Z'

@@ -12,7 +12,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ isOpen, on
   const { registerUser, isLoading } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('Operario');
+  const [role, setRole] = useState<UserRole>('Level 1');
   const [area, setArea] = useState('Todas las áreas');
   const [adminName, setAdminName] = useState('');
   const [dni, setDni] = useState('');
@@ -43,7 +43,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ isOpen, on
       setPassword('');
       setAdminName('');
       setDni('');
-      setRole('Operario');
+      setRole('Level 1');
       setArea('Todas las áreas');
     } else {
       setError(res.error || 'Error al registrar el usuario.');
@@ -202,9 +202,9 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ isOpen, on
                   boxSizing: 'border-box'
                 }}
               >
-                <option value="Operario">Level 1 - Operario</option>
-                <option value="Superv">Level 2 - Superv</option>
-                <option value="Admin">Level 3 - Admin</option>
+                <option value="Level 1">Level 1</option>
+                <option value="Level 2">Level 2</option>
+                <option value="Level 3">Level 3</option>
               </select>
             </div>
 
@@ -237,7 +237,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({ isOpen, on
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '22px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, marginBottom: '6px' }}>
-                Nombre / Administrador
+                Nombre Completo
               </label>
               <input
                 type="text"

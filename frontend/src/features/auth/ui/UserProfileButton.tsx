@@ -24,7 +24,7 @@ export const UserProfileButton: React.FC = () => {
 
   if (!currentUser) return null;
 
-  const isAdmin = currentUser.role === 'Admin';
+  const isLevel3 = currentUser.role === 'Level 3';
   const initials = currentUser.email
     ? currentUser.email.substring(0, 2).toUpperCase()
     : 'U';
@@ -44,8 +44,8 @@ export const UserProfileButton: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: isAdmin ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.18)',
-          border: isAdmin ? '1px solid rgba(16, 185, 129, 0.6)' : '1px solid rgba(255, 255, 255, 0.3)',
+          background: isLevel3 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.18)',
+          border: isLevel3 ? '1px solid rgba(16, 185, 129, 0.6)' : '1px solid rgba(255, 255, 255, 0.3)',
           color: '#ffffff',
           cursor: 'pointer',
           padding: 0,
@@ -60,7 +60,7 @@ export const UserProfileButton: React.FC = () => {
         }}
         onMouseLeave={e => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.borderColor = isAdmin ? 'rgba(16, 185, 129, 0.6)' : 'rgba(255, 255, 255, 0.3)';
+          e.currentTarget.style.borderColor = isLevel3 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(255, 255, 255, 0.3)';
         }}
       >
         <User size={14} strokeWidth={2.2} />
@@ -92,14 +92,14 @@ export const UserProfileButton: React.FC = () => {
                 width: '34px',
                 height: '34px',
                 borderRadius: '50%',
-                backgroundColor: isAdmin ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                border: isAdmin ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(99, 102, 241, 0.5)',
+                backgroundColor: isLevel3 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                border: isLevel3 ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(99, 102, 241, 0.5)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '12px',
                 fontWeight: 700,
-                color: isAdmin ? '#34d399' : '#a5b4fc',
+                color: isLevel3 ? '#34d399' : '#a5b4fc',
                 flexShrink: 0
               }}
             >
@@ -121,7 +121,7 @@ export const UserProfileButton: React.FC = () => {
                 {currentUser.email}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
-                {currentUser.role === 'Admin' ? (
+                {currentUser.role === 'Level 3' ? (
                   <span
                     style={{
                       backgroundColor: 'rgba(16, 185, 129, 0.15)',
@@ -137,9 +137,9 @@ export const UserProfileButton: React.FC = () => {
                     }}
                   >
                     <ShieldCheck size={11} />
-                    <span>Level 3 - Admin</span>
+                    <span>Level 3</span>
                   </span>
-                ) : currentUser.role === 'Superv' ? (
+                ) : currentUser.role === 'Level 2' ? (
                   <span
                     style={{
                       backgroundColor: 'rgba(245, 158, 11, 0.15)',
@@ -155,7 +155,7 @@ export const UserProfileButton: React.FC = () => {
                     }}
                   >
                     <Shield size={11} />
-                    <span>Level 2 - Superv</span>
+                    <span>Level 2</span>
                   </span>
                 ) : (
                   <span
@@ -173,7 +173,7 @@ export const UserProfileButton: React.FC = () => {
                     }}
                   >
                     <User size={10} />
-                    <span>Level 1 - Operario</span>
+                    <span>Level 1</span>
                   </span>
                 )}
               </div>
@@ -197,7 +197,7 @@ export const UserProfileButton: React.FC = () => {
             </div>
             {currentUser.adminName && (
               <div style={{ marginTop: '2px' }}>
-                <strong style={{ color: '#d1d5db' }}>Admin:</strong> {currentUser.adminName}
+                <strong style={{ color: '#d1d5db' }}>Nombre:</strong> {currentUser.adminName}
               </div>
             )}
             {currentUser.dni && (
@@ -209,8 +209,8 @@ export const UserProfileButton: React.FC = () => {
 
           <div style={{ borderTop: '1px solid #22242e', margin: '8px 0' }} />
 
-          {/* Admin Management Option */}
-          {isAdmin && (
+          {/* Level 3 Management Option */}
+          {isLevel3 && (
             <button
               type="button"
               onClick={() => {

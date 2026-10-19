@@ -15,7 +15,7 @@ export const LoginScreen: React.FC = () => {
   const [regFullName, setRegFullName] = useState('');
   const [regDni, setRegDni] = useState('');
   const [regArea, setRegArea] = useState('Todas las áreas');
-  const [regRole, setRegRole] = useState<UserRole>('Operario');
+  const [regRole, setRegRole] = useState<UserRole>('Level 1');
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
   const [regMsg, setRegMsg] = useState('');
@@ -45,7 +45,7 @@ export const LoginScreen: React.FC = () => {
     setRegLoading(false);
     if (res.success) {
       setRegSuccess(true);
-      setRegMsg('¡Solicitud enviada exitosamente! Un Administrador la revisará a la brevedad.');
+      setRegMsg('¡Solicitud enviada exitosamente! Un usuario Level 3 la revisará a la brevedad.');
     }
   };
 
@@ -275,7 +275,7 @@ export const LoginScreen: React.FC = () => {
                     clearError();
                     void signIn('co.villaf@gmail.com');
                   }}
-                  title="Ingresar como Operario (Level 1)"
+                  title="Ingresar como Level 1"
                   style={{
                     backgroundColor: 'rgba(59, 130, 246, 0.08)',
                     border: '1px solid rgba(59, 130, 246, 0.3)',
@@ -293,7 +293,7 @@ export const LoginScreen: React.FC = () => {
                   }}
                 >
                   <User size={14} color="#60a5fa" />
-                  <span>L1: Operario</span>
+                  <span>Level 1</span>
                 </button>
 
                 <button
@@ -303,7 +303,7 @@ export const LoginScreen: React.FC = () => {
                     clearError();
                     void signIn('supervisor@cosapi.pe');
                   }}
-                  title="Ingresar como Supervisor (Level 2)"
+                  title="Ingresar como Level 2"
                   style={{
                     backgroundColor: 'rgba(245, 158, 11, 0.08)',
                     border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -321,7 +321,7 @@ export const LoginScreen: React.FC = () => {
                   }}
                 >
                   <Shield size={14} color="#f59e0b" />
-                  <span>L2: Superv</span>
+                  <span>Level 2</span>
                 </button>
 
                 <button
@@ -331,7 +331,7 @@ export const LoginScreen: React.FC = () => {
                     clearError();
                     void signIn('mvillafuerte@ccp.pe');
                   }}
-                  title="Ingresar como Administrador (Level 3)"
+                  title="Ingresar como Level 3"
                   style={{
                     backgroundColor: 'rgba(16, 185, 129, 0.08)',
                     border: '1px solid rgba(16, 185, 129, 0.3)',
@@ -349,7 +349,7 @@ export const LoginScreen: React.FC = () => {
                   }}
                 >
                   <ShieldCheck size={14} color="#34d399" />
-                  <span>L3: Admin</span>
+                  <span>Level 3</span>
                 </button>
               </div>
             </div>
@@ -438,7 +438,7 @@ export const LoginScreen: React.FC = () => {
                 }}
               >
                 <CheckCircle2 size={24} style={{ margin: '0 auto 8px auto', display: 'block' }} />
-                Instrucciones enviadas a <strong>{resetEmail}</strong>. Revise su bandeja o contacte a un Administrador.
+                Instrucciones enviadas a <strong>{resetEmail}</strong>. Revise su bandeja o contacte a un usuario Level 3.
               </div>
             ) : (
               <form
@@ -675,9 +675,9 @@ export const LoginScreen: React.FC = () => {
                         boxSizing: 'border-box'
                       }}
                     >
-                      <option value="Operario">Level 1 - Operario</option>
-                      <option value="Superv">Level 2 - Superv</option>
-                      <option value="Admin">Level 3 - Admin</option>
+                      <option value="Level 1">Level 1</option>
+                      <option value="Level 2">Level 2</option>
+                      <option value="Level 3">Level 3</option>
                     </select>
                   </div>
                 </div>

@@ -1,31 +1,29 @@
-export type UserRole = 'Operario' | 'Superv' | 'Admin';
+export type UserRole = 'Level 1' | 'Level 2' | 'Level 3';
 export type UserLevel = 1 | 2 | 3;
 
 export interface RoleDefinition {
   role: UserRole;
   level: UserLevel;
   label: string;
-  displayName: string;
-  description: string;
 }
 
 export const USER_ROLES: RoleDefinition[] = [
-  { role: 'Operario', level: 1, label: 'Level 1', displayName: 'Level 1 - Operario', description: 'Operador de metrados (solo lectura y aplicación)' },
-  { role: 'Superv', level: 2, label: 'Level 2', displayName: 'Level 2 - Superv', description: 'Supervisor de oficina técnica (edición y calibración)' },
-  { role: 'Admin', level: 3, label: 'Level 3', displayName: 'Level 3 - Admin', description: 'Administrador general del sistema (control total y usuarios)' }
+  { role: 'Level 1', level: 1, label: 'Level 1' },
+  { role: 'Level 2', level: 2, label: 'Level 2' },
+  { role: 'Level 3', level: 3, label: 'Level 3' }
 ];
 
 export const ROLE_LEVEL_MAP: Record<UserRole, RoleDefinition> = {
-  Operario: USER_ROLES[0],
-  Superv: USER_ROLES[1],
-  Admin: USER_ROLES[2]
+  'Level 1': USER_ROLES[0],
+  'Level 2': USER_ROLES[1],
+  'Level 3': USER_ROLES[2]
 };
 
 export function normalizeRole(role?: string | null): UserRole {
-  if (!role) return 'Operario';
-  if (role === 'Admin') return 'Admin';
-  if (role === 'Superv' || role === 'Supervisor') return 'Superv';
-  return 'Operario';
+  if (!role) return 'Level 1';
+  if (role === 'Level 3' || role === 'Admin') return 'Level 3';
+  if (role === 'Level 2' || role === 'Superv' || role === 'Supervisor') return 'Level 2';
+  return 'Level 1';
 }
 
 export function getRoleLevel(role?: string | null): UserLevel {
@@ -33,7 +31,7 @@ export function getRoleLevel(role?: string | null): UserLevel {
 }
 
 export function getRoleDisplayName(role?: string | null): string {
-  return ROLE_LEVEL_MAP[normalizeRole(role)].displayName;
+  return normalizeRole(role);
 }
 
 export interface UserProfile {

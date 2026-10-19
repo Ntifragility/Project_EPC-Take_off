@@ -110,7 +110,7 @@ export const useAuthStore = createStore<AuthStore>((set, get) => ({
               profile = {
                 id: data.user.id,
                 email: cleanEmail,
-                role: 'Operario',
+                role: 'Level 1',
                 area: 'Área Húmeda',
                 status: 'active',
                 createdAt: new Date().toISOString()
@@ -150,15 +150,15 @@ export const useAuthStore = createStore<AuthStore>((set, get) => ({
       if (profile.status === 'inactive') {
         set({
           isLoading: false,
-          error: 'Su cuenta está inactiva. Contacte al Administrador.'
+          error: 'Su cuenta está inactiva. Contacte a un usuario Level 3.'
         });
         return {
           success: false,
-          error: 'Su cuenta está inactiva. Contacte al Administrador.'
+          error: 'Su cuenta está inactiva. Contacte a un usuario Level 3.'
         };
       }
 
-      const shouldShowManagement = profile.role === 'Admin';
+      const shouldShowManagement = profile.role === 'Level 3';
       set({ currentUser: profile, showUserManagement: shouldShowManagement, isLoading: false });
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(profile));
 

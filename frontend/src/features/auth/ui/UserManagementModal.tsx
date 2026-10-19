@@ -298,7 +298,7 @@ export const UserManagementModal: React.FC = () => {
                     textAlign: 'left'
                   }}
                 >
-                  DNI / NOMBRE ADMIN
+                  DNI / NOMBRE
                 </th>
                 <th
                   style={{
@@ -351,7 +351,7 @@ export const UserManagementModal: React.FC = () => {
                     {/* ROL */}
                     <td style={{ padding: '16px 14px', verticalAlign: 'middle' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                        {user.role === 'Admin' ? (
+                        {user.role === 'Level 3' ? (
                           <span
                             style={{
                               backgroundColor: 'rgba(16, 185, 129, 0.12)',
@@ -367,9 +367,9 @@ export const UserManagementModal: React.FC = () => {
                             }}
                           >
                             <ShieldCheck size={14} color="#34d399" />
-                            <span>Level 3 - Admin</span>
+                            <span>Level 3</span>
                           </span>
-                        ) : user.role === 'Superv' ? (
+                        ) : user.role === 'Level 2' ? (
                           <span
                             style={{
                               backgroundColor: 'rgba(245, 158, 11, 0.12)',
@@ -385,7 +385,7 @@ export const UserManagementModal: React.FC = () => {
                             }}
                           >
                             <Shield size={14} color="#fbbf24" />
-                            <span>Level 2 - Superv</span>
+                            <span>Level 2</span>
                           </span>
                         ) : (
                           <span
@@ -403,7 +403,7 @@ export const UserManagementModal: React.FC = () => {
                             }}
                           >
                             <User size={13} color="#93c5fd" />
-                            <span>Level 1 - Operario</span>
+                            <span>Level 1</span>
                           </span>
                         )}
 
@@ -423,9 +423,9 @@ export const UserManagementModal: React.FC = () => {
                               outline: 'none'
                             }}
                           >
-                            <option value="Operario">Level 1</option>
-                            <option value="Superv">Level 2</option>
-                            <option value="Admin">Level 3</option>
+                            <option value="Level 1">Level 1</option>
+                            <option value="Level 2">Level 2</option>
+                            <option value="Level 3">Level 3</option>
                           </select>
                         )}
                       </div>
@@ -443,7 +443,7 @@ export const UserManagementModal: React.FC = () => {
                       {user.area || 'Todas las áreas'}
                     </td>
 
-                    {/* DNI / NOMBRE ADMIN */}
+                    {/* DNI / NOMBRE */}
                     <td style={{ padding: '16px 14px', verticalAlign: 'middle' }}>
                       {user.adminName ? (
                         <div>
