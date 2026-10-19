@@ -17,10 +17,20 @@ export const SEED_USERS: UserProfile[] = [
     createdAt: '2026-08-01T00:00:00Z'
   },
   {
+    id: 'user-superv-01',
+    email: 'supervisor@cosapi.pe',
+    role: 'Superv',
+    area: 'Todas las Áreas',
+    adminName: 'Supervisor OT',
+    dni: '10293847',
+    status: 'active',
+    createdAt: '2026-07-01T00:00:00Z'
+  },
+  {
     id: 'user-admin-01',
     email: 'mvillafuerte@ccp.pe',
     role: 'Admin',
-    area: 'Todas las áreas',
+    area: 'Todas las Áreas',
     adminName: 'Administrador Principal 1',
     dni: '48204199',
     status: 'active',
@@ -95,6 +105,12 @@ export async function fetchAllUsers(): Promise<UserProfile[]> {
 
       if (!error && data && data.length > 0) {
         const profiles = data.map(mapRecordToProfile);
+        // Ensure SEED_USERS exist in list for seamless local login
+        for (const seed of SEED_USERS) {
+          if (!profiles.some(p => p.email.toLowerCase() === seed.email.toLowerCase())) {
+            profiles.push(seed);
+          }
+        }
         saveLocalUsers(profiles);
         return profiles;
       }
