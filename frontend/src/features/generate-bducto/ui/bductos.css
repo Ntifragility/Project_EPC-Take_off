@@ -466,12 +466,11 @@ table.bducto-mini.joint-loss-catalog {
   table-layout: auto;
 }
 
-/* Dynamic Auto-Layout: Every column sizes to its largest cell + ~10% padding */
+/* Edge-to-Edge Table with tight-fitted metadata columns (Zero empty space inside or outside) */
 table.bducto-mini.curve-catalog,
 table.bducto-mini.joint-loss-catalog,
 table.bducto-mini.material-catalog {
-  width: max-content !important;
-  max-width: 100%;
+  width: 100% !important;
   table-layout: auto !important;
   border-collapse: collapse;
 }
@@ -482,27 +481,42 @@ table.bducto-mini.material-catalog {
 .joint-loss-catalog td,
 .material-catalog th,
 .material-catalog td {
-  padding: 6px 12px !important; /* Exactly 10% breathing margin on left & right of text */
-  white-space: nowrap !important; /* Keeps every cell on a single clean line */
+  padding: 6px 12px !important;
   vertical-align: middle;
-  width: auto !important; /* NO PRE-FIXED VALUES: hugs largest cell */
 }
 
-/* Center-aligned compact metadata cells */
-.curve-catalog td:not(:first-child),
-.joint-loss-catalog td:nth-child(1),
-.joint-loss-catalog td:nth-child(2),
-.material-catalog td:nth-child(2),
-.material-catalog td:nth-child(4) {
-  text-align: center;
-}
-
-.curve-catalog th:not(:first-child),
+/* Metadata columns shrink-wrap tightly to their largest content + 10% margin */
 .joint-loss-catalog th:nth-child(1),
+.joint-loss-catalog td:nth-child(1),
 .joint-loss-catalog th:nth-child(2),
+.joint-loss-catalog td:nth-child(2),
+.material-catalog th:nth-child(1),
+.material-catalog td:nth-child(1),
 .material-catalog th:nth-child(2),
-.material-catalog th:nth-child(4) {
+.material-catalog td:nth-child(2),
+.material-catalog th:nth-child(4),
+.material-catalog td:nth-child(4),
+.curve-catalog th:not(:first-child),
+.curve-catalog td:not(:first-child) {
+  width: 1% !important;
+  white-space: nowrap !important;
   text-align: center;
+}
+
+.material-catalog th:nth-child(1),
+.material-catalog td:nth-child(1) {
+  text-align: left;
+}
+
+/* Flexible description columns fill remaining space to edge cleanly without wrapping */
+.joint-loss-catalog th:nth-child(3),
+.joint-loss-catalog td:nth-child(3),
+.material-catalog th:nth-child(3),
+.material-catalog td:nth-child(3),
+.curve-catalog th:first-child,
+.curve-catalog td:first-child {
+  width: auto !important;
+  white-space: nowrap !important;
 }
 
 

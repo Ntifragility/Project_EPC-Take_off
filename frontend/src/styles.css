@@ -1331,7 +1331,7 @@ tr.tr-row td {
   left: 0;
   bottom: 0;
   z-index: 150;
-  width: var(--drawer-width, fit-content);
+  width: var(--drawer-width, 700px);
   min-width: 480px;
   max-width: calc(100vw - 48px);
   display: flex;
