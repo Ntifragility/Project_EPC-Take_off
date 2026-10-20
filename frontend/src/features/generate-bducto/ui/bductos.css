@@ -442,3 +442,59 @@ body:not(.light-theme):not(.light-mode) .bducto-sheet .takeoff-table thead tr.co
   padding: 0;
   background: var(--s2);
 }
+
+
+/* Accessories Catalog Subnav & Joint Loss Table Styles */
+.accessories-subnav {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 16px;
+  gap: 4px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--b1);
+  flex-shrink: 0;
+}
+
+.accessories-subnav-btn {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--mu);
+  height: 36px;
+  padding: 0 14px;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.accessories-subnav-btn:hover {
+  color: var(--tx);
+}
+
+.accessories-subnav-btn.active {
+  color: #107c41;
+  border-bottom-color: #107c41;
+}
+
+table.bducto-mini.joint-loss-catalog {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.joint-loss-catalog th:nth-child(1),
+.joint-loss-catalog td:nth-child(1) {
+  width: 110px;
+}
+
+.joint-loss-catalog th:nth-child(2),
+.joint-loss-catalog td:nth-child(2) {
+  width: 160px;
+}
+
+.joint-loss-catalog th:nth-child(4),
+.joint-loss-catalog td:nth-child(4) {
+  width: 72px;
+}

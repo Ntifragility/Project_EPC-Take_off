@@ -15,294 +15,268 @@ import { siteConfirm } from '../../../shared/ui/askSite';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 import './bductos.css';
 
-interface DraftLossItem {
-  id: string;
-  diameter: string;
-  lossMText: string;
-  descripcion: string;
-  orderIndex: number;
+type FieldKey = 'diameter' | 'loss' | 'descripcion';
+const ROW_FIELDS: FieldKey[] = ['diameter', 'loss', 'descripcion'];
+
+const FIELD_LABELS: Record<FieldKey, string> = {
+  diameter: 'Diámetro',
+  loss: 'Pérdida por embone (m)',
+  descripcion: 'Descripción'
+};
+
+type RowDraft = Record<FieldKey, string>;
+
+interface JointLossDraft extends JointLossCatalogItem {
+  lossText: string;
 }
 
-function toDraft(item: JointLossCatalogItem): DraftLossItem {
+function toDraft(item: JointLossCatalogItem): JointLossDraft {
   return {
-    id: item.id,
-    diameter: item.diameter,
-    lossMText: String(item.lossM),
-    descripcion: item.descripcion || `Pérdida por embone D=${item.diameter}`,
-    orderIndex: item.orderIndex
+    ...item,
+    lossText: String(item.lossM)
   };
+}
+
+function fieldValue(row: JointLossDraft, field: FieldKey): string {
+  if (field === 'diameter') return row.diameter;
+  if (field === 'loss') return row.lossText;
+  return row.descripcion || `Pérdida por embone ${row.diameter}`;
 }
 
 export const JointLossCatalogSection: React.FC = () => {
   const { showToast } = useUIStore();
-  const [rows, setRows] = useState<DraftLossItem[]>(() =>
+  const [rows, setRows] = useState<JointLossDraft[]>(() =>
     getJointLossCatalog().map(toDraft)
   );
   const [removedIds, setRemovedIds] = useState<string[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<{ diameter: string; lossMText: string; descripcion: string } | null>(null);
+  const [editor, setEditor] = useState<{ id: string; draft: RowDraft } | null>(null);
+  const [committing, setCommitting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     setActionSlot(document.getElementById('catalog-subnav-actions'));
+  }, []);
+
+  useEffect(() => {
     return subscribeJointLossCatalog(() => {
-      setRows(getJointLossCatalog().map(toDraft));
+      setRows(current => (current.length > 0 ? current : getJointLossCatalog().map(toDraft)));
     });
   }, []);
 
-  const addRow = () => {
-    const newId = `loss-new-${Date.now()}`;
-    const newItem: DraftLossItem = {
-      id: newId,
-      diameter: '1"',
-      lossMText: '0.04',
-      descripcion: 'Pérdida por embone D=1"',
-      orderIndex: rows.length + 1
-    };
-    setRows(prev => [...prev, newItem]);
-    setEditingId(newId);
-    setEditDraft({ diameter: newItem.diameter, lossMText: newItem.lossMText, descripcion: newItem.descripcion });
-  };
-
-  const removeRow = async (row: DraftLossItem) => {
-    const ok = await siteConfirm(`¿Quitar la medida para D=${row.diameter}?`);
-    if (!ok) return;
-    setRows(prev => prev.filter(r => r.id !== row.id));
-    if (!row.id.startsWith('loss-new-')) {
-      setRemovedIds(prev => [...prev, row.id]);
-    }
-    if (editingId === row.id) {
-      setEditingId(null);
-      setEditDraft(null);
-    }
-  };
-
-  const startEdit = (row: DraftLossItem) => {
-    setEditingId(row.id);
-    setEditDraft({
-      diameter: row.diameter,
-      lossMText: row.lossMText,
-      descripcion: row.descripcion
+  const beginEdit = (row: JointLossDraft) => {
+    setEditor({
+      id: row.id,
+      draft: {
+        diameter: row.diameter,
+        loss: row.lossText,
+        descripcion: row.descripcion || `Pérdida por embone ${row.diameter}`
+      }
     });
   };
 
-  const saveEdit = () => {
-    if (!editingId || !editDraft) return;
-    const lossNum = parseFloat(editDraft.lossMText.replace(',', '.'));
-    if (isNaN(lossNum) || lossNum < 0) {
-      showToast('Ingresa una longitud de pérdida válida en metros.', 'warn');
-      return;
+  const commit = async () => {
+    if (!editor) return;
+    setCommitting(true);
+    try {
+      const parsedLoss = parseFloat(editor.draft.loss.replace(',', '.'));
+      const lossM = isNaN(parsedLoss) ? 0 : parsedLoss;
+      const normalizedDiameter = editor.draft.diameter.trim() || '1"';
+      const desc = editor.draft.descripcion.trim() || `Pérdida por embone ${normalizedDiameter}`;
+
+      const updated = rows.map(r => {
+        if (r.id === editor.id) {
+          return {
+            ...r,
+            diameter: normalizedDiameter,
+            lossM,
+            lossText: String(lossM),
+            descripcion: desc
+          };
+        }
+        return r;
+      });
+
+      setRows(updated);
+      setJointLossCatalog(
+        updated.map(r => ({
+          id: r.id,
+          diameter: r.diameter,
+          lossM: r.lossM,
+          descripcion: r.descripcion,
+          orderIndex: r.orderIndex
+        }))
+      );
+      setEditor(null);
+    } finally {
+      setCommitting(false);
     }
-    setRows(prev =>
-      prev.map(r =>
-        r.id === editingId
-          ? {
-              ...r,
-              diameter: editDraft.diameter.trim(),
-              lossMText: String(lossNum),
-              descripcion: editDraft.descripcion.trim() || `Pérdida por embone D=${editDraft.diameter.trim()}`
-            }
-          : r
-      )
-    );
-    setEditingId(null);
-    setEditDraft(null);
   };
 
-  const saveToSupabase = async () => {
-    setSaving(true);
-    try {
-      const itemsToSync: JointLossCatalogItem[] = rows.map((r, idx) => ({
+  const remove = async (row: JointLossDraft) => {
+    const ok = await siteConfirm(`¿Quitar la medida para D=${row.diameter}?`);
+    if (!ok) return;
+
+    setRows(current => current.filter(r => r.id !== row.id));
+    setRemovedIds(prev => [...prev, row.id]);
+
+    const updated = rows.filter(r => r.id !== row.id);
+    setJointLossCatalog(
+      updated.map(r => ({
         id: r.id,
         diameter: r.diameter,
-        lossM: parseFloat(r.lossMText.replace(',', '.')) || 0,
+        lossM: r.lossM,
         descripcion: r.descripcion,
-        orderIndex: idx + 1
-      }));
+        orderIndex: r.orderIndex
+      }))
+    );
+  };
 
-      const deleted = await deleteJointLossCatalogFromSupabase(removedIds);
-      const stored = await syncJointLossCatalogToSupabase(itemsToSync);
+  const addRow = () => {
+    const newId = `loss-new-${Date.now()}`;
+    const newRow: JointLossDraft = {
+      id: newId,
+      diameter: '1"',
+      lossM: 0.04,
+      lossText: '0.04',
+      descripcion: 'Pérdida por embone 1"',
+      orderIndex: rows.length + 1
+    };
 
-      if (!deleted.success || !stored.success || !stored.data) {
-        showToast(deleted.error || stored.error || 'Error al guardar en Supabase', 'warn');
-        return;
+    const nextRows = [...rows, newRow];
+    setRows(nextRows);
+    setJointLossCatalog(
+      nextRows.map(r => ({
+        id: r.id,
+        diameter: r.diameter,
+        lossM: r.lossM,
+        descripcion: r.descripcion,
+        orderIndex: r.orderIndex
+      }))
+    );
+
+    setEditor({
+      id: newId,
+      draft: {
+        diameter: '1"',
+        loss: '0.04',
+        descripcion: 'Pérdida por embone 1"'
+      }
+    });
+  };
+
+  const handleSaveToSupabase = async () => {
+    setSaving(true);
+    try {
+      if (removedIds.length > 0) {
+        await deleteJointLossCatalogFromSupabase(removedIds);
+        setRemovedIds([]);
       }
 
-      setJointLossCatalog(stored.data);
-      setRows(stored.data.map(toDraft));
-      setRemovedIds([]);
-      setEditingId(null);
-      setEditDraft(null);
-      showToast(`${stored.count} medidas de pérdida por embone guardadas en Supabase.`, 'success');
+      const itemsToSync: JointLossCatalogItem[] = rows.map(r => ({
+        id: r.id,
+        diameter: r.diameter,
+        lossM: r.lossM,
+        descripcion: r.descripcion,
+        orderIndex: r.orderIndex
+      }));
+
+      const ok = await syncJointLossCatalogToSupabase(itemsToSync);
+      if (ok) {
+        setJointLossCatalog(itemsToSync);
+        showToast('Catálogo de pérdidas guardado en Supabase', 'success');
+      } else {
+        showToast('Guardado local (Supabase no disponible o sin conexión)', 'info');
+      }
+    } catch (err) {
+      console.error('Error guardando catálogo de pérdidas:', err);
+      showToast('Error al guardar en Supabase', 'warn');
     } finally {
       setSaving(false);
     }
   };
 
-  const actions = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <button type="button" className="btn-ghost" onClick={addRow} disabled={saving}>
-        + Agregar medida
+  const lossActions = (
+    <>
+      <button
+        type="button"
+        className="btn-ghost"
+        onClick={addRow}
+        disabled={committing}
+      >
+        Agregar medida
       </button>
       <button
         type="button"
         className="btn-primary"
-        onClick={saveToSupabase}
-        disabled={saving || (rows.length === 0 && removedIds.length === 0)}
+        onClick={() => void handleSaveToSupabase()}
+        disabled={saving || committing}
       >
-        {saving ? 'Guardando...' : 'Guardar en Supabase'}
+        {saving ? 'Guardando…' : 'Guardar catálogo'}
       </button>
-    </div>
+    </>
   );
 
   return (
-    <div className="bducto-page catalog-pane" style={{ padding: '16px 20px' }}>
-      {actionSlot && createPortal(actions, actionSlot)}
+    <div className="bducto-page catalog-pane">
+      {actionSlot && createPortal(lossActions, actionSlot)}
 
-      <div className="catalog-hd" style={{ marginBottom: '16px' }}>
-        <p className="catalog-note" style={{ color: '#9ca3af', fontSize: '13px', margin: 0 }}>
-          Pérdida unitaria en metros por cada unión/embone de tubería según diámetro. Estos valores calibran automáticamente la fila generada en BDUCTOS.
+      <div className="catalog-hd">
+        <p className="catalog-note">
+          Cada fila se guarda al confirmar. Guardar catálogo envía las medidas nuevas y actualizadas a Supabase.
         </p>
       </div>
 
-      <div style={{ overflowX: 'auto', backgroundColor: '#111215', borderRadius: '8px', border: '1px solid #23252f' }}>
-        <table className="bducto-mini" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="bducto-mini curve-catalog joint-loss-catalog">
           <thead>
-            <tr style={{ borderBottom: '1px solid #282a36', backgroundColor: '#17181f' }}>
-              <th style={{ padding: '12px 14px', color: '#e4e4e7', fontSize: '12px', fontWeight: 600, width: '130px' }}>
-                Diámetro
-              </th>
-              <th style={{ padding: '12px 14px', color: '#e4e4e7', fontSize: '12px', fontWeight: 600, width: '160px' }}>
-                Pérdida por Unión (m)
-              </th>
-              <th style={{ padding: '12px 14px', color: '#e4e4e7', fontSize: '12px', fontWeight: 600 }}>
-                Descripción
-              </th>
-              <th style={{ padding: '12px 14px', width: '90px', textAlign: 'center' }}>
-                Acciones
-              </th>
+            <tr>
+              <th>Diámetro</th>
+              <th>Pérdida por embone (m)</th>
+              <th>Descripción</th>
+              <th />
             </tr>
           </thead>
           <tbody>
             {rows.map(row => {
-              const isEditing = editingId === row.id;
+              const editing = editor?.id === row.id;
               return (
-                <tr
-                  key={row.id}
-                  style={{
-                    borderBottom: '1px solid #1c1d25',
-                    backgroundColor: isEditing ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                    transition: 'background-color 0.15s'
-                  }}
-                >
-                  <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
-                    {isEditing && editDraft ? (
-                      <input
-                        type="text"
-                        value={editDraft.diameter}
-                        onChange={e => setEditDraft({ ...editDraft, diameter: e.target.value })}
-                        style={{
-                          backgroundColor: '#1b1c24',
-                          border: '1px solid #3b82f6',
-                          borderRadius: '4px',
-                          color: '#ffffff',
-                          padding: '4px 8px',
-                          fontSize: '13px',
-                          width: '80px'
-                        }}
-                      />
-                    ) : (
-                      <span
-                        style={{
-                          backgroundColor: '#1c1d26',
-                          color: '#60a5fa',
-                          border: '1px solid #2b2e3e',
-                          borderRadius: '6px',
-                          padding: '3px 10px',
-                          fontSize: '12.5px',
-                          fontWeight: 600,
-                          display: 'inline-block'
-                        }}
-                      >
-                        {row.diameter}
-                      </span>
-                    )}
-                  </td>
-
-                  <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
-                    {isEditing && editDraft ? (
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={editDraft.lossMText}
-                        onChange={e => setEditDraft({ ...editDraft, lossMText: e.target.value })}
-                        style={{
-                          backgroundColor: '#1b1c24',
-                          border: '1px solid #3b82f6',
-                          borderRadius: '4px',
-                          color: '#ffffff',
-                          padding: '4px 8px',
-                          fontSize: '13px',
-                          width: '100px',
-                          fontFamily: 'monospace'
-                        }}
-                      />
-                    ) : (
-                      <span
-                        style={{
-                          fontFamily: 'monospace',
-                          fontSize: '13.5px',
-                          color: '#34d399',
-                          fontWeight: 600
-                        }}
-                      >
-                        {Number(row.lossMText).toFixed(2)} m
-                      </span>
-                    )}
-                  </td>
-
-                  <td style={{ padding: '10px 14px', verticalAlign: 'middle', color: '#d1d5db', fontSize: '13px' }}>
-                    {isEditing && editDraft ? (
-                      <input
-                        type="text"
-                        value={editDraft.descripcion}
-                        onChange={e => setEditDraft({ ...editDraft, descripcion: e.target.value })}
-                        style={{
-                          backgroundColor: '#1b1c24',
-                          border: '1px solid #3b82f6',
-                          borderRadius: '4px',
-                          color: '#ffffff',
-                          padding: '4px 8px',
-                          fontSize: '13px',
-                          width: '100%',
-                          maxWidth: '350px'
-                        }}
-                      />
-                    ) : (
-                      <span>{row.descripcion}</span>
-                    )}
-                  </td>
-
-                  <td style={{ padding: '10px 14px', verticalAlign: 'middle', textAlign: 'center' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      {isEditing ? (
-                        <>
-                          <IconActionButton kind="save" title="Guardar edición" onClick={saveEdit} />
-                          <IconActionButton
-                            kind="cancel"
-                            title="Cancelar"
-                            onClick={() => {
-                              setEditingId(null);
-                              setEditDraft(null);
-                            }}
-                          />
-                        </>
+                <tr key={row.id}>
+                  {ROW_FIELDS.map(field => (
+                    <td key={field}>
+                      {editing && editor ? (
+                        <input
+                          aria-label={FIELD_LABELS[field]}
+                          value={editor.draft[field]}
+                          inputMode={field === 'loss' ? 'decimal' : undefined}
+                          autoFocus={field === 'diameter'}
+                          disabled={committing}
+                          onChange={event =>
+                            setEditor({
+                              id: row.id,
+                              draft: { ...editor.draft, [field]: event.target.value }
+                            })
+                          }
+                          onKeyDown={event => {
+                            if (event.key === 'Enter') void commit();
+                            if (event.key === 'Escape') setEditor(null);
+                          }}
+                        />
                       ) : (
-                        <IconActionButton kind="edit" title="Editar medida" onClick={() => startEdit(row)} />
+                        <span className="curve-value-text">{fieldValue(row, field)}</span>
                       )}
-                      <IconActionButton kind="delete" title="Quitar medida" onClick={() => void removeRow(row)} />
-                    </div>
+                    </td>
+                  ))}
+                  <td className="curve-row-actions">
+                    {editing ? (
+                      <>
+                        <IconActionButton kind="save" title="Confirmar fila" onClick={() => void commit()} disabled={committing} />
+                        <IconActionButton kind="cancel" title="Cancelar" onClick={() => setEditor(null)} disabled={committing} />
+                      </>
+                    ) : (
+                      <IconActionButton kind="edit" title="Editar fila" onClick={() => beginEdit(row)} disabled={committing} />
+                    )}
+                    <IconActionButton kind="delete" title="Quitar medida" onClick={() => void remove(row)} disabled={committing} />
                   </td>
                 </tr>
               );
