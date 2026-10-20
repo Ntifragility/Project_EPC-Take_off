@@ -33,6 +33,15 @@ export function toCents(value: number): number {
   return Math.round(value * 100);
 }
 
+export function getJointLossPerStick(diameter: string): number {
+  const clean = diameter.replace(/\s+/g, '');
+  if (clean.includes('6')) return 0.13;
+  if (clean.includes('4')) return 0.09;
+  if (clean.includes('3')) return 0.07;
+  if (clean.includes('2')) return 0.05;
+  return 0.05;
+}
+
 export function splitSticks(quantityM: number): number[] {
   const cents = toCents(quantityM);
   if (cents <= 0) return [];
@@ -203,6 +212,13 @@ export function expandBducto(
 
   for (const length of sticks) {
     pushMeasured('conduit', conduitDescription(parsed.diameter), parsed.diameter, length, parsed.vias, true);
+  }
+
+  const numberOfUnions = Math.max(0, sticks.length - 1);
+  if (numberOfUnions > 0) {
+    const lossFactor = getJointLossPerStick(parsed.diameter);
+    const lossLengthPerVia = round2(lossFactor * numberOfUnions);
+    pushMeasured('conduit', conduitDescription(parsed.diameter), parsed.diameter, lossLengthPerVia, parsed.vias, true);
   }
 
   const terminalCount = Math.round(prompt.terminalCount);
