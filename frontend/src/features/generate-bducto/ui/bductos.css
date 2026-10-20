@@ -481,11 +481,12 @@ table.bducto-mini.joint-loss-catalog {
   table-layout: auto;
 }
 
-/* Dynamic Auto-Layout: Column width sized to largest cell + ~10% margin */
+/* Dynamic Auto-Layout: Every column sizes to its largest cell + ~10% padding */
 table.bducto-mini.curve-catalog,
 table.bducto-mini.joint-loss-catalog,
 table.bducto-mini.material-catalog {
-  width: 100%;
+  width: auto;
+  min-width: 100%;
   table-layout: auto;
   border-collapse: collapse;
 }
@@ -496,45 +497,27 @@ table.bducto-mini.material-catalog {
 .joint-loss-catalog td,
 .material-catalog th,
 .material-catalog td {
-  padding: 6px 14px !important; /* ~10% margin / breathing room on sides */
-  white-space: nowrap; /* Keeps content on a single clean line */
+  padding: 6px 14px !important; /* 10% - 15% breathing room on both sides of the largest cell */
+  white-space: nowrap; /* Keeps every cell on a single clean line */
   vertical-align: middle;
+  width: auto; /* Hugs largest text without artificial stretching or empty voids */
 }
 
-/* Description columns take remaining flexible width without breaking line */
-.joint-loss-catalog th:nth-child(3),
-.joint-loss-catalog td:nth-child(3) {
-  width: 100%;
-  white-space: normal;
-}
-
-.material-catalog th:nth-child(3),
-.material-catalog td:nth-child(3) {
-  width: 100%;
-  white-space: normal;
-}
-
-.curve-catalog th:first-child,
-.curve-catalog td:first-child {
-  width: 100%;
-  white-space: normal;
-}
-
-/* Compact data columns shrink tightly to largest content + padding */
-.joint-loss-catalog th:nth-child(1),
+/* Center-aligned compact metadata cells */
+.curve-catalog td:not(:first-child),
 .joint-loss-catalog td:nth-child(1),
-.joint-loss-catalog th:nth-child(2),
 .joint-loss-catalog td:nth-child(2),
-.material-catalog th:nth-child(1),
-.material-catalog td:nth-child(1),
-.material-catalog th:nth-child(2),
 .material-catalog td:nth-child(2),
-.material-catalog th:nth-child(4),
-.material-catalog td:nth-child(4),
+.material-catalog td:nth-child(4) {
+  text-align: center;
+}
+
 .curve-catalog th:not(:first-child),
-.curve-catalog td:not(:first-child) {
-  width: 1%;
-  white-space: nowrap;
+.joint-loss-catalog th:nth-child(1),
+.joint-loss-catalog th:nth-child(2),
+.material-catalog th:nth-child(2),
+.material-catalog th:nth-child(4) {
+  text-align: center;
 }
 
 
