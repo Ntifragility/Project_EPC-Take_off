@@ -301,54 +301,61 @@ export const CurveCatalogPage: React.FC = () => {
             <thead>
               <tr>
                 <th>Descripción</th>
-                <th>Ángulo</th>
-                <th>Radio</th>
-                <th>Pulgadas</th>
-                <th>Longitud (m)</th>
-                <th />
+                <th style={{ width: '80px' }}>Ángulo</th>
+                <th style={{ width: '80px' }}>Radio</th>
+                <th style={{ width: '80px' }}>Pulgadas</th>
+                <th style={{ width: '105px' }}>Longitud (m)</th>
               </tr>
             </thead>
             <tbody>
               {visible.map(row => {
                 const editing = editor?.id === row.id;
                 return (
-                  <tr key={row.id}>
-                    {ROW_FIELDS.map(field => (
-                      <td key={field}>
-                        {editing && editor ? (
-                          <input
-                            aria-label={FIELD_LABELS[field]}
-                            value={editor.draft[field]}
-                            inputMode={field === 'length' ? 'decimal' : undefined}
-                            autoFocus={field === 'descripcion'}
-                            disabled={committing}
-                            onChange={event =>
-                              setEditor({
-                                id: row.id,
-                                draft: { ...editor.draft, [field]: event.target.value }
-                              })
-                            }
-                            onKeyDown={event => {
-                              if (event.key === 'Enter') void commit();
-                              if (event.key === 'Escape') setEditor(null);
-                            }}
-                          />
-                        ) : (
-                          <span className="curve-value-text">{fieldValue(row, field)}</span>
-                        )}
-                      </td>
-                    ))}
-                    <td className="curve-row-actions">
-                      {editing ? (
-                        <>
-                          <IconActionButton kind="save" title="Confirmar fila" onClick={() => void commit()} disabled={committing} />
-                          <IconActionButton kind="cancel" title="Cancelar" onClick={() => setEditor(null)} disabled={committing} />
-                        </>
-                      ) : (
-                        <IconActionButton kind="edit" title="Editar fila" onClick={() => beginEdit(row)} disabled={committing} />
-                      )}
-                      <IconActionButton kind="delete" title="Quitar curva" onClick={() => remove(row)} disabled={committing} />
-                    </td>
+                  <tr key={row.id} className={editing ? 'is-editing' : ''}>
+                    {ROW_FIELDS.map(field => {
+                      const isLast = field === 'length';
+                      return (
+                        <td key={field} className={isLast ? 'catalog-row-anchor' : undefined}>
+                          {editing && editor ? (
+                            <input
+                              aria-label={FIELD_LABELS[field]}
+                              value={editor.draft[field]}
+                              inputMode={field === 'length' ? 'decimal' : undefined}
+                              autoFocus={field === 'descripcion'}
+                              disabled={committing}
+                              onChange={event =>
+                                setEditor({
+                                  id: row.id,
+                                  draft: { ...editor.draft, [field]: event.target.value }
+                                })
+                              }
+                              onKeyDown={event => {
+                                if (event.key === 'Enter') void commit();
+                                if (event.key === 'Escape') setEditor(null);
+                              }}
+                            />
+                          ) : (
+                            <span className="curve-value-text">{fieldValue(row, field)}</span>
+                          )}
+
+                          {isLast && (
+                            <div className="row-hover-actions">
+                              {editing ? (
+                                <>
+                                  <IconActionButton kind="save" title="Confirmar fila" onClick={() => void commit()} disabled={committing} />
+                                  <IconActionButton kind="cancel" title="Cancelar" onClick={() => setEditor(null)} disabled={committing} />
+                                </>
+                              ) : (
+                                <>
+                                  <IconActionButton kind="edit" title="Editar fila" onClick={() => beginEdit(row)} disabled={committing} />
+                                  <IconActionButton kind="delete" title="Quitar curva" onClick={() => remove(row)} disabled={committing} />
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}

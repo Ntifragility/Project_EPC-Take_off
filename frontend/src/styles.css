@@ -1331,13 +1331,15 @@ tr.tr-row td {
   left: 0;
   bottom: 0;
   z-index: 150;
-  width: min(860px, calc(100vw - 64px));
+  width: var(--drawer-width, min(860px, calc(100vw - 64px)));
+  max-width: calc(100vw - 48px);
   display: flex;
   flex-direction: column;
   background: var(--bg);
   border-right: 1px solid var(--b1);
   box-shadow: 8px 0 28px rgba(0, 0, 0, 0.16);
   animation: catalog-drawer-in 0.2s ease-out;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .catalog-drawer-bar {

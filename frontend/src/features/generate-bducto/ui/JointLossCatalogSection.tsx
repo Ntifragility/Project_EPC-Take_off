@@ -223,7 +223,7 @@ export const JointLossCatalogSection: React.FC = () => {
 
       <div className="catalog-hd">
         <p className="catalog-note">
-          Cada fila se guarda al confirmar. Guardar catálogo envía las medidas nuevas y actualizadas a Supabase.
+          Cada fila se guarda al confirmar. Al pasar el cursor sobre cualquier fila puedes editar o quitar una medida.
         </p>
       </div>
 
@@ -231,53 +231,64 @@ export const JointLossCatalogSection: React.FC = () => {
         <table className="bducto-mini curve-catalog joint-loss-catalog">
           <thead>
             <tr>
-              <th>Diámetro</th>
-              <th>Pérdida por embone (m)</th>
+              <th style={{ width: '100px' }}>Diámetro</th>
+              <th style={{ width: '160px' }}>Pérdida por embone (m)</th>
               <th>Descripción</th>
-              <th />
             </tr>
           </thead>
           <tbody>
             {rows.map(row => {
               const editing = editor?.id === row.id;
               return (
-                <tr key={row.id}>
-                  {ROW_FIELDS.map(field => (
-                    <td key={field}>
-                      {editing && editor ? (
-                        <input
-                          aria-label={FIELD_LABELS[field]}
-                          value={editor.draft[field]}
-                          inputMode={field === 'loss' ? 'decimal' : undefined}
-                          autoFocus={field === 'diameter'}
-                          disabled={committing}
-                          onChange={event =>
-                            setEditor({
-                              id: row.id,
-                              draft: { ...editor.draft, [field]: event.target.value }
-                            })
-                          }
-                          onKeyDown={event => {
-                            if (event.key === 'Enter') void commit();
-                            if (event.key === 'Escape') setEditor(null);
-                          }}
-                        />
-                      ) : (
-                        <span className="curve-value-text">{fieldValue(row, field)}</span>
-                      )}
-                    </td>
-                  ))}
-                  <td className="curve-row-actions">
-                    {editing ? (
-                      <>
-                        <IconActionButton kind="save" title="Confirmar fila" onClick={() => void commit()} disabled={committing} />
-                        <IconActionButton kind="cancel" title="Cancelar" onClick={() => setEditor(null)} disabled={committing} />
-                      </>
-                    ) : (
-                      <IconActionButton kind="edit" title="Editar fila" onClick={() => beginEdit(row)} disabled={committing} />
-                    )}
-                    <IconActionButton kind="delete" title="Quitar medida" onClick={() => void remove(row)} disabled={committing} />
-                  </td>
+                <tr key={row.id} className={editing ? 'is-editing' : ''}>
+                  {ROW_FIELDS.map(field => {
+                    const isLastField = field === 'descripcion';
+                    return (
+                      <td
+                        key={field}
+                        className={isLastField ? 'catalog-row-anchor' : undefined}
+                      >
+                        {editing && editor ? (
+                          <input
+                            aria-label={FIELD_LABELS[field]}
+                            value={editor.draft[field]}
+                            inputMode={field === 'loss' ? 'decimal' : undefined}
+                            autoFocus={field === 'diameter'}
+                            disabled={committing}
+                            onChange={event =>
+                              setEditor({
+                                id: row.id,
+                                draft: { ...editor.draft, [field]: event.target.value }
+                              })
+                            }
+                            onKeyDown={event => {
+                              if (event.key === 'Enter') void commit();
+                              if (event.key === 'Escape') setEditor(null);
+                            }}
+                          />
+                        ) : (
+                          <span className="curve-value-text">{fieldValue(row, field)}</span>
+                        )}
+
+                        {/* Floating Action Overlay on Hover (Image 2 style) */}
+                        {isLastField && (
+                          <div className="row-hover-actions">
+                            {editing ? (
+                              <>
+                                <IconActionButton kind="save" title="Confirmar fila" onClick={() => void commit()} disabled={committing} />
+                                <IconActionButton kind="cancel" title="Cancelar" onClick={() => setEditor(null)} disabled={committing} />
+                              </>
+                            ) : (
+                              <>
+                                <IconActionButton kind="edit" title="Editar fila" onClick={() => beginEdit(row)} disabled={committing} />
+                                <IconActionButton kind="delete" title="Quitar medida" onClick={() => void remove(row)} disabled={committing} />
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}

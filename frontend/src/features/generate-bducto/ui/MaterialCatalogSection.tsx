@@ -25,7 +25,7 @@ const ROW_FIELDS: FieldKey[] = ['category', 'diameter', 'descripcion', 'unidad']
 const FIELD_LABELS: Record<FieldKey, string> = {
   category: 'Categoría',
   diameter: 'Diámetro',
-  descripcion: 'Descripción',
+  descripcion: 'Descripción en Metrado',
   unidad: 'Unidad'
 };
 
@@ -289,7 +289,7 @@ export const MaterialCatalogSection: React.FC = () => {
       <div className="catalog-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
         <p className="catalog-note" style={{ margin: 0 }}>
           {isAdmin
-            ? 'Catálogo maestro de materiales. Cada fila se guarda al confirmar y se sincroniza en Supabase para todos los metrados.'
+            ? 'Catálogo maestro de materiales. Al pasar el cursor sobre cualquier fila puedes editar o eliminar. Los cambios confirmados se envían a Supabase.'
             : 'Catálogo maestro de materiales en modo de consulta. La edición está reservada exclusivamente para usuarios Level 3 (ADMIN).'}
         </p>
 
@@ -316,78 +316,85 @@ export const MaterialCatalogSection: React.FC = () => {
         <table className="bducto-mini curve-catalog material-catalog">
           <thead>
             <tr>
-              <th style={{ width: '130px' }}>Categoría</th>
+              <th style={{ width: '135px' }}>Categoría</th>
               <th style={{ width: '85px' }}>Diámetro</th>
               <th>Descripción en Metrado</th>
-              <th style={{ width: '70px' }}>Unidad</th>
-              <th style={{ width: isAdmin ? '72px' : '40px' }} />
+              <th style={{ width: '85px' }}>Unidad</th>
             </tr>
           </thead>
           <tbody>
             {visibleRows.map(row => {
               const editing = editor?.id === row.id;
               return (
-                <tr key={row.id}>
-                  {ROW_FIELDS.map(field => (
-                    <td key={field}>
-                      {editing && editor ? (
-                        field === 'category' ? (
-                          <select
-                            aria-label="Categoría"
-                            value={editor.draft.category}
-                            disabled={committing}
-                            onChange={e =>
-                              setEditor({
-                                id: row.id,
-                                draft: { ...editor.draft, category: e.target.value }
-                              })
-                            }
-                            style={{ width: '100%', height: '24px', fontSize: '12px' }}
-                          >
-                            <option value="tubo">Tubo</option>
-                            <option value="union">Unión</option>
-                            <option value="adaptador">Adaptador</option>
-                            <option value="campana">Campana</option>
-                            <option value="cinta">Cinta</option>
-                          </select>
+                <tr key={row.id} className={editing ? 'is-editing' : ''}>
+                  {ROW_FIELDS.map(field => {
+                    const isLastField = field === 'unidad';
+                    return (
+                      <td
+                        key={field}
+                        className={isLastField ? 'catalog-row-anchor' : undefined}
+                      >
+                        {editing && editor ? (
+                          field === 'category' ? (
+                            <select
+                              aria-label="Categoría"
+                              value={editor.draft.category}
+                              disabled={committing}
+                              onChange={e =>
+                                setEditor({
+                                  id: row.id,
+                                  draft: { ...editor.draft, category: e.target.value }
+                                })
+                              }
+                              style={{ width: '100%', height: '24px', fontSize: '12px' }}
+                            >
+                              <option value="tubo">Tubo</option>
+                              <option value="union">Unión</option>
+                              <option value="adaptador">Adaptador</option>
+                              <option value="campana">Campana</option>
+                              <option value="cinta">Cinta</option>
+                            </select>
+                          ) : (
+                            <input
+                              aria-label={FIELD_LABELS[field]}
+                              value={editor.draft[field]}
+                              autoFocus={field === 'descripcion'}
+                              disabled={committing}
+                              onChange={event =>
+                                setEditor({
+                                  id: row.id,
+                                  draft: { ...editor.draft, [field]: event.target.value }
+                                })
+                              }
+                              onKeyDown={event => {
+                                if (event.key === 'Enter') void commit();
+                                if (event.key === 'Escape') setEditor(null);
+                              }}
+                            />
+                          )
                         ) : (
-                          <input
-                            aria-label={FIELD_LABELS[field]}
-                            value={editor.draft[field]}
-                            autoFocus={field === 'descripcion'}
-                            disabled={committing}
-                            onChange={event =>
-                              setEditor({
-                                id: row.id,
-                                draft: { ...editor.draft, [field]: event.target.value }
-                              })
-                            }
-                            onKeyDown={event => {
-                              if (event.key === 'Enter') void commit();
-                              if (event.key === 'Escape') setEditor(null);
-                            }}
-                          />
-                        )
-                      ) : (
-                        <span className="curve-value-text">{fieldValue(row, field)}</span>
-                      )}
-                    </td>
-                  ))}
-                  <td className="curve-row-actions">
-                    {isAdmin && (
-                      editing ? (
-                        <>
-                          <IconActionButton kind="save" title="Confirmar fila" onClick={() => void commit()} disabled={committing} />
-                          <IconActionButton kind="cancel" title="Cancelar" onClick={() => setEditor(null)} disabled={committing} />
-                        </>
-                      ) : (
-                        <>
-                          <IconActionButton kind="edit" title="Editar material" onClick={() => beginEdit(row)} disabled={committing} />
-                          <IconActionButton kind="delete" title="Quitar material" onClick={() => void remove(row)} disabled={committing} />
-                        </>
-                      )
-                    )}
-                  </td>
+                          <span className="curve-value-text">{fieldValue(row, field)}</span>
+                        )}
+
+                        {/* Floating Action Overlay on Hover (Image 2 style) */}
+                        {isLastField && isAdmin && (
+                          <div className="row-hover-actions">
+                            {editing ? (
+                              <>
+                                <IconActionButton kind="save" title="Confirmar fila" onClick={() => void commit()} disabled={committing} />
+                                <IconActionButton kind="cancel" title="Cancelar" onClick={() => setEditor(null)} disabled={committing} />
+                              </>
+                            ) : (
+                              <>
+                                <IconActionButton kind="edit" title="Editar material" onClick={() => beginEdit(row)} disabled={committing} />
+                                <IconActionButton kind="delete" title="Quitar material" onClick={() => void remove(row)} disabled={committing} />
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}

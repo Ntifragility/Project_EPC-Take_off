@@ -271,10 +271,7 @@ table.bducto-mini.curve-catalog {
   width: 112px;
 }
 
-.curve-catalog th:nth-child(6),
-.curve-catalog td:nth-child(6) {
-  width: 72px;
-}
+/* 6th column removed: actions are now floating on hover */
 
 .curve-catalog td input {
   width: 100%;
@@ -494,10 +491,7 @@ table.bducto-mini.joint-loss-catalog {
   width: 160px;
 }
 
-.joint-loss-catalog th:nth-child(4),
-.joint-loss-catalog td:nth-child(4) {
-  width: 72px;
-}
+/* 4th column removed: actions are now floating on hover */
 
 
 table.bducto-mini.material-catalog {
@@ -517,5 +511,62 @@ table.bducto-mini.material-catalog {
 
 .material-catalog th:nth-child(4),
 .material-catalog td:nth-child(4) {
-  width: 70px;
+  width: 85px;
+}
+
+
+/* Floating Row Action Overlay (Image 2 style - No extra empty column) */
+.catalog-row-anchor {
+  position: relative !important;
+}
+
+.row-hover-actions {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--s1);
+  border: 1px solid #107c41;
+  border-radius: 3px;
+  padding: 1px 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-in-out;
+  z-index: 10;
+}
+
+tr:hover .row-hover-actions,
+tr:focus-within .row-hover-actions,
+tr.is-editing .row-hover-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.row-hover-actions .icon-act-btn {
+  width: 22px;
+  height: 22px;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--tx);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.row-hover-actions .icon-act-btn:hover {
+  background: rgba(16, 124, 65, 0.12);
+  color: #107c41;
+}
+
+.row-hover-actions .icon-act-delete:hover,
+.row-hover-actions .icon-act-delete:hover svg {
+  background: rgba(197, 34, 31, 0.12);
+  color: #c5221f !important;
 }
