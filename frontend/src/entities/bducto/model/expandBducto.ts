@@ -217,8 +217,8 @@ export function expandBducto(
   const numberOfUnions = Math.max(0, sticks.length - 1);
   if (numberOfUnions > 0) {
     const lossFactor = getJointLossPerStick(parsed.diameter);
-    const lossLengthPerVia = round2(lossFactor * numberOfUnions);
-    pushMeasured('conduit', conduitDescription(parsed.diameter), parsed.diameter, lossLengthPerVia, parsed.vias, true);
+    const totalJoints = numberOfUnions * parsed.vias;
+    pushMeasured('conduit', conduitDescription(parsed.diameter), parsed.diameter, lossFactor, totalJoints, true);
   }
 
   const terminalCount = Math.round(prompt.terminalCount);
