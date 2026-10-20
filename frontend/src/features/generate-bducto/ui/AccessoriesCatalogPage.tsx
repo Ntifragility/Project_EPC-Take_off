@@ -5,9 +5,9 @@ import { MaterialCatalogSection } from './MaterialCatalogSection';
 import './bductos.css';
 
 const DRAWER_WIDTHS: Record<'curvas' | 'embone' | 'materiales', string> = {
-  embone: '520px',
-  materiales: '750px',
-  curvas: '760px'
+  embone: 'fit-content',
+  materiales: 'fit-content',
+  curvas: 'fit-content'
 };
 
 export const AccessoriesCatalogPage: React.FC = () => {

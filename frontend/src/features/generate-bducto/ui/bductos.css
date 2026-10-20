@@ -254,22 +254,7 @@ table.bducto-mini.curve-catalog {
   table-layout: auto;
 }
 
-.curve-catalog th:nth-child(2),
-.curve-catalog td:nth-child(2),
-.curve-catalog th:nth-child(3),
-.curve-catalog td:nth-child(3) {
-  width: 88px;
-}
-
-.curve-catalog th:nth-child(4),
-.curve-catalog td:nth-child(4) {
-  width: 96px;
-}
-
-.curve-catalog th:nth-child(5),
-.curve-catalog td:nth-child(5) {
-  width: 112px;
-}
+/* REMOVED PRE-FIXED WIDTHS (88px, 96px, 112px) - Columns now auto-size dynamically */
 
 /* 6th column removed: actions are now floating on hover */
 
@@ -485,9 +470,9 @@ table.bducto-mini.joint-loss-catalog {
 table.bducto-mini.curve-catalog,
 table.bducto-mini.joint-loss-catalog,
 table.bducto-mini.material-catalog {
-  width: auto;
-  min-width: 100%;
-  table-layout: auto;
+  width: max-content !important;
+  max-width: 100%;
+  table-layout: auto !important;
   border-collapse: collapse;
 }
 
@@ -497,10 +482,10 @@ table.bducto-mini.material-catalog {
 .joint-loss-catalog td,
 .material-catalog th,
 .material-catalog td {
-  padding: 6px 14px !important; /* 10% - 15% breathing room on both sides of the largest cell */
-  white-space: nowrap; /* Keeps every cell on a single clean line */
+  padding: 6px 12px !important; /* Exactly 10% breathing margin on left & right of text */
+  white-space: nowrap !important; /* Keeps every cell on a single clean line */
   vertical-align: middle;
-  width: auto; /* Hugs largest text without artificial stretching or empty voids */
+  width: auto !important; /* NO PRE-FIXED VALUES: hugs largest cell */
 }
 
 /* Center-aligned compact metadata cells */
