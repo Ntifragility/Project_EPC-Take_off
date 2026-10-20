@@ -231,8 +231,8 @@ export const JointLossCatalogSection: React.FC = () => {
         <table className="bducto-mini curve-catalog joint-loss-catalog">
           <thead>
             <tr>
-              <th style={{ width: '100px' }}>Diámetro</th>
-              <th style={{ width: '160px' }}>Pérdida por embone (m)</th>
+              <th>Diámetro</th>
+              <th>Pérdida por embone (m)</th>
               <th>Descripción</th>
             </tr>
           </thead>

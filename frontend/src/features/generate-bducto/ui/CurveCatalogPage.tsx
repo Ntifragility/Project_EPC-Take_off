@@ -301,10 +301,10 @@ export const CurveCatalogPage: React.FC = () => {
             <thead>
               <tr>
                 <th>Descripción</th>
-                <th style={{ width: '80px' }}>Ángulo</th>
-                <th style={{ width: '80px' }}>Radio</th>
-                <th style={{ width: '80px' }}>Pulgadas</th>
-                <th style={{ width: '105px' }}>Longitud (m)</th>
+                <th>Ángulo</th>
+                <th>Radio</th>
+                <th>Pulgadas</th>
+                <th>Longitud (m)</th>
               </tr>
             </thead>
             <tbody>

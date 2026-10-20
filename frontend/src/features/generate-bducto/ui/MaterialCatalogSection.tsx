@@ -316,10 +316,10 @@ export const MaterialCatalogSection: React.FC = () => {
         <table className="bducto-mini curve-catalog material-catalog">
           <thead>
             <tr>
-              <th style={{ width: '135px' }}>Categoría</th>
-              <th style={{ width: '85px' }}>Diámetro</th>
+              <th>Categoría</th>
+              <th>Diámetro</th>
               <th>Descripción en Metrado</th>
-              <th style={{ width: '85px' }}>Unidad</th>
+              <th>Unidad</th>
             </tr>
           </thead>
           <tbody>

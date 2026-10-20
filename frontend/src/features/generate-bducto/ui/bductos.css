@@ -251,7 +251,7 @@
 
 table.bducto-mini.curve-catalog {
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .curve-catalog th:nth-child(2),
@@ -478,40 +478,63 @@ body:not(.light-theme):not(.light-mode) .bducto-sheet .takeoff-table thead tr.co
 
 table.bducto-mini.joint-loss-catalog {
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
-.joint-loss-catalog th:nth-child(1),
-.joint-loss-catalog td:nth-child(1) {
-  width: 110px;
-}
-
-.joint-loss-catalog th:nth-child(2),
-.joint-loss-catalog td:nth-child(2) {
-  width: 160px;
-}
-
-/* 4th column removed: actions are now floating on hover */
-
-
+/* Dynamic Auto-Layout: Column width sized to largest cell + ~10% margin */
+table.bducto-mini.curve-catalog,
+table.bducto-mini.joint-loss-catalog,
 table.bducto-mini.material-catalog {
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
+  border-collapse: collapse;
 }
 
+.curve-catalog th,
+.curve-catalog td,
+.joint-loss-catalog th,
+.joint-loss-catalog td,
+.material-catalog th,
+.material-catalog td {
+  padding: 6px 14px !important; /* ~10% margin / breathing room on sides */
+  white-space: nowrap; /* Keeps content on a single clean line */
+  vertical-align: middle;
+}
+
+/* Description columns take remaining flexible width without breaking line */
+.joint-loss-catalog th:nth-child(3),
+.joint-loss-catalog td:nth-child(3) {
+  width: 100%;
+  white-space: normal;
+}
+
+.material-catalog th:nth-child(3),
+.material-catalog td:nth-child(3) {
+  width: 100%;
+  white-space: normal;
+}
+
+.curve-catalog th:first-child,
+.curve-catalog td:first-child {
+  width: 100%;
+  white-space: normal;
+}
+
+/* Compact data columns shrink tightly to largest content + padding */
+.joint-loss-catalog th:nth-child(1),
+.joint-loss-catalog td:nth-child(1),
+.joint-loss-catalog th:nth-child(2),
+.joint-loss-catalog td:nth-child(2),
 .material-catalog th:nth-child(1),
-.material-catalog td:nth-child(1) {
-  width: 140px;
-}
-
+.material-catalog td:nth-child(1),
 .material-catalog th:nth-child(2),
-.material-catalog td:nth-child(2) {
-  width: 85px;
-}
-
+.material-catalog td:nth-child(2),
 .material-catalog th:nth-child(4),
-.material-catalog td:nth-child(4) {
-  width: 85px;
+.material-catalog td:nth-child(4),
+.curve-catalog th:not(:first-child),
+.curve-catalog td:not(:first-child) {
+  width: 1%;
+  white-space: nowrap;
 }
 
 
