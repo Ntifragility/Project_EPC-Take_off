@@ -5,7 +5,7 @@ import { Header } from '../widgets/header/ui/Header';
 import { TakeoffPage } from '../pages/takeoff/ui/TakeoffPage';
 import { BductosPage } from '../features/generate-bducto/ui/BductosPage';
 import { RulesPage } from '../pages/rules/ui/RulesPage';
-import { CurveCatalogPage } from '../features/generate-bducto/ui/CurveCatalogPage';
+import { AccessoriesCatalogPage } from '../features/generate-bducto/ui/AccessoriesCatalogPage';
 import { PackagesPage } from '../pages/packages/ui/PackagesPage';
 import { ModalsHost } from '../widgets/modals-host/ui/ModalsHost';
 import { CatalogDrawer } from '../shared/ui/CatalogDrawer';
@@ -58,8 +58,8 @@ export const App: React.FC = () => {
         </CatalogDrawer>
       )}
       {showCurves && (
-        <CatalogDrawer title="Curvas" onClose={() => setTab('takeoff')}>
-          <CurveCatalogPage />
+        <CatalogDrawer title="Accesorios" onClose={() => setTab('takeoff')}>
+          <AccessoriesCatalogPage />
         </CatalogDrawer>
       )}
 

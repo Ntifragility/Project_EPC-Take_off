@@ -131,3 +131,38 @@ export const SAMPLE_LY028: Array<Omit<BductoSource, 'id'>> = [
   { plano: 'P22-DA-3300-07-LY-028', tagEnPlano: '8 VIAS, 6", BD.M.1', quantity: 42.5 },
   { plano: 'P22-DA-3300-07-LY-028', tagEnPlano: '8 VIAS, 6", BD.M.2', quantity: 13.3 }
 ];
+
+
+export interface JointLossCatalogItem {
+  id: string;
+  diameter: string;
+  lossM: number;
+  descripcion?: string;
+  orderIndex: number;
+}
+
+export const DEFAULT_JOINT_LOSSES: JointLossCatalogItem[] = [
+  { id: 'loss-6', diameter: '6"', lossM: 0.13, descripcion: 'Pérdida por embone D=6"', orderIndex: 1 },
+  { id: 'loss-4', diameter: '4"', lossM: 0.09, descripcion: 'Pérdida por embone D=4"', orderIndex: 2 },
+  { id: 'loss-3', diameter: '3"', lossM: 0.07, descripcion: 'Pérdida por embone D=3"', orderIndex: 3 },
+  { id: 'loss-2', diameter: '2"', lossM: 0.05, descripcion: 'Pérdida por embone D=2"', orderIndex: 4 },
+];
+
+let activeJointLossCatalog: JointLossCatalogItem[] = [...DEFAULT_JOINT_LOSSES];
+const jointLossListeners = new Set<() => void>();
+
+export function getJointLossCatalog(): JointLossCatalogItem[] {
+  return activeJointLossCatalog;
+}
+
+export function setJointLossCatalog(items: JointLossCatalogItem[]): void {
+  activeJointLossCatalog = items && items.length > 0 ? items : [...DEFAULT_JOINT_LOSSES];
+  jointLossListeners.forEach(listener => listener());
+}
+
+export function subscribeJointLossCatalog(listener: () => void): () => void {
+  jointLossListeners.add(listener);
+  return () => {
+    jointLossListeners.delete(listener);
+  };
+}

@@ -8,6 +8,7 @@ import {
   curveDiametro,
   curvesForDiameter,
   getCurveCatalog,
+  getJointLossCatalog,
   isRightAngleCurve,
   terminalDescription,
   terminalDiametro,
@@ -34,7 +35,10 @@ export function toCents(value: number): number {
 }
 
 export function getJointLossPerStick(diameter: string): number {
+  const catalog = getJointLossCatalog();
   const clean = diameter.replace(/\s+/g, '');
+  const found = catalog.find(item => item.diameter.replace(/\s+/g, '') === clean);
+  if (found && Number.isFinite(found.lossM)) return found.lossM;
   if (clean.includes('6')) return 0.13;
   if (clean.includes('4')) return 0.09;
   if (clean.includes('3')) return 0.07;

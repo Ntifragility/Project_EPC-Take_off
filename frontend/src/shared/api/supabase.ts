@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { curveFromRecord, CurveCatalogDbRecord, mapBductoRowToRecord, mapCurveToRecord } from '../../entities/bducto/model/bductoRecord';
-import { CurveCatalogItem, getCurveCatalog } from '../../entities/bducto/model/catalog';
+import { CurveCatalogItem, getCurveCatalog, JointLossCatalogItem } from '../../entities/bducto/model/catalog';
 import { BductoRow } from '../../entities/bducto/model/types';
 import { TakeoffItem, PackageGroup } from '../../entities/takeoff-item/model/types';
 import { TakeoffRule } from '../../entities/takeoff-rule/model/types';
@@ -527,5 +527,85 @@ export async function fetchCurveCatalogFromSupabase(): Promise<{ data: CurveCata
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al consultar el catálogo de curvas';
     return { data: null, error: message };
+  }
+}
+
+
+const JOINT_LOSS_CATALOG_TABLE = 'bducto_joint_loss_catalog';
+
+export interface JointLossCatalogDbRecord {
+  id: string;
+  diameter: string;
+  loss_m: number;
+  descripcion: string;
+  order_index: number;
+}
+
+function mapLossToRecord(item: JointLossCatalogItem): JointLossCatalogDbRecord {
+  return {
+    id: item.id,
+    diameter: item.diameter,
+    loss_m: item.lossM,
+    descripcion: item.descripcion || `Pérdida por embone D=${item.diameter}`,
+    order_index: item.orderIndex
+  };
+}
+
+function lossFromRecord(record: any): JointLossCatalogItem {
+  return {
+    id: record.id,
+    diameter: record.diameter,
+    lossM: Number(record.loss_m) || 0,
+    descripcion: record.descripcion,
+    orderIndex: record.order_index ?? 0
+  };
+}
+
+export async function fetchJointLossCatalogFromSupabase(): Promise<{ data: JointLossCatalogItem[] | null; error?: string }> {
+  if (!supabase) return { data: null, error: 'Supabase no está configurado' };
+  try {
+    const { data, error } = await supabase
+      .from(JOINT_LOSS_CATALOG_TABLE)
+      .select('*')
+      .order('order_index', { ascending: true });
+    if (error) return { data: null, error: error.message };
+    return { data: ((data || []) as any[]).map(lossFromRecord) };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al consultar catálogo de pérdida por embone';
+    return { data: null, error: message };
+  }
+}
+
+export async function syncJointLossCatalogToSupabase(
+  items: JointLossCatalogItem[]
+): Promise<{ success: boolean; count: number; data?: JointLossCatalogItem[]; error?: string }> {
+  if (!supabase) return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  if (items.length === 0) return { success: true, count: 0 };
+  try {
+    const { data, error } = await supabase
+      .from(JOINT_LOSS_CATALOG_TABLE)
+      .upsert(items.map(mapLossToRecord), { onConflict: 'id' })
+      .select();
+    if (error) return { success: false, count: 0, error: error.message };
+    const stored = ((data || []) as any[]).map(lossFromRecord);
+    return { success: true, count: stored.length, data: stored };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al guardar catálogo de pérdida por embone';
+    return { success: false, count: 0, error: message };
+  }
+}
+
+export async function deleteJointLossCatalogFromSupabase(
+  ids: string[]
+): Promise<{ success: boolean; count: number; error?: string }> {
+  if (!supabase) return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  if (ids.length === 0) return { success: true, count: 0 };
+  try {
+    const { error } = await supabase.from(JOINT_LOSS_CATALOG_TABLE).delete().in('id', ids);
+    if (error) return { success: false, count: 0, error: error.message };
+    return { success: true, count: ids.length };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al borrar filas de pérdida por embone';
+    return { success: false, count: 0, error: message };
   }
 }

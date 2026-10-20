@@ -20,7 +20,7 @@ export interface HeaderProps {
 const WINDOWS: { id: SectionType; label: string; sub?: { tab: TabType; label: string } }[] = [
   { id: 'pat', label: 'PAT', sub: { tab: 'rules', label: 'REGLAS' } },
   { id: 'canalizado', label: 'CANALIZADO' },
-  { id: 'bductos', label: 'BDUCTOS', sub: { tab: 'curves', label: 'CURVAS' } }
+  { id: 'bductos', label: 'BDUCTOS', sub: { tab: 'curves', label: 'ACCESORIOS' } }
 ];
 
 export const Header: React.FC<HeaderProps> = ({ onOpenAreaModal }) => {
@@ -269,7 +269,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAreaModal }) => {
                   setTab(tab === activeWindow.sub!.tab ? 'takeoff' : activeWindow.sub!.tab);
                 }}
               >
-                {activeWindow.sub.label === 'REGLAS' ? 'Reglas' : 'Curvas'}
+                {activeWindow.sub.label === 'REGLAS' ? 'Reglas' : 'Accesorios'}
               </button>
             </>
           )}
