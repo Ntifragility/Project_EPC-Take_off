@@ -498,3 +498,24 @@ table.bducto-mini.joint-loss-catalog {
 .joint-loss-catalog td:nth-child(4) {
   width: 72px;
 }
+
+
+table.bducto-mini.material-catalog {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.material-catalog th:nth-child(1),
+.material-catalog td:nth-child(1) {
+  width: 140px;
+}
+
+.material-catalog th:nth-child(2),
+.material-catalog td:nth-child(2) {
+  width: 85px;
+}
+
+.material-catalog th:nth-child(4),
+.material-catalog td:nth-child(4) {
+  width: 70px;
+}

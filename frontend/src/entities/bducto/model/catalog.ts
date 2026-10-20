@@ -17,19 +17,28 @@ export const CINTA_DESCRIPTION = 'CINTA DE RIESGO ELECTRICO COLOR ROJO';
 export const CINTA_DIAMETRO = 'CINTA ROJA';
 
 export function conduitDescription(diameter: string): string {
-  return `CONDUIT PVC SCH 40 D=${diameter}${UL}`;
+  const found = activeMaterialCatalog.find(m => m.category === 'tubo' && m.diameter === diameter);
+  return found?.descripcion || `CONDUIT PVC SCH 40 D=${diameter}${UL}`;
 }
 
 export function terminalDescription(diameter: string): string {
-  return `TERMINAL CAMPANA (END BELL) D=${diameter}${UL}`;
+  const found = activeMaterialCatalog.find(m => m.category === 'campana' && m.diameter === diameter);
+  return found?.descripcion || `TERMINAL CAMPANA (END BELL) D=${diameter}${UL}`;
 }
 
 export function unionDescription(diameter: string): string {
-  return `UNION PVC SCH 40 D=${diameter}${UL}`;
+  const found = activeMaterialCatalog.find(m => m.category === 'union' && m.diameter === diameter);
+  return found?.descripcion || `UNION PVC SCH 40 D=${diameter}${UL}`;
 }
 
 export function adaptadorDescription(diameter: string): string {
-  return `ADAPTADOR PVC - RGS D=${diameter}${UL}`;
+  const found = activeMaterialCatalog.find(m => m.category === 'adaptador' && m.diameter === diameter);
+  return found?.descripcion || `ADAPTADOR PVC - RGS D=${diameter}${UL}`;
+}
+
+export function cintaDescription(): string {
+  const found = activeMaterialCatalog.find(m => m.category === 'cinta');
+  return found?.descripcion || CINTA_DESCRIPTION;
 }
 
 let activeCatalog: CurveCatalogItem[] = [];
@@ -164,5 +173,74 @@ export function subscribeJointLossCatalog(listener: () => void): () => void {
   jointLossListeners.add(listener);
   return () => {
     jointLossListeners.delete(listener);
+  };
+}
+
+
+export type MaterialCategory = 'tubo' | 'union' | 'adaptador' | 'campana' | 'cinta';
+
+export interface MaterialCatalogItem {
+  id: string;
+  category: MaterialCategory;
+  diameter?: string | null;
+  descripcion: string;
+  codigoSicme?: string;
+  unidad?: string;
+  sortOrder?: number;
+}
+
+export const DEFAULT_MATERIALS: MaterialCatalogItem[] = [
+  // Tubos
+  { id: 'mat-tubo-6', category: 'tubo', diameter: '6"', descripcion: 'CONDUIT PVC SCH 40 D=6" - CERTIFICACIÓN UL', unidad: 'm', sortOrder: 10 },
+  { id: 'mat-tubo-4', category: 'tubo', diameter: '4"', descripcion: 'CONDUIT PVC SCH 40 D=4" - CERTIFICACIÓN UL', unidad: 'm', sortOrder: 20 },
+  { id: 'mat-tubo-3', category: 'tubo', diameter: '3"', descripcion: 'CONDUIT PVC SCH 40 D=3" - CERTIFICACIÓN UL', unidad: 'm', sortOrder: 30 },
+  { id: 'mat-tubo-2', category: 'tubo', diameter: '2"', descripcion: 'CONDUIT PVC SCH 40 D=2" - CERTIFICACIÓN UL', unidad: 'm', sortOrder: 40 },
+  { id: 'mat-tubo-1.5', category: 'tubo', diameter: '1 1/2"', descripcion: 'CONDUIT PVC SCH 40 D=1 1/2" - CERTIFICACIÓN UL', unidad: 'm', sortOrder: 50 },
+  { id: 'mat-tubo-1', category: 'tubo', diameter: '1"', descripcion: 'CONDUIT PVC SCH 40 D=1" - CERTIFICACIÓN UL', unidad: 'm', sortOrder: 60 },
+
+  // Uniones
+  { id: 'mat-union-6', category: 'union', diameter: '6"', descripcion: 'UNION PVC SCH 40 D=6" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 110 },
+  { id: 'mat-union-4', category: 'union', diameter: '4"', descripcion: 'UNION PVC SCH 40 D=4" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 120 },
+  { id: 'mat-union-3', category: 'union', diameter: '3"', descripcion: 'UNION PVC SCH 40 D=3" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 130 },
+  { id: 'mat-union-2', category: 'union', diameter: '2"', descripcion: 'UNION PVC SCH 40 D=2" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 140 },
+  { id: 'mat-union-1.5', category: 'union', diameter: '1 1/2"', descripcion: 'UNION PVC SCH 40 D=1 1/2" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 150 },
+  { id: 'mat-union-1', category: 'union', diameter: '1"', descripcion: 'UNION PVC SCH 40 D=1" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 160 },
+
+  // Adaptadores
+  { id: 'mat-adapt-6', category: 'adaptador', diameter: '6"', descripcion: 'ADAPTADOR PVC - RGS D=6" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 210 },
+  { id: 'mat-adapt-4', category: 'adaptador', diameter: '4"', descripcion: 'ADAPTADOR PVC - RGS D=4" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 220 },
+  { id: 'mat-adapt-3', category: 'adaptador', diameter: '3"', descripcion: 'ADAPTADOR PVC - RGS D=3" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 230 },
+  { id: 'mat-adapt-2', category: 'adaptador', diameter: '2"', descripcion: 'ADAPTADOR PVC - RGS D=2" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 240 },
+  { id: 'mat-adapt-1.5', category: 'adaptador', diameter: '1 1/2"', descripcion: 'ADAPTADOR PVC - RGS D=1 1/2" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 250 },
+  { id: 'mat-adapt-1', category: 'adaptador', diameter: '1"', descripcion: 'ADAPTADOR PVC - RGS D=1" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 260 },
+
+  // Campanas
+  { id: 'mat-camp-6', category: 'campana', diameter: '6"', descripcion: 'TERMINAL CAMPANA (END BELL) D=6" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 310 },
+  { id: 'mat-camp-4', category: 'campana', diameter: '4"', descripcion: 'TERMINAL CAMPANA (END BELL) D=4" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 320 },
+  { id: 'mat-camp-3', category: 'campana', diameter: '3"', descripcion: 'TERMINAL CAMPANA (END BELL) D=3" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 330 },
+  { id: 'mat-camp-2', category: 'campana', diameter: '2"', descripcion: 'TERMINAL CAMPANA (END BELL) D=2" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 340 },
+  { id: 'mat-camp-1.5', category: 'campana', diameter: '1 1/2"', descripcion: 'TERMINAL CAMPANA (END BELL) D=1 1/2" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 350 },
+  { id: 'mat-camp-1', category: 'campana', diameter: '1"', descripcion: 'TERMINAL CAMPANA (END BELL) D=1" - CERTIFICACIÓN UL', unidad: 'und', sortOrder: 360 },
+
+  // Cinta
+  { id: 'mat-cinta', category: 'cinta', diameter: null, descripcion: 'CINTA DE RIESGO ELECTRICO COLOR ROJO', unidad: 'm', sortOrder: 400 }
+];
+
+let activeMaterialCatalog: MaterialCatalogItem[] = [...DEFAULT_MATERIALS];
+const materialListeners = new Set<() => void>();
+
+export function getMaterialCatalog(): MaterialCatalogItem[] {
+  return activeMaterialCatalog;
+}
+
+export function setMaterialCatalog(items: MaterialCatalogItem[]): void {
+  activeMaterialCatalog = items && items.length > 0 ? items : [...DEFAULT_MATERIALS];
+  materialListeners.forEach(listener => listener());
+}
+
+export function subscribeMaterialCatalog(listener: () => void): () => void {
+  materialListeners.add(listener);
+  return () => {
+    materialListeners.delete(listener);
   };
 }

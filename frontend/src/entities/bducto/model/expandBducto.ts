@@ -3,6 +3,7 @@ import {
   adaptadorDiametro,
   CINTA_DESCRIPTION,
   CINTA_DIAMETRO,
+  cintaDescription,
   conduitDescription,
   curveDescription,
   curveDiametro,
@@ -297,7 +298,7 @@ export function expandBducto(
     pushMeasured('curve', curveDescription(catalogItem), curveDiametro(catalogItem), length, quantity, true);
   }
 
-  pushMeasured('cinta', CINTA_DESCRIPTION, CINTA_DIAMETRO, lengthM, 1, false);
+  pushMeasured('cinta', cintaDescription(), CINTA_DIAMETRO, lengthM, 1, false);
 
   // #region agent log
   fetch('http://127.0.0.1:7553/ingest/a68ab0cd-10e6-497e-8979-86720b62c569',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b40dbc'},body:JSON.stringify({sessionId:'b40dbc',location:'expandBducto.ts:return',message:'row comments',data:{kinds:rows.map(row=>row.kind),comments:rows.map(row=>row.comentario),zeroElevations:prompt.elevations.filter(line=>line.lengthM<=0||line.quantity<=0).length},timestamp:Date.now(),hypothesisId:'B',runId:'post-fix'})}).catch(()=>{});

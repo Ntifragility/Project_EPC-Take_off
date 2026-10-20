@@ -1,10 +1,11 @@
-import { getCurveCatalog, setCurveCatalog, setJointLossCatalog } from '../../../entities/bducto/model/catalog';
+import { getCurveCatalog, setCurveCatalog, setJointLossCatalog, setMaterialCatalog } from '../../../entities/bducto/model/catalog';
 import {
   fetchTakeoffRulesFromSupabase,
   fetchDetalleVariantsFromSupabase,
   fetchPartidasFromSupabase,
   fetchCurveCatalogFromSupabase,
   fetchJointLossCatalogFromSupabase,
+  fetchMaterialCatalogFromSupabase,
   syncItemsToSupabase,
   syncBductosToSupabase,
   syncCurveCatalogToSupabase
@@ -91,6 +92,10 @@ export async function loadInitialCloudConfig() {
     const { data: cloudJointLoss, error: jointLossErr } = await fetchJointLossCatalogFromSupabase();
     if (jointLossErr) console.warn('[CloudSync] Catálogo de pérdida por embone:', jointLossErr);
     else if (cloudJointLoss && cloudJointLoss.length > 0) setJointLossCatalog(cloudJointLoss);
+
+    const { data: cloudMaterials, error: matErr } = await fetchMaterialCatalogFromSupabase();
+    if (matErr) console.warn('[CloudSync] Catálogo de materiales:', matErr);
+    else if (cloudMaterials && cloudMaterials.length > 0) setMaterialCatalog(cloudMaterials);
 
     // 4. Fetch Master Partidas
     const { data: cloudPartidas, error: partidasErr } = await fetchPartidasFromSupabase();

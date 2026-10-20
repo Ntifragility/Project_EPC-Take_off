@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { curveFromRecord, CurveCatalogDbRecord, mapBductoRowToRecord, mapCurveToRecord } from '../../entities/bducto/model/bductoRecord';
-import { CurveCatalogItem, getCurveCatalog, JointLossCatalogItem } from '../../entities/bducto/model/catalog';
+import { CurveCatalogItem, getCurveCatalog, JointLossCatalogItem, MaterialCatalogItem } from '../../entities/bducto/model/catalog';
 import { BductoRow } from '../../entities/bducto/model/types';
 import { TakeoffItem, PackageGroup } from '../../entities/takeoff-item/model/types';
 import { TakeoffRule } from '../../entities/takeoff-rule/model/types';
@@ -607,5 +607,91 @@ export async function deleteJointLossCatalogFromSupabase(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al borrar filas de pérdida por embone';
     return { success: false, count: 0, error: message };
+  }
+}
+
+// --- BDUCTO MATERIAL CATALOG API ---
+const MATERIAL_CATALOG_TABLE = 'bducto_material_catalog';
+
+export interface MaterialCatalogDbRecord {
+  id: string;
+  category: string;
+  diameter: string | null;
+  descripcion: string;
+  codigo_sicme?: string;
+  unidad?: string;
+  sort_order?: number;
+}
+
+function mapMaterialToRecord(item: MaterialCatalogItem): MaterialCatalogDbRecord {
+  return {
+    id: item.id,
+    category: item.category,
+    diameter: item.diameter || null,
+    descripcion: item.descripcion,
+    codigo_sicme: item.codigoSicme || '',
+    unidad: item.unidad || 'm',
+    sort_order: item.sortOrder ?? 0
+  };
+}
+
+function materialFromRecord(record: any): MaterialCatalogItem {
+  return {
+    id: record.id,
+    category: record.category,
+    diameter: record.diameter ?? null,
+    descripcion: record.descripcion,
+    codigoSicme: record.codigo_sicme || '',
+    unidad: record.unidad || 'm',
+    sortOrder: record.sort_order ?? 0
+  };
+}
+
+export async function fetchMaterialCatalogFromSupabase(): Promise<{ data: MaterialCatalogItem[] | null; error?: string }> {
+  if (!supabase) return { data: null, error: 'Supabase no está configurado' };
+  try {
+    const { data, error } = await supabase
+      .from(MATERIAL_CATALOG_TABLE)
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (error) return { data: null, error: error.message };
+    return { data: ((data || []) as any[]).map(materialFromRecord) };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al consultar catálogo de materiales';
+    return { data: null, error: message };
+  }
+}
+
+export async function syncMaterialCatalogToSupabase(
+  items: MaterialCatalogItem[]
+): Promise<{ success: boolean; count: number; data?: MaterialCatalogItem[]; error?: string }> {
+  if (!supabase) return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  if (items.length === 0) return { success: true, count: 0 };
+  try {
+    const { data, error } = await supabase
+      .from(MATERIAL_CATALOG_TABLE)
+      .upsert(items.map(mapMaterialToRecord), { onConflict: 'id' })
+      .select();
+    if (error) return { success: false, count: 0, error: error.message };
+    const stored = ((data || []) as any[]).map(materialFromRecord);
+    return { success: true, count: stored.length, data: stored };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al guardar catálogo de materiales';
+    return { success: false, count: 0, error: message };
+  }
+}
+
+export async function deleteMaterialCatalogFromSupabase(
+  ids: string[]
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase client no está configurado.' };
+  if (ids.length === 0) return { success: true };
+  try {
+    const { error } = await supabase.from(MATERIAL_CATALOG_TABLE).delete().in('id', ids);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar registros del catálogo de materiales';
+    return { success: false, error: message };
   }
 }
