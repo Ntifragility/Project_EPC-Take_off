@@ -40,6 +40,7 @@ export const BductosPage: React.FC = () => {
       const effective = {
         ...manualDraft,
         plano: manualDraft.plano.trim().toUpperCase(),
+        rev: (manualDraft.rev ?? prompt.rev ?? '0').trim().toUpperCase(),
         tagEnPlano: tagEnPlano.trim().toUpperCase().replace(/\s+/g, ' '),
         desde: prompt.desde.trim().toUpperCase(),
         hasta: prompt.hasta.trim().toUpperCase(),
@@ -64,6 +65,7 @@ export const BductosPage: React.FC = () => {
     }
     const effective = {
       ...current,
+      rev: (prompt.rev ?? current.rev ?? '0').trim().toUpperCase(),
       tagEnPlano: tagEnPlano.trim().toUpperCase().replace(/\s+/g, ' ')
     };
     const result = expandBducto(effective, prompt, uid);

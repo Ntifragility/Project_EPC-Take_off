@@ -110,6 +110,16 @@ export function replaceTagDiameter(tagEnPlano: string, diameter: string): string
   return `${parsed.vias} ${viasLabel}, ${size}, ${parsed.bankId}`;
 }
 
+/** Builds a canonical `tagEnPlano` string from separate vias, diameter, and tag. */
+export function buildTagEnPlano(vias: number | string, diameter: string, bankId: string): string {
+  const num = typeof vias === 'number' ? vias : parseInt(String(vias).replace(/\D/g, '') || '1', 10);
+  const viasNum = Number.isFinite(num) && num > 0 ? num : 1;
+  const viasLabel = viasNum === 1 ? 'VIA' : 'VIAS';
+  const cleanDiam = diameter.trim().replace(/[″”]/g, '"').replace(/\s+/g, ' ') || '3"';
+  const cleanBank = bankId.trim().toUpperCase() || 'BD.A.1';
+  return `${viasNum} ${viasLabel}, ${cleanDiam}, ${cleanBank}`;
+}
+
 export function parseBductoSource(source: Pick<BductoSource, 'plano' | 'tagEnPlano' | 'quantity'>): ParsedBducto | string {
   if (!Number.isFinite(source.quantity) || source.quantity <= 0) {
     return 'La longitud debe ser mayor que 0.';
@@ -182,7 +192,7 @@ export function expandBducto(
     sector: '',
     wbs: parsed.wbs,
     plano,
-    rev: '',
+    rev: (prompt.rev ?? source.rev ?? '0').trim().toUpperCase(),
     seccion: source.seccion != null ? source.seccion : parsed.section,
     desde,
     hasta,
@@ -365,16 +375,17 @@ export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
   const errors: string[] = [];
   const rejectedRows: BductoRejectedRow[] = [];
   let headerIdx = -1;
-  const cols = { desde: -1, hasta: -1, plano: -1, tag: -1, qty: -1 };
+  const cols = { desde: -1, hasta: -1, plano: -1, rev: -1, tag: -1, qty: -1 };
 
   for (let r = 0; r < Math.min(matrix.length, 20); r++) {
     const line = matrix[r] || [];
-    const found = { desde: -1, hasta: -1, plano: -1, tag: -1, qty: -1 };
+    const found = { desde: -1, hasta: -1, plano: -1, rev: -1, tag: -1, qty: -1 };
     line.forEach((cell, index) => {
       const name = foldHeaderCell(cell);
       if (name === 'DESDE') found.desde = index;
       else if (name === 'HASTA') found.hasta = index;
       else if (name === 'PLANO') found.plano = index;
+      else if (name === 'REV' || name === 'REVISION') found.rev = index;
       else if (name === 'TAG_EN_PLANO' || name === 'TAG') found.tag = index;
       else if (name === 'LONGITUD_TUBERIA' || name === 'QUANTITY' || name === 'CANTIDAD' || name === 'LONGITUD' || name === 'LONGITUD_M') found.qty = index;
     });
@@ -396,6 +407,7 @@ export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
     const qtyRaw = line[cols.qty];
     const desde = cols.desde >= 0 ? String(line[cols.desde] ?? '').trim() : '';
     const hasta = cols.hasta >= 0 ? String(line[cols.hasta] ?? '').trim() : '';
+    const rev = cols.rev >= 0 ? String(line[cols.rev] ?? '').trim().toUpperCase() : '0';
     if (!plano && !tagEnPlano && (qtyRaw === '' || qtyRaw == null) && !desde && !hasta) continue;
 
     const quantity = typeof qtyRaw === 'number' ? qtyRaw : Number(String(qtyRaw ?? '').replace(',', '.'));
@@ -416,6 +428,7 @@ export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
     }
     rows.push({
       plano: plano.toUpperCase(),
+      rev: rev || '0',
       tagEnPlano: tagEnPlano.toUpperCase().replace(/\s+/g, ' '),
       quantity: round2(quantity),
       desde: desde.toUpperCase(),

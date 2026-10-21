@@ -61,7 +61,7 @@ function fieldValue(row: MaterialDraft, field: FieldKey): string {
 export const MaterialCatalogSection: React.FC = () => {
   const { showToast } = useUIStore();
   const currentUser = useAuthStore(state => state.currentUser);
-  const isAdmin = getRoleLevel(currentUser?.role) === 3;
+  const canEdit = getRoleLevel(currentUser?.role) >= 2;
 
   const [rows, setRows] = useState<MaterialDraft[]>(() =>
     getMaterialCatalog().map(toDraft)
@@ -89,8 +89,8 @@ export const MaterialCatalogSection: React.FC = () => {
   }, [rows, categoryFilter]);
 
   const beginEdit = (row: MaterialDraft) => {
-    if (!isAdmin) {
-      showToast('Solo usuarios con nivel ADMIN (Level 3) pueden editar materiales', 'warn');
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden editar materiales', 'warn');
       return;
     }
     setEditor({
@@ -105,7 +105,7 @@ export const MaterialCatalogSection: React.FC = () => {
   };
 
   const commit = async () => {
-    if (!editor || !isAdmin) return;
+    if (!editor || !canEdit) return;
     setCommitting(true);
     try {
       const cat = editor.draft.category.trim() as MaterialCategory;
@@ -144,8 +144,8 @@ export const MaterialCatalogSection: React.FC = () => {
   };
 
   const remove = async (row: MaterialDraft) => {
-    if (!isAdmin) {
-      showToast('Solo usuarios con nivel ADMIN (Level 3) pueden eliminar materiales', 'warn');
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden eliminar materiales', 'warn');
       return;
     }
     const ok = await siteConfirm(`¿Quitar "${row.descripcion}" del catálogo maestro?`);
@@ -168,8 +168,8 @@ export const MaterialCatalogSection: React.FC = () => {
   };
 
   const addRow = () => {
-    if (!isAdmin) {
-      showToast('Solo usuarios con nivel ADMIN (Level 3) pueden agregar materiales', 'warn');
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden agregar materiales', 'warn');
       return;
     }
     const newId = `mat-new-${Date.now()}`;
@@ -177,7 +177,7 @@ export const MaterialCatalogSection: React.FC = () => {
       id: newId,
       category: 'tubo',
       diameter: '1"',
-      descripcion: 'CONDUIT PVC SCH 40 D=1" - CERTIFICACIÓN UL',
+      descripcion: 'CONDUIT PVC SCH 40 D=1"',
       unidad: 'm',
       sortOrder: (rows.length + 1) * 10,
       categoryText: 'tubo'
@@ -201,15 +201,15 @@ export const MaterialCatalogSection: React.FC = () => {
       draft: {
         category: 'tubo',
         diameter: '1"',
-        descripcion: 'CONDUIT PVC SCH 40 D=1" - CERTIFICACIÓN UL',
+        descripcion: 'CONDUIT PVC SCH 40 D=1"',
         unidad: 'm'
       }
     });
   };
 
   const handleSaveToSupabase = async () => {
-    if (!isAdmin) {
-      showToast('Permiso denegado: Solo Level 3 puede guardar cambios en Supabase', 'warn');
+    if (!canEdit) {
+      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Supabase', 'warn');
       return;
     }
     setSaving(true);
@@ -259,7 +259,7 @@ export const MaterialCatalogSection: React.FC = () => {
         <option value="cinta">Cintas de riesgo</option>
       </select>
 
-      {isAdmin && (
+      {canEdit && (
         <>
           <button
             type="button"
@@ -288,9 +288,9 @@ export const MaterialCatalogSection: React.FC = () => {
 
       <div className="catalog-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
         <p className="catalog-note" style={{ margin: 0 }}>
-          {isAdmin
+          {canEdit
             ? 'Catálogo maestro de materiales. Al pasar el cursor sobre cualquier fila puedes editar o eliminar. Los cambios confirmados se envían a Supabase.'
-            : 'Catálogo maestro de materiales en modo de consulta. La edición está reservada exclusivamente para usuarios Level 3 (ADMIN).'}
+            : 'Catálogo maestro de materiales en modo de consulta. La edición está reservada para usuarios Level 2 y Level 3.'}
         </p>
 
         <span
@@ -302,13 +302,13 @@ export const MaterialCatalogSection: React.FC = () => {
             fontWeight: 600,
             padding: '3px 8px',
             borderRadius: '4px',
-            backgroundColor: isAdmin ? 'rgba(16, 124, 65, 0.12)' : 'rgba(100, 116, 139, 0.12)',
-            color: isAdmin ? '#107c41' : '#64748b',
-            border: isAdmin ? '1px solid rgba(16, 124, 65, 0.3)' : '1px solid rgba(100, 116, 139, 0.3)'
+            backgroundColor: canEdit ? 'rgba(16, 124, 65, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+            color: canEdit ? '#107c41' : '#64748b',
+            border: canEdit ? '1px solid rgba(16, 124, 65, 0.3)' : '1px solid rgba(100, 116, 139, 0.3)'
           }}
         >
-          {isAdmin ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
-          {isAdmin ? 'Acceso ADMIN (Edición habilitada)' : 'Solo Lectura (Requiere Level 3)'}
+          {canEdit ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+          {canEdit ? 'Edición habilitada (Level 2 / Level 3)' : 'Solo Lectura (Requiere Level 2 o Level 3)'}
         </span>
       </div>
 
@@ -377,7 +377,7 @@ export const MaterialCatalogSection: React.FC = () => {
                         )}
 
                         {/* Floating Action Overlay on Hover (Image 2 style) */}
-                        {isLastField && isAdmin && (
+                        {isLastField && canEdit && (
                           <div className="row-hover-actions">
                             {editing ? (
                               <>

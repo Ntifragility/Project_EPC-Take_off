@@ -19,10 +19,14 @@ function loadPersisted(): PersistedBductos {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { sources: [], rows: [] };
     const parsed = JSON.parse(raw) as PersistedBductos;
-    const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
+    const rawRows = Array.isArray(parsed.rows) ? parsed.rows : [];
+    const rows = rawRows.map(row => ({
+      ...row,
+      descripcion: row.descripcion ? row.descripcion.replace(/\s*-\s*CERTIFICACI[OÓ]N\s+UL/gi, '') : row.descripcion
+    }));
     const loaded = Array.isArray(parsed.sources) ? parsed.sources : [];
     const sources = withoutRepeatedUpload(loaded, new Set(rows.map(row => row.sourceId)));
-    if (sources.length !== loaded.length) {
+    if (sources.length !== loaded.length || rows.some((r, i) => r.descripcion !== rawRows[i]?.descripcion)) {
       persist({ sources, rows });
     }
     return { sources, rows };
@@ -129,6 +133,7 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
     manualDraft: {
       id: uid(),
       plano: '',
+      rev: '0',
       tagEnPlano: '1 VIA, 3", BD.C.1',
       quantity: 0,
       desde: '',
@@ -226,13 +231,15 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
   commitTramo: (sourceId, prompt, rows, tagEnPlano) => {
     const previous = get().rows.filter(row => row.sourceId === sourceId);
     const sharedRev = previous.length > 0 && previous.every(row => row.rev === previous[0].rev) ? previous[0].rev : '';
-    const stamped = sharedRev ? rows.map(row => ({ ...row, rev: sharedRev })) : rows;
+    const targetRev = (prompt.rev ?? sharedRev ?? '').trim().toUpperCase();
+    const stamped = targetRev ? rows.map(row => ({ ...row, rev: targetRev })) : rows;
     const sources = get().sources.map(source =>
       source.id === sourceId
         ? {
             ...source,
             desde: prompt.desde.trim().toUpperCase(),
             hasta: prompt.hasta.trim().toUpperCase(),
+            rev: targetRev || source.rev || '0',
             tagEnPlano: tagEnPlano?.trim().toUpperCase().replace(/\s+/g, ' ') || source.tagEnPlano,
             prompt
           }
@@ -255,14 +262,17 @@ export const useBductoStore = createStore<BductoState>((set, get) => ({
   },
 
   commitManualDraft: (source, prompt, rows) => {
+    const rev = (prompt.rev ?? source.rev ?? '0').trim().toUpperCase();
     const created: BductoSource = {
       ...source,
       desde: prompt.desde.trim().toUpperCase(),
       hasta: prompt.hasta.trim().toUpperCase(),
+      rev,
       prompt
     };
     const sources = [...get().sources, created];
-    const nextRows = [...get().rows, ...rows];
+    const stamped = rows.map(row => ({ ...row, rev }));
+    const nextRows = [...get().rows, ...stamped];
     remember(get, set, 'commitManualDraft', { sources, rows: nextRows });
     set({ manualDraft: null, promptMinimized: false, restoreArmed: false });
   },

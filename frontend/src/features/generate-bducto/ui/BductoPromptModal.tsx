@@ -5,7 +5,7 @@ import { RESTORE_BUTTON_ID } from '../../../shared/ui/windowMotion';
 import { useBductoStore } from '../model/useBductoStore';
 import { BductoPrompt, BductoSource } from '../../../entities/bducto/model/types';
 import { curvesForDiameter, curveDescription, isRightAngleCurve, getCurveCatalog, catalogDiameters, subscribeCurveCatalog } from '../../../entities/bducto/model/catalog';
-import { parseBductoSource, parseTagEnPlano, replaceTagDiameter, splitSticks } from '../../../entities/bducto/model/expandBducto';
+import { buildTagEnPlano, parseBductoSource, parseTagEnPlano, replaceTagDiameter, splitSticks } from '../../../entities/bducto/model/expandBducto';
 import { parseIntegerInput, parseLengthInput, parsePromptNumber, sanitizeIntegerInput, sanitizeLengthInput } from '../model/promptNumber';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 
@@ -55,6 +55,7 @@ function savedUsesRightAngle(saved: BductoPrompt | undefined, diameter: string):
 interface PromptSeed {
   desde: string;
   hasta: string;
+  rev: string;
   quantity: string;
   terminalCount: string;
   unionCount: string;
@@ -70,6 +71,7 @@ function draftFrom(source: BductoSource | null): PromptSeed {
     return {
       desde: '',
       hasta: '',
+      rev: '0',
       quantity: '',
       terminalCount: '0',
       unionCount: '0',
@@ -87,6 +89,7 @@ function draftFrom(source: BductoSource | null): PromptSeed {
   return {
     desde: saved?.desde || source.desde || '',
     hasta: saved?.hasta || source.hasta || '',
+    rev: saved?.rev || source.rev || '0',
     quantity:
       saved && typeof saved.quantity === 'number'
         ? String(saved.quantity)
@@ -154,6 +157,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   const seed = draftFrom(source);
   const [desde, setDesde] = useState(seed.desde);
   const [hasta, setHasta] = useState(seed.hasta);
+  const [rev, setRev] = useState(seed.rev);
   const [quantity, setQuantity] = useState<string | null>(seed.quantity);
   const [terminalCount, setTerminalCount] = useState(seed.terminalCount);
   const [unionCount, setUnionCount] = useState(seed.unionCount);
@@ -164,6 +168,33 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   const adaptadorEdited = useRef(seed.adaptadorEdited);
   const diameterBaseline = useRef(seed.diameter);
   const [catalogSize, setCatalogSize] = useState(() => getCurveCatalog().length);
+
+  const initialTag = parseTagEnPlano(source?.tagEnPlano || '');
+  const [manualVias, setManualVias] = useState(() => initialTag ? String(initialTag.vias) : '1');
+  const [manualBank, setManualBank] = useState(() => initialTag ? initialTag.bankId : 'BD.C.1');
+
+  const onViasChange = (val: string) => {
+    const clean = val.replace(/\D/g, '');
+    setManualVias(clean);
+    const v = parseInt(clean, 10) || 1;
+    const d = (manual ? tagInfo?.diameter : diameterText) || '3"';
+    const b = (manualBank || 'BD.C.1').trim().toUpperCase();
+    patchManualDraft({ tagEnPlano: buildTagEnPlano(v, d, b) });
+  };
+
+  const onBankChange = (val: string) => {
+    const b = val.toUpperCase();
+    setManualBank(b);
+    const v = parseInt(manualVias, 10) || 1;
+    const d = (manual ? tagInfo?.diameter : diameterText) || '3"';
+    patchManualDraft({ tagEnPlano: buildTagEnPlano(v, d, b) });
+  };
+
+  const onRevChange = (val: string) => {
+    const clean = val.toUpperCase();
+    setRev(clean);
+    if (manual) patchManualDraft({ rev: clean });
+  };
 
   useEffect(() => {
     return subscribeCurveCatalog(() => {
@@ -177,6 +208,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
     const next = draftFrom(source);
     setDesde(next.desde);
     setHasta(next.hasta);
+    setRev(next.rev);
     setQuantity(next.quantity);
     setTerminalCount(next.terminalCount);
     setUnionCount(next.unionCount);
@@ -186,6 +218,13 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
     setDiameterText(next.diameter);
     setElevations(next.elevations);
     setCurves(next.curves);
+    if (source) {
+      const info = parseTagEnPlano(source.tagEnPlano);
+      if (info) {
+        setManualVias(String(info.vias));
+        setManualBank(info.bankId);
+      }
+    }
     // Keyed by tramo id (not the object): typing the manual plano/tag must not wipe the form,
     // and table edits behind the window must not reset it either.
   }, [source?.id]);
@@ -261,7 +300,6 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   if (!source) return null;
   const invalid = !parsed || typeof parsed === 'string';
   if (!manual && invalid) return null;
-  const adaptadorInfo = !invalid && parsed && typeof parsed !== 'string' ? parsed : null;
 
   const savedPrompt = source.prompt;
   const parsedVias = parsed && typeof parsed !== 'string' ? parsed.vias : 0;
@@ -289,6 +327,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   const isDirty =
     desde !== (savedPrompt?.desde || source.desde || '') ||
     hasta !== (savedPrompt?.hasta || source.hasta || '') ||
+    rev !== (savedPrompt?.rev || source.rev || '0') ||
     (quantity ?? '') !== baselineQuantity ||
     terminalCount !== (savedPrompt ? String(savedPrompt.terminalCount) : '0') ||
     unionCount !== (savedPrompt ? String(savedPrompt.unionCount) : String(parsedVias)) ||
@@ -312,15 +351,16 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
       return;
     }
     const tagEnPlano = manual
-      ? source.tagEnPlano.trim().toUpperCase().replace(/\s+/g, ' ')
+      ? buildTagEnPlano(manualVias || '1', (manual ? tagInfo?.diameter : diameterText) || '3"', manualBank || 'BD.C.1')
       : (replaceTagDiameter(source.tagEnPlano, diameterText) ?? '');
     if (!parseTagEnPlano(tagEnPlano)) {
-      showToast('Elige un diámetro del catálogo.', 'warn');
+      showToast('Elige un diámetro del catálogo y escribe un tag válido.', 'warn');
       return;
     }
     const prompt: BductoPrompt = {
       desde,
       hasta,
+      rev: rev.trim().toUpperCase() || '0',
       quantity: lengthM,
       terminalCount: parseIntegerInput(terminalCount),
       unionCount: parseIntegerInput(unionCount),
@@ -342,7 +382,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
   const subtitle =
     invalid || typeof parsed === 'string'
       ? 'Tramo manual'
-      : `${index} de ${total} · ${parsed.stem}.${parsed.bankId} · ${parsed.vias} vías · D=${parsed.diameter}`;
+      : `${index} de ${total} · ${parsed.stem}.${parsed.bankId} · ${parsed.vias} vías · D=${parsed.diameter}${rev ? ` · REV=${rev}` : ''}`;
 
   if (minimized) return null;
 
@@ -367,7 +407,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
       >
         <div className="modal-body prompt bducto-prompt">
           {manual && (
-            <>
+            <div className="bducto-prompt-grid" style={{ marginBottom: '10px' }}>
               <label>
                 PLANO
                 <input
@@ -376,15 +416,36 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
                   placeholder="P22-DA-3300-07-LY-028"
                 />
               </label>
-              <label style={{ marginTop: '8px' }}>
-                TAG EN PLANO
+              <label>
+                REV
                 <input
-                  value={source.tagEnPlano}
-                  onChange={event => patchManualDraft({ tagEnPlano: event.target.value.toUpperCase() })}
-                  placeholder='1 VIA, 3", BD.C.1'
+                  value={rev}
+                  aria-label="Revisión"
+                  onChange={event => onRevChange(event.target.value)}
+                  placeholder="0"
+                  maxLength={6}
                 />
               </label>
-            </>
+              <label>
+                N° VÍAS
+                <input
+                  inputMode="numeric"
+                  value={manualVias}
+                  aria-label="Número de vías"
+                  onChange={event => onViasChange(event.target.value)}
+                  placeholder="1"
+                />
+              </label>
+              <label>
+                TAG
+                <input
+                  value={manualBank}
+                  aria-label="Tag"
+                  onChange={event => onBankChange(event.target.value)}
+                  placeholder="BD.C.1"
+                />
+              </label>
+            </div>
           )}
           {invalid ? (
             <p className="bducto-preview" style={manual ? { marginTop: '8px' } : undefined}>
@@ -406,8 +467,9 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
                 onChange={event => {
                   const value = event.target.value;
                   if (manual && source) {
-                    const tag = replaceTagDiameter(source.tagEnPlano, value);
-                    if (tag) patchManualDraft({ tagEnPlano: tag });
+                    const v = parseInt(manualVias, 10) || 1;
+                    const b = (manualBank || 'BD.C.1').trim().toUpperCase();
+                    patchManualDraft({ tagEnPlano: buildTagEnPlano(v, value, b) });
                     return;
                   }
                   setDiameterText(value);
@@ -438,6 +500,16 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
               />
             </label>
             <label>
+              {`Union PVC SCH 40${diameter ? ` D=${diameter}` : ''} (und)`}
+              <input
+                inputMode="numeric"
+                value={unionCount}
+                aria-label="Union PVC"
+                title="Cantidad: solo números enteros"
+                onChange={event => setUnionCount(sanitizeIntegerInput(event.target.value))}
+              />
+            </label>
+            <label>
               Terminal campana (und)
               <input
                 inputMode="numeric"
@@ -448,15 +520,36 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
               />
             </label>
             <label>
-              {`Union PVC SCH 40${diameter ? ` D=${diameter}` : ''} (und)`}
+              {`Adaptador PVC-RGS${diameter ? ` D=${diameter}` : ''} (und)`}
               <input
-                inputMode="numeric"
-                value={unionCount}
-                aria-label="Union PVC"
-                title="Cantidad: solo números enteros"
-                onChange={event => setUnionCount(sanitizeIntegerInput(event.target.value))}
+                inputMode={usesRightAngle ? 'numeric' : 'text'}
+                value={usesRightAngle ? adaptadorCount : '- -'}
+                disabled={!usesRightAngle}
+                aria-label="Adaptador PVC-RGS"
+                title={
+                  usesRightAngle
+                    ? 'Por defecto, igual al número de uniones. Puede editarse, o quedar en 0 si no se usa.'
+                    : 'Solo aplica cuando hay curvas de 90°'
+                }
+                onChange={event => {
+                  adaptadorEdited.current = true;
+                  setAdaptadorCount(sanitizeIntegerInput(event.target.value));
+                }}
               />
             </label>
+            {!manual && (
+              <label>
+                REV
+                <input
+                  value={rev}
+                  aria-label="Revisión"
+                  title="Revisión del tramo (ej. 0, A, B)"
+                  onChange={event => onRevChange(event.target.value)}
+                  placeholder="0"
+                  maxLength={6}
+                />
+              </label>
+            )}
           </div>
 
           <h3>Curvas</h3>
@@ -586,24 +679,6 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
               ))}
             </tbody>
           </table>
-          {usesRightAngle && adaptadorInfo ? (
-            <label className="bducto-adaptador">
-              {`Adaptador PVC-RGS D=${adaptadorInfo.diameter} (und)`}
-              <input
-                inputMode="numeric"
-                value={adaptadorCount}
-                aria-label="Adaptador PVC-RGS"
-                title="Cantidad: solo números enteros"
-                onChange={event => {
-                  adaptadorEdited.current = true;
-                  setAdaptadorCount(sanitizeIntegerInput(event.target.value));
-                }}
-              />
-              <span>Por defecto, igual al número de uniones. Puede editarse, o quedar en 0 si no se usa.</span>
-            </label>
-          ) : (
-            <p className="bducto-preview">El adaptador PVC-RGS se pide junto a la elevación solo cuando hay curvas de 90°.</p>
-          )}
         </div>
         <div className="modal-ft">
           <button type="button" className="btn-ghost bducto-back" onClick={onBack} disabled={!canGoBack}>

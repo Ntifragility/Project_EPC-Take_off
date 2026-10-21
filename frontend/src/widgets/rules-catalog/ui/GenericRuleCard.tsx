@@ -12,8 +12,8 @@ interface GenericRuleCardProps {
   activeArea: AreaType;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onEdit: (rule: TakeoffRule) => void;
-  onDelete: (id: string) => void;
+  onEdit?: (rule: TakeoffRule) => void;
+  onDelete?: (id: string) => void;
 }
 
 const thStyle: React.CSSProperties = {
@@ -56,7 +56,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
       badge={`${rule.subitems.length} ${rule.subitems.length === 1 ? 'insumo' : 'insumos'}`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onDelete={() => onDelete(rule.id)}
+      onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
             <div
               style={{
@@ -129,11 +129,13 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                                   {code}
                                 </span>
                               ))}
-                              <IconActionButton
-                                kind="edit"
-                                title="Editar la lista de este detalle"
-                                onClick={() => onEdit(rule)}
-                              />
+                              {onEdit && (
+                                <IconActionButton
+                                  kind="edit"
+                                  title="Editar la lista de este detalle"
+                                  onClick={() => onEdit(rule)}
+                                />
+                              )}
                             </div>
                           </td>
                         )}

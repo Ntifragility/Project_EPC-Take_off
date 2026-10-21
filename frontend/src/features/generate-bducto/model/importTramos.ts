@@ -4,6 +4,7 @@ export interface TramoIdentity {
   desde?: string;
   hasta?: string;
   plano: string;
+  rev?: string;
   tagEnPlano: string;
   quantity: number;
 }

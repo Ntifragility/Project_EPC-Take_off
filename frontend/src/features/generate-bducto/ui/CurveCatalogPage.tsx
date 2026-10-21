@@ -15,6 +15,9 @@ import { IconActionButton } from '../../../shared/ui/IconActionButton';
 import { siteConfirm } from '../../../shared/ui/askSite';
 import { useCurveCatalogHistory } from '../model/curveCatalogHistory';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
+import { useAuthStore } from '../../auth/model/useAuthStore';
+import { getRoleLevel } from '../../auth/model/authTypes';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import './bductos.css';
 
 type CurveDraft = CurveCatalogItem & { lengthText: string; stored: boolean };
@@ -114,6 +117,9 @@ function replaceCatalogItem(item: CurveCatalogItem): void {
 
 export const CurveCatalogPage: React.FC = () => {
   const showToast = useUIStore(state => state.showToast);
+  const currentUser = useAuthStore(state => state.currentUser);
+  const canEdit = getRoleLevel(currentUser?.role) >= 2;
+
   const [rows, setRows] = useState<CurveDraft[]>(() => getCurveCatalog().map(item => toDraft(item)));
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [filter, setFilter] = useState('TODAS');
@@ -155,19 +161,27 @@ export const CurveCatalogPage: React.FC = () => {
   }, [rows, filter]);
 
   const remove = (row: CurveDraft) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden eliminar curvas', 'warn');
+      return;
+    }
     const label = (row.descripcion || curveDescription(row)).trim() || row.id;
     void (async () => {
-    if (!(await siteConfirm(`¿Quitar "${label}" del catálogo?`))) return;
-    useCurveCatalogHistory.getState().remember({ rows, removedIds });
-    setRows(current => current.filter(item => item.id !== row.id));
-    if (row.stored) {
-      setRemovedIds(current => (current.includes(row.id) ? current : [...current, row.id]));
-    }
-    if (editor?.id === row.id) setEditor(null);
+      if (!(await siteConfirm(`¿Quitar "${label}" del catálogo?`))) return;
+      useCurveCatalogHistory.getState().remember({ rows, removedIds });
+      setRows(current => current.filter(item => item.id !== row.id));
+      if (row.stored) {
+        setRemovedIds(current => (current.includes(row.id) ? current : [...current, row.id]));
+      }
+      if (editor?.id === row.id) setEditor(null);
     })();
   };
 
   const beginEdit = (row: CurveDraft) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden editar curvas', 'warn');
+      return;
+    }
     const draft = ROW_FIELDS.reduce((values, field) => {
       values[field] = fieldValue(row, field);
       return values;
@@ -175,8 +189,16 @@ export const CurveCatalogPage: React.FC = () => {
     setEditor({ id: row.id, draft });
   };
 
+  const addCurve = () => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden agregar curvas', 'warn');
+      return;
+    }
+    setRows(current => [...current, blankCurve()]);
+  };
+
   const commit = async () => {
-    if (!editor || committing) return;
+    if (!editor || committing || !canEdit) return;
     const row = rows.find(item => item.id === editor.id);
     if (!row) return;
     const draft = editor.draft;
@@ -236,6 +258,10 @@ export const CurveCatalogPage: React.FC = () => {
   };
 
   const save = async () => {
+    if (!canEdit) {
+      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Supabase', 'warn');
+      return;
+    }
     setSaving(true);
     try {
       const cleaned = rows.map(toCatalogItem);
@@ -275,22 +301,46 @@ export const CurveCatalogPage: React.FC = () => {
           </option>
         ))}
       </select>
-      <button type="button" className="btn-ghost" onClick={() => setRows(current => [...current, blankCurve()])}>
-        Agregar curva
-      </button>
-      <button type="button" className="btn-primary" onClick={save} disabled={saving || (rows.length === 0 && removedIds.length === 0)}>
-        {saving ? 'Guardando…' : 'Guardar catálogo'}
-      </button>
+      {canEdit && (
+        <>
+          <button type="button" className="btn-ghost" onClick={addCurve}>
+            Agregar curva
+          </button>
+          <button type="button" className="btn-primary" onClick={save} disabled={saving || (rows.length === 0 && removedIds.length === 0)}>
+            {saving ? 'Guardando…' : 'Guardar catálogo'}
+          </button>
+        </>
+      )}
     </>
   );
 
   return (
     <div className="bducto-page catalog-pane">
       {actionSlot && createPortal(curveActions, actionSlot)}
-      <div className="catalog-hd">
-        <p className="catalog-note">
-          Cada fila se guarda al confirmar. Guardar catálogo envía las curvas nuevas y las que quitaste.
+      <div className="catalog-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+        <p className="catalog-note" style={{ margin: 0 }}>
+          {canEdit
+            ? 'Cada fila se guarda al confirmar. Guardar catálogo envía las curvas nuevas y las que quitaste.'
+            : 'Catálogo de curvas en modo de consulta. La edición está reservada para usuarios Level 2 y Level 3.'}
         </p>
+
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '3px 8px',
+            borderRadius: '4px',
+            backgroundColor: canEdit ? 'rgba(16, 124, 65, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+            color: canEdit ? '#107c41' : '#64748b',
+            border: canEdit ? '1px solid rgba(16, 124, 65, 0.3)' : '1px solid rgba(100, 116, 139, 0.3)'
+          }}
+        >
+          {canEdit ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+          {canEdit ? 'Edición habilitada (Level 2 / Level 3)' : 'Solo Lectura (Requiere Level 2 o Level 3)'}
+        </span>
       </div>
 
       {visible.length === 0 ? (
@@ -338,7 +388,7 @@ export const CurveCatalogPage: React.FC = () => {
                             <span className="curve-value-text">{fieldValue(row, field)}</span>
                           )}
 
-                          {isLast && (
+                          {isLast && canEdit && (
                             <div className="row-hover-actions">
                               {editing ? (
                                 <>

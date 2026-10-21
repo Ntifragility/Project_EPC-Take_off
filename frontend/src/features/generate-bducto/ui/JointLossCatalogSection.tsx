@@ -13,6 +13,9 @@ import {
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
 import { siteConfirm } from '../../../shared/ui/askSite';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
+import { useAuthStore } from '../../auth/model/useAuthStore';
+import { getRoleLevel } from '../../auth/model/authTypes';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import './bductos.css';
 
 type FieldKey = 'diameter' | 'loss' | 'descripcion';
@@ -45,6 +48,9 @@ function fieldValue(row: JointLossDraft, field: FieldKey): string {
 
 export const JointLossCatalogSection: React.FC = () => {
   const { showToast } = useUIStore();
+  const currentUser = useAuthStore(state => state.currentUser);
+  const canEdit = getRoleLevel(currentUser?.role) >= 2;
+
   const [rows, setRows] = useState<JointLossDraft[]>(() =>
     getJointLossCatalog().map(toDraft)
   );
@@ -65,6 +71,10 @@ export const JointLossCatalogSection: React.FC = () => {
   }, []);
 
   const beginEdit = (row: JointLossDraft) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden editar pérdidas por embone', 'warn');
+      return;
+    }
     setEditor({
       id: row.id,
       draft: {
@@ -76,7 +86,7 @@ export const JointLossCatalogSection: React.FC = () => {
   };
 
   const commit = async () => {
-    if (!editor) return;
+    if (!editor || !canEdit) return;
     setCommitting(true);
     try {
       const parsedLoss = parseFloat(editor.draft.loss.replace(',', '.'));
@@ -114,6 +124,10 @@ export const JointLossCatalogSection: React.FC = () => {
   };
 
   const remove = async (row: JointLossDraft) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden eliminar pérdidas por embone', 'warn');
+      return;
+    }
     const ok = await siteConfirm(`¿Quitar la medida para D=${row.diameter}?`);
     if (!ok) return;
 
@@ -133,6 +147,10 @@ export const JointLossCatalogSection: React.FC = () => {
   };
 
   const addRow = () => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden agregar medidas', 'warn');
+      return;
+    }
     const newId = `loss-new-${Date.now()}`;
     const newRow: JointLossDraft = {
       id: newId,
@@ -166,6 +184,10 @@ export const JointLossCatalogSection: React.FC = () => {
   };
 
   const handleSaveToSupabase = async () => {
+    if (!canEdit) {
+      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Supabase', 'warn');
+      return;
+    }
     setSaving(true);
     try {
       if (removedIds.length > 0) {
@@ -198,22 +220,26 @@ export const JointLossCatalogSection: React.FC = () => {
 
   const lossActions = (
     <>
-      <button
-        type="button"
-        className="btn-ghost"
-        onClick={addRow}
-        disabled={committing}
-      >
-        Agregar medida
-      </button>
-      <button
-        type="button"
-        className="btn-primary"
-        onClick={() => void handleSaveToSupabase()}
-        disabled={saving || committing}
-      >
-        {saving ? 'Guardando…' : 'Guardar catálogo'}
-      </button>
+      {canEdit && (
+        <>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={addRow}
+            disabled={committing}
+          >
+            Agregar medida
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => void handleSaveToSupabase()}
+            disabled={saving || committing}
+          >
+            {saving ? 'Guardando…' : 'Guardar catálogo'}
+          </button>
+        </>
+      )}
     </>
   );
 
@@ -221,10 +247,30 @@ export const JointLossCatalogSection: React.FC = () => {
     <div className="bducto-page catalog-pane">
       {actionSlot && createPortal(lossActions, actionSlot)}
 
-      <div className="catalog-hd">
-        <p className="catalog-note">
-          Cada fila se guarda al confirmar. Al pasar el cursor sobre cualquier fila puedes editar o quitar una medida.
+      <div className="catalog-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+        <p className="catalog-note" style={{ margin: 0 }}>
+          {canEdit
+            ? 'Cada fila se guarda al confirmar. Al pasar el cursor sobre cualquier fila puedes editar o quitar una medida.'
+            : 'Catálogo de pérdidas por embone en modo de consulta. La edición está reservada para usuarios Level 2 y Level 3.'}
         </p>
+
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '3px 8px',
+            borderRadius: '4px',
+            backgroundColor: canEdit ? 'rgba(16, 124, 65, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+            color: canEdit ? '#107c41' : '#64748b',
+            border: canEdit ? '1px solid rgba(16, 124, 65, 0.3)' : '1px solid rgba(100, 116, 139, 0.3)'
+          }}
+        >
+          {canEdit ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+          {canEdit ? 'Edición habilitada (Level 2 / Level 3)' : 'Solo Lectura (Requiere Level 2 o Level 3)'}
+        </span>
       </div>
 
       <div style={{ overflowX: 'auto' }}>
@@ -271,7 +317,7 @@ export const JointLossCatalogSection: React.FC = () => {
                         )}
 
                         {/* Floating Action Overlay on Hover (Image 2 style) */}
-                        {isLastField && (
+                        {isLastField && canEdit && (
                           <div className="row-hover-actions">
                             {editing ? (
                               <>

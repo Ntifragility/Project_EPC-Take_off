@@ -14,6 +14,7 @@ export type BductoKind =
 export interface BductoSource {
   id: string;
   plano: string;
+  rev?: string;
   tagEnPlano: string;
   quantity: number;
   /** Filled when the tramo comes from the Excel list. */
@@ -39,6 +40,7 @@ export interface ElevationLine {
 export interface BductoPrompt {
   desde: string;
   hasta: string;
+  rev?: string;
   terminalCount: number;
   /** Pieces of UNION PVC SCH 40. Defaults to the vía count. */
   unionCount: number;

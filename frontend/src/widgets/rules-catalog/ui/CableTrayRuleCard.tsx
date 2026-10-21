@@ -10,8 +10,8 @@ interface CableTrayRuleCardProps {
   rule: TakeoffRule;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onEdit: (rule: TakeoffRule) => void;
-  onDelete: (id: string) => void;
+  onEdit?: (rule: TakeoffRule) => void;
+  onDelete?: (id: string) => void;
 }
 
 export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
@@ -35,7 +35,7 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
       badge={`${cableTrayRows.length} ${cableTrayRows.length === 1 ? 'material' : 'materiales'} · 4 anchos`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onDelete={() => onDelete(rule.id)}
+      onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
 
             <div
@@ -180,13 +180,15 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
                             >
                               {detalleCode}
                             </span>
-                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
-                              <IconActionButton
-                                kind="edit"
-                                title="Editar la lista de este detalle"
-                                onClick={() => onEdit(rule)}
-                              />
-                            </div>
+                            {onEdit && (
+                              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+                                <IconActionButton
+                                  kind="edit"
+                                  title="Editar la lista de este detalle"
+                                  onClick={() => onEdit(rule)}
+                                />
+                              </div>
+                            )}
                           </td>
                         )}
                         <MatCell desc={item.desc} material={item.material} />

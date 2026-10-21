@@ -9,8 +9,8 @@ interface Cable40RuleCardProps {
   rule: TakeoffRule;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onEdit: (rule: TakeoffRule) => void;
-  onDelete: (id: string) => void;
+  onEdit?: (rule: TakeoffRule) => void;
+  onDelete?: (id: string) => void;
 }
 
 export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
@@ -70,7 +70,7 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
       badge="2 detalles"
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onDelete={() => onDelete(rule.id)}
+      onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
             <div style={{ overflowX: 'hidden', border: '1px solid var(--b1)', borderRadius: '4px', background: 'var(--s2)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--mo)', fontSize: '12px' }}>
@@ -101,13 +101,15 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
                             <span style={{ background: 'var(--ad)', border: '1px solid var(--b1)', borderRadius: '4px', padding: '4px 8px', fontWeight: 'bold' }}>
                               {detalle.code}
                             </span>
-                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
-                              <IconActionButton
-                                kind="edit"
-                                title={`Editar la lista de ${detalle.code}`}
-                                onClick={() => onEdit(rule)}
-                              />
-                            </div>
+                            {onEdit && (
+                              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+                                <IconActionButton
+                                  kind="edit"
+                                  title={`Editar la lista de ${detalle.code}`}
+                                  onClick={() => onEdit(rule)}
+                                />
+                              </div>
+                            )}
                           </td>
                         )}
                         <MatCell desc={item.desc} material={materialFor(item.desc)} />

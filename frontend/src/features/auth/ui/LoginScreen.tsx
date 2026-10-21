@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Key, Loader2, AlertCircle, CheckCircle2, User, Shield, ShieldCheck, Zap } from 'lucide-react';
+import { Mail, Key, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../model/useAuthStore';
 import { UserRole } from '../model/authTypes';
 import { submitAccessRequest } from '../api/authApi';
@@ -240,119 +240,6 @@ export const LoginScreen: React.FC = () => {
                 <span>{isLoading ? 'Ingresando...' : 'Ingresar'}</span>
               </button>
             </form>
-
-            {/* Quick Login for Local Mode / Testing */}
-            <div
-              style={{
-                marginTop: '22px',
-                paddingTop: '16px',
-                borderTop: '1px dashed #23252f',
-                textAlign: 'center'
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '11px',
-                  color: '#71717a',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.6px',
-                  fontWeight: 600,
-                  marginBottom: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '5px'
-                }}
-              >
-                <Zap size={12} color="#f59e0b" />
-                <span>Acceso Rápido Modo Local</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => {
-                    clearError();
-                    void signIn('co.villaf@gmail.com');
-                  }}
-                  title="Ingresar como Level 1"
-                  style={{
-                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    color: '#93c5fd',
-                    borderRadius: '6px',
-                    padding: '7px 4px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <User size={14} color="#60a5fa" />
-                  <span>Level 1</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => {
-                    clearError();
-                    void signIn('supervisor@cosapi.pe');
-                  }}
-                  title="Ingresar como Level 2"
-                  style={{
-                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
-                    color: '#fbbf24',
-                    borderRadius: '6px',
-                    padding: '7px 4px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <Shield size={14} color="#f59e0b" />
-                  <span>Level 2</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => {
-                    clearError();
-                    void signIn('mvillafuerte@ccp.pe');
-                  }}
-                  title="Ingresar como Level 3"
-                  style={{
-                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    color: '#34d399',
-                    borderRadius: '6px',
-                    padding: '7px 4px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <ShieldCheck size={14} color="#34d399" />
-                  <span>Level 3</span>
-                </button>
-              </div>
-            </div>
 
             {/* Bottom Links matching Image 1: Reset Password & Create an account */}
             <div

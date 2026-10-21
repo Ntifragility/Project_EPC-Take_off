@@ -16,8 +16,8 @@ interface Cable20RuleCardProps {
   activeArea: 'AREA SECA' | 'AREA HUMEDA';
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onDelete: (id: string) => void;
-  onEditDetalle: (code: string, items: DetalleVariantItem[]) => void;
+  onDelete?: (id: string) => void;
+  onEditDetalle?: (code: string, items: DetalleVariantItem[]) => void;
 }
 
 export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
@@ -40,7 +40,7 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
       badge={`${areaDetalles.length} detalles`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onDelete={() => onDelete(rule.id)}
+      onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
             <>
             <div
@@ -186,13 +186,15 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                               >
                                 {detalleCode}
                               </span>
-                              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
-                                <IconActionButton
-                                  kind="edit"
-                                  title={`Editar la lista de ${detalleCode}`}
-                                  onClick={() => onEditDetalle(detalleCode, itemsList)}
-                                />
-                              </div>
+                              {onEditDetalle && (
+                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+                                  <IconActionButton
+                                    kind="edit"
+                                    title={`Editar la lista de ${detalleCode}`}
+                                    onClick={() => onEditDetalle(detalleCode, itemsList)}
+                                  />
+                                </div>
+                              )}
                             </td>
                           )}
                           <MatCell desc={item.desc} material={'material' in item ? item.material : undefined} />

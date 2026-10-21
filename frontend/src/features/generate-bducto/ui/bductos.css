@@ -28,9 +28,16 @@
 
 .bducto-prompt-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   align-items: end;
+}
+
+.bducto-prompt input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--s2);
+  text-align: center;
 }
 
 .bducto-form label,

@@ -18,8 +18,16 @@ import { BarraRuleCard } from './BarraRuleCard';
 import { CableTrayRuleCard } from './CableTrayRuleCard';
 import { GenericRuleCard } from './GenericRuleCard';
 import { detalleBelongsToArea, getCatalogForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
+import { useAuthStore } from '../../../features/auth/model/useAuthStore';
+import { getRoleLevel } from '../../../features/auth/model/authTypes';
+import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
 
 export const RulesView: React.FC = () => {
+  const showToast = useUIStore(state => state.showToast);
+  const currentUser = useAuthStore(state => state.currentUser);
+  const canEdit = getRoleLevel(currentUser?.role) >= 2;
+
   const rules = useRulesStore(state => state.rules);
   const loadRules = useRulesStore(state => state.loadRules);
   const saveRule = useRulesStore(state => state.saveRule);
@@ -34,10 +42,18 @@ export const RulesView: React.FC = () => {
   }, [section, loadRules]);
 
   const handleDeleteRule = (id: string) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden eliminar reglas', 'warn');
+      return;
+    }
     deleteRule(id, section);
   };
 
   const handleSaveRule = (rule: TakeoffRule, isNewRule: boolean) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden guardar o modificar reglas', 'warn');
+      return;
+    }
     const withArea: TakeoffRule =
       isNewRule && !(rule.areas && rule.areas.length)
         ? { ...rule, areas: [activeArea] }
@@ -90,6 +106,10 @@ export const RulesView: React.FC = () => {
     items: DetalleVariantItem[],
     category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
   ) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden editar materiales de detalles', 'warn');
+      return;
+    }
     setEditingDetalle({
       code,
       area: activeArea,
@@ -100,12 +120,20 @@ export const RulesView: React.FC = () => {
   };
 
   const handleOpenNew = () => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden crear reglas', 'warn');
+      return;
+    }
     setEditingRule(null);
     setIsNew(true);
     setModalOpen(true);
   };
 
   const handleOpenEdit = (rule: TakeoffRule) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden editar reglas', 'warn');
+      return;
+    }
     if (
       Boolean(rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0) ||
       rule.id === 'r-001-2b-x1' ||
@@ -123,6 +151,10 @@ export const RulesView: React.FC = () => {
   };
 
   const handleOpenCableTrayEdit = (rule: TakeoffRule) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden editar matrices de bandejas', 'warn');
+      return;
+    }
     setEditingCableTrayRule(rule);
     setCableTrayModalOpen(true);
   };
@@ -158,18 +190,38 @@ export const RulesView: React.FC = () => {
               {allExpanded ? '▲ Colapsar todas' : '▼ Expandir todas'}
             </button>
           )}
-          <button type="button" className="btn-primary" onClick={handleOpenNew}>
-            + Nueva regla
-          </button>
+          {canEdit && (
+            <button type="button" className="btn-primary" onClick={handleOpenNew}>
+              + Nueva regla
+            </button>
+          )}
         </>,
         actionSlot
       )}
-      <div className="catalog-hd">
-        <p className="catalog-note">
+      <div className="catalog-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+        <p className="catalog-note" style={{ margin: 0 }}>
           {activeArea === 'AREA HUMEDA'
             ? 'Reglas y matrices constructivas para Área Húmeda.'
             : 'Reglas y matrices estándar para Área Seca.'}
         </p>
+
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '3px 8px',
+            borderRadius: '4px',
+            backgroundColor: canEdit ? 'rgba(16, 124, 65, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+            color: canEdit ? '#107c41' : '#64748b',
+            border: canEdit ? '1px solid rgba(16, 124, 65, 0.3)' : '1px solid rgba(100, 116, 139, 0.3)'
+          }}
+        >
+          {canEdit ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+          {canEdit ? 'Edición habilitada (Level 2 / Level 3)' : 'Solo Lectura (Requiere Level 2 o Level 3)'}
+        </span>
       </div>
 
       {catalogRules.length === 0 ? (
@@ -191,8 +243,8 @@ export const RulesView: React.FC = () => {
                 rule={r}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onEdit={handleOpenEdit}
-                onDelete={handleDeleteRule}
+                onEdit={canEdit ? handleOpenEdit : undefined}
+                onDelete={canEdit ? handleDeleteRule : undefined}
               />
             );
           }
@@ -206,8 +258,8 @@ export const RulesView: React.FC = () => {
                 activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onDelete={handleDeleteRule}
-                onEditDetalle={(code, items) => handleOpenDetalleEdit(code, items, 'CABLE_2_0')}
+                onDelete={canEdit ? handleDeleteRule : undefined}
+                onEditDetalle={canEdit ? (code, items) => handleOpenDetalleEdit(code, items, 'CABLE_2_0') : undefined}
               />
             );
           }
@@ -222,8 +274,8 @@ export const RulesView: React.FC = () => {
                 activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onDelete={handleDeleteRule}
-                onEditDetalle={handleOpenDetalleEdit}
+                onDelete={canEdit ? handleDeleteRule : undefined}
+                onEditDetalle={canEdit ? handleOpenDetalleEdit : undefined}
               />
             );
           }
@@ -238,8 +290,8 @@ export const RulesView: React.FC = () => {
                 activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onDelete={handleDeleteRule}
-                onEditDetalle={handleOpenDetalleEdit}
+                onDelete={canEdit ? handleDeleteRule : undefined}
+                onEditDetalle={canEdit ? handleOpenDetalleEdit : undefined}
               />
             );
           }
@@ -259,8 +311,8 @@ export const RulesView: React.FC = () => {
                 rule={r}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
-                onEdit={handleOpenCableTrayEdit}
-                onDelete={handleDeleteRule}
+                onEdit={canEdit ? handleOpenCableTrayEdit : undefined}
+                onDelete={canEdit ? handleDeleteRule : undefined}
               />
             );
           }
@@ -273,8 +325,8 @@ export const RulesView: React.FC = () => {
               activeArea={activeArea}
               isExpanded={isExpanded}
               onToggleExpand={() => toggleRuleExpand(r.id)}
-              onEdit={handleOpenEdit}
-              onDelete={handleDeleteRule}
+              onEdit={canEdit ? handleOpenEdit : undefined}
+              onDelete={canEdit ? handleDeleteRule : undefined}
             />
           );
         })}

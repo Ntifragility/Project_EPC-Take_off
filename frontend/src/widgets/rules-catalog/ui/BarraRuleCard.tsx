@@ -17,8 +17,8 @@ interface BarraRuleCardProps {
   activeArea: 'AREA SECA' | 'AREA HUMEDA';
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onDelete: (id: string) => void;
-  onEditDetalle: (code: string, items: DetalleVariantItem[], category: 'BARRA_POT' | 'BARRA_INST') => void;
+  onDelete?: (id: string) => void;
+  onEditDetalle?: (code: string, items: DetalleVariantItem[], category: 'BARRA_POT' | 'BARRA_INST') => void;
 }
 
 export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
@@ -43,7 +43,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
       badge={`${entries.length} ${entries.length === 1 ? 'detalle' : 'detalles'}`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
-      onDelete={() => onDelete(rule.id)}
+      onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
           <div
             style={{
@@ -158,13 +158,15 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
                             >
                               {detCode}
                             </span>
-                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
-                              <IconActionButton
-                                kind="edit"
-                                title={`Editar materiales de ${detCode}`}
-                                onClick={() => onEditDetalle(detCode, vItems as any, category)}
-                              />
-                            </div>
+                            {onEditDetalle && (
+                              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+                                <IconActionButton
+                                  kind="edit"
+                                  title={`Editar materiales de ${detCode}`}
+                                  onClick={() => onEditDetalle(detCode, vItems as any, category)}
+                                />
+                              </div>
+                            )}
                           </td>
                         )}
                         <MatCell desc={item.desc} material={'material' in item ? item.material : undefined} />

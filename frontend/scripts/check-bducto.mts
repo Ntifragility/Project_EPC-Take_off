@@ -66,7 +66,7 @@ const conduits = rows.filter(row => row.kind === 'conduit');
 assert(conduits.length === 7, 'stick count');
 assert(conduits.slice(0, 6).every(row => row.longitudM === 3.05 && row.cantXd === 12 && row.metrado === 36.6), 'full sticks');
 assert(conduits[6].longitudM === 1 && conduits[6].metrado === 12, 'remainder');
-assert(conduits[0].descripcion === 'CONDUIT PVC SCH 40 D=6" - CERTIFICACIÓN UL', conduits[0].descripcion);
+assert(conduits[0].descripcion === 'CONDUIT PVC SCH 40 D=6"', conduits[0].descripcion);
 assert(conduits[0].wbs === '3300' && conduits[0].seccion === 'K', 'wbs/section');
 assert(conduits[0].desde === '300-MH-015' && conduits[0].hasta === '300-MH-016', 'desde/hasta');
 assert(conduits[0].partidaSicme === '' && conduits[0].rev === '' && conduits[0].sector === '', 'empty columns');
@@ -87,7 +87,7 @@ assert(cinta?.descripcion === 'CINTA DE RIESGO ELECTRICO COLOR ROJO', 'cinta nam
 
 const union = rows.find(row => row.kind === 'union');
 assert(union?.longitudM === 1 && union.cantXd === 12 && union.metrado === 12 && union.und === 'und' && union.tagUnico === '', 'union');
-assert(union?.descripcion === 'UNION PVC SCH 40 D=6" - CERTIFICACIÓN UL', union?.descripcion);
+assert(union?.descripcion === 'UNION PVC SCH 40 D=6"', union?.descripcion);
 
 assert(rows.find(row => row.kind === 'terminal')?.metrado === 24, 'terminal');
 assert(rows.find(row => row.kind === 'adaptador')?.metrado === 4, 'adaptador');
@@ -170,12 +170,12 @@ if (embedded.ok) {
 }
 const sixInch = curvesForDiameter('6"').map(item => `${item.angle} ${item.radius} ${item.lengthM}`);
 assert(sixInch.join('|') === '45° 30" 0.59|90° 30" 1.12', sixInch.join('|'));
-assert(curvesForDiameter('2"').map(curveDescription).join('|') === 'CURVA 90° RADIO 15" PVC SCH 40 D=2" - CERTIFICACIÓN UL', 'loaded catalog only');
+assert(curvesForDiameter('2"').map(curveDescription).join('|') === 'CURVA 90° RADIO 15" PVC SCH 40 D=2"', 'loaded catalog only');
 const catalogRow = mapCurveToRecord({ id: 'c90-r15-d3', angle: '90°', radius: '15"', diameter: '3"', lengthM: 0.65 }, 0);
 assert(
   catalogRow.diameter === '3"' &&
     catalogRow.length_m === 0.65 &&
-    catalogRow.descripcion === 'CURVA 90° RADIO 15" PVC SCH 40 D=3" - CERTIFICACIÓN UL',
+    catalogRow.descripcion === 'CURVA 90° RADIO 15" PVC SCH 40 D=3"',
   catalogRow.descripcion
 );
 if (result.ok) {
@@ -206,7 +206,7 @@ for (const sample of [
   assert(sized.ok, sample.tag);
   if (!sized.ok) throw new Error('unreachable');
   const sizedUnion = sized.rows.find(row => row.kind === 'union');
-  assert(sizedUnion?.cantXd === sample.vias && sizedUnion.descripcion === `UNION PVC SCH 40 D=${sample.diameter} - CERTIFICACIÓN UL`, sample.tag);
+  assert(sizedUnion?.cantXd === sample.vias && sizedUnion.descripcion === `UNION PVC SCH 40 D=${sample.diameter}`, sample.tag);
   const kinds = sized.rows.map(row => row.kind);
   assert(kinds.indexOf('terminal') + 1 === kinds.indexOf('union') && kinds.indexOf('union') + 1 === kinds.indexOf('elevation'), sample.tag);
 }
