@@ -160,3 +160,4 @@ export const useTemplatesStore = createStore<TemplatesStore>((set, get) => ({
     await fallback();
   }
 }));
+

@@ -23,3 +23,4 @@ CREATE POLICY "Allow anon read excel templates" ON public.excel_templates
 DROP POLICY IF EXISTS "Allow anon write excel templates" ON public.excel_templates;
 CREATE POLICY "Allow anon write excel templates" ON public.excel_templates
     FOR ALL USING (true) WITH CHECK (true);
+

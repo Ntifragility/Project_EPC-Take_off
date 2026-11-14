@@ -41,3 +41,4 @@ export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     sectionBadge: 'BANCODUCTOS'
   }
 ];
+
