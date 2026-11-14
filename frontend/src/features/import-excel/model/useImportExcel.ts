@@ -19,7 +19,7 @@ export async function executeImportExcel(csvText: string) {
   const pkgId = selPkg || packages[0]?.id || 'p1';
   saveUndoSnapshot();
 
-  const { newItems, addedCount, rejectedRows } = await parseTakeoffCsv(
+  const { newItems, addedCount, rejectedRows, detectedPlano } = await parseTakeoffCsv(
     csvText,
     rules,
     pkgId,
@@ -28,6 +28,11 @@ export async function executeImportExcel(csvText: string) {
     items,
     activeArea
   );
+
+  // Auto-Sync Header: automatically sync the top header to the plano detected in the file
+  if (detectedPlano && detectedPlano !== customPlano) {
+    useItemsStore.getState().setCustomPlano(detectedPlano);
+  }
 
   // If there are rejected rows, generate and download an Excel report
   if (rejectedRows && rejectedRows.length > 0) {

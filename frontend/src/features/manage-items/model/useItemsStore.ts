@@ -112,7 +112,8 @@ const initialCorrelatedItems = correlateItemsWithPartidas(
   initialPartidas,
   'AREA SECA'
 );
-const initialPlano = localStorage.getItem(STORAGE_KEYS.PLANO) || DEFAULT_PLANO;
+const storedPlano = localStorage.getItem(STORAGE_KEYS.PLANO);
+const initialPlano = (storedPlano === 'P22-DA-2151-07-GL-001' ? '' : storedPlano) || DEFAULT_PLANO;
 const initialRev = localStorage.getItem(STORAGE_KEYS.REV) || DEFAULT_REV;
 
 let highlightTimer: any = null;

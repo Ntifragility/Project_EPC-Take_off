@@ -109,7 +109,14 @@ export function detectColumnMapping(headerRow: any[]): ColumnMapping | null {
     }
   });
 
-  if (mapping.tagIdx !== -1) {
+  const hasTakeoffSpec =
+    mapping.planoIdx !== -1 ||
+    mapping.detalleIdx !== -1 ||
+    mapping.tuberiaIdx !== -1 ||
+    mapping.soportesIdx !== -1 ||
+    mapping.jumpersIdx !== -1;
+
+  if (mapping.tagIdx !== -1 && hasTakeoffSpec) {
     return mapping;
   }
   return null;
@@ -122,6 +129,25 @@ export async function convertSpreadsheetToCsvText(file: File, opts?: { allSheets
   }
   const matrices = await readSheetMatrices(file, { allSheets: opts?.allSheets ?? true });
   if (matrices.length === 0) return '';
+
+  // 1. File-Level Plano Inspection: Find any valid drawing plano across all sheets
+  let detectedFilePlano = '';
+  for (const rawData of matrices) {
+    if (!rawData) continue;
+    for (const row of rawData) {
+      if (Array.isArray(row)) {
+        for (const cell of row) {
+          const str = String(cell || '').trim();
+          if (isDrawingPlano(str)) {
+            detectedFilePlano = str.toUpperCase();
+            break;
+          }
+        }
+      }
+      if (detectedFilePlano) break;
+    }
+    if (detectedFilePlano) break;
+  }
 
   const normalizedRows: string[] = [
     'PLANO;TAG;LONGITUD_CABLE;LONGITUD_TUBERIA;DETALLE;JUMPERS;SOPORTES'
@@ -153,7 +179,12 @@ export async function convertSpreadsheetToCsvText(file: File, opts?: { allSheets
         const tag = mapping.tagIdx !== -1 && row[mapping.tagIdx] !== undefined ? String(row[mapping.tagIdx]).trim() : '';
         if (!tag) continue;
 
-        const plano = mapping.planoIdx !== -1 && row[mapping.planoIdx] !== undefined ? String(row[mapping.planoIdx]).trim() : '';
+        let plano = mapping.planoIdx !== -1 && row[mapping.planoIdx] !== undefined ? String(row[mapping.planoIdx]).trim() : '';
+        // File-level plano propagation
+        if (!plano && detectedFilePlano) {
+          plano = detectedFilePlano;
+        }
+
         const cable = mapping.cableIdx !== -1 && row[mapping.cableIdx] !== undefined ? String(row[mapping.cableIdx]).trim() : '';
         const tuberia = mapping.tuberiaIdx !== -1 && row[mapping.tuberiaIdx] !== undefined ? String(row[mapping.tuberiaIdx]).trim() : '';
         const detalle = mapping.detalleIdx !== -1 && row[mapping.detalleIdx] !== undefined ? String(row[mapping.detalleIdx]).trim() : '';
@@ -171,16 +202,17 @@ export async function convertSpreadsheetToCsvText(file: File, opts?: { allSheets
         );
       }
     } else {
+      // Fallback only for unheadered raw tables that have at least 3 columns and valid drawing/tag structure
       for (let r = 0; r < rawData.length; r++) {
         const row = rawData[r];
-        if (!row || !Array.isArray(row) || row.length === 0) continue;
+        if (!row || !Array.isArray(row) || row.length < 3) continue;
 
         const col0 = String(row[0] || '').trim();
         const col1 = String(row[1] || '').trim();
         const ruleFromCol1 = getRuleNameByTag(col1);
         const ruleFromCol0 = getRuleNameByTag(col0);
 
-        if (ruleFromCol1) {
+        if (ruleFromCol1 && isDrawingPlano(col0)) {
           const plano = col0;
           const tag = col1;
           const cable = String(row[2] || '').trim();
@@ -189,8 +221,8 @@ export async function convertSpreadsheetToCsvText(file: File, opts?: { allSheets
           const jumpers = String(row[5] || '').trim();
           const soportes = String(row[6] || '').trim();
           normalizedRows.push(`${plano};${tag};${cable};${tuberia};${detalle};${jumpers};${soportes}`);
-        } else if (ruleFromCol0) {
-          const plano = '';
+        } else if (ruleFromCol0 && detectedFilePlano) {
+          const plano = detectedFilePlano;
           const tag = col0;
           const cable = String(row[1] || '').trim();
           const tuberia = String(row[2] || '').trim();
@@ -215,7 +247,7 @@ export async function parseTakeoffCsv(
   existingItems: TakeoffItem[] = [],
   activeArea: 'AREA SECA' | 'AREA HUMEDA' = 'AREA SECA',
   promptSoportesFallback?: (detalleCode: string) => number
-): Promise<{ newItems: TakeoffItem[]; addedCount: number; rejectedRows: RejectedRowInfo[] }> {
+): Promise<{ newItems: TakeoffItem[]; addedCount: number; rejectedRows: RejectedRowInfo[]; detectedPlano?: string }> {
   const rejectedRows: RejectedRowInfo[] = [];
   let itemsResult: TakeoffItem[] = [...existingItems];
   let addedCount = 0;
@@ -244,6 +276,24 @@ export async function parseTakeoffCsv(
       (isNaN(parseFloat(firstParts[1]?.replace(',', '.'))) && isNaN(parseFloat(firstParts[2]?.replace(',', '.'))))
     ? 1
     : 0;
+
+  // 1. File-level plano detection pass: find any valid drawing plano in the file
+  let detectedFilePlano = '';
+  for (let i = startIdx; i < rows.length; i++) {
+    const rawLine = rows[i];
+    if (!rawLine || !rawLine.trim()) continue;
+    const parts = rawLine.split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ''));
+    let candidate = '';
+    if (headerMapping && headerMapping.planoIdx !== -1 && parts[headerMapping.planoIdx]) {
+      candidate = parts[headerMapping.planoIdx].trim().toUpperCase();
+    } else if (parts[0]) {
+      candidate = parts[0].trim().toUpperCase();
+    }
+    if (candidate && isDrawingPlano(candidate)) {
+      detectedFilePlano = candidate;
+      break;
+    }
+  }
 
   const soportesPromptCache: Record<string, number> = {};
 
@@ -303,9 +353,24 @@ export async function parseTakeoffCsv(
     if (!tagRaw) continue;
 
     const ruleName = getRuleNameByTag(tagRaw);
-    const effectivePlano = (planoRow || planoVal || '').toUpperCase();
+    const effectivePlano = (planoRow || detectedFilePlano || planoVal || '').toUpperCase();
 
-    if (effectivePlano && !isDrawingPlano(effectivePlano)) {
+    // Strict Validation: PLANO is required (either from row, file propagation, or top header)
+    if (!effectivePlano) {
+      rejectedRows.push({
+        fila: i + 1,
+        plano: '',
+        tag: tagRaw,
+        longitudCable: lengthRawStr,
+        longitudTuberia: tuberiaRaw,
+        detalle: detalleRaw,
+        jumpers: jumpersRaw,
+        motivo: 'PLANO es requerido (indicar en el archivo o en la barra superior)'
+      });
+      continue;
+    }
+
+    if (!isDrawingPlano(effectivePlano)) {
       rejectedRows.push({
         fila: i + 1,
         plano: planoRow || effectivePlano,
@@ -535,5 +600,10 @@ export async function parseTakeoffCsv(
     addedCount += processedBatch.length;
   }
 
-  return { newItems: assignTagUnicoSuffixes(itemsResult), addedCount, rejectedRows };
+  return {
+    newItems: assignTagUnicoSuffixes(itemsResult),
+    addedCount,
+    rejectedRows,
+    detectedPlano: detectedFilePlano || undefined
+  };
 }

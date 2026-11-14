@@ -57,12 +57,30 @@ function sheetMatrixOf(sheet: XLSX.WorkSheet | undefined): unknown[][] {
   return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true }) as unknown[][];
 }
 
+/** Detect whether a sheet name indicates an auxiliary summary, count, chart or dashboard sheet */
+export function isSummarySheetName(name: string): boolean {
+  const clean = name
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  return /resumen|summary|pivot|conteo|totales?|dashboard|charts?|grafic[ao]s?/.test(clean);
+}
+
 /** Raw header:1 matrices, one per sheet (or first sheet only by default). */
 export async function readSheetMatrices(file: File, opts?: ReadSheetsOptions): Promise<unknown[][][]> {
   const workbook = await readWorkbook(file);
   const names = workbook.SheetNames ?? [];
   if (names.length === 0) return [];
-  const picked = opts?.allSheets ? names : names.slice(0, 1);
+
+  let picked: string[];
+  if (opts?.allSheets) {
+    const nonSummary = names.filter(name => !isSummarySheetName(name));
+    picked = nonSummary.length > 0 ? nonSummary : names.slice(0, 1);
+  } else {
+    picked = names.slice(0, 1);
+  }
+
   return picked.map(name => sheetMatrixOf(workbook.Sheets[name]));
 }
 
