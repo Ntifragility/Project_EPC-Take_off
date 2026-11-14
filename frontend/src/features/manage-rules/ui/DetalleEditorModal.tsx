@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DetalleVariantItem } from '../../../entities/takeoff-rule/model/types';
+import { SubAreaHumeda } from '../../../shared/types/common';
 import { AVAILABLE_CUSTOM_ITEMS } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { formulaHint, isMetradoExpression, shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { ModalShell } from '../../../shared/ui/ModalShell';
@@ -8,6 +9,7 @@ import { siteConfirm } from '../../../shared/ui/askSite';
 export interface DetalleEditorModalProps {
   isOpen: boolean;
   area: string;
+  subArea?: SubAreaHumeda;
   detalleCode: string;
   category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST';
   initialItems: DetalleVariantItem[];
@@ -18,12 +20,14 @@ export interface DetalleEditorModalProps {
     area: string,
     detalleCode: string,
     items: DetalleVariantItem[],
-    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST',
+    subArea?: SubAreaHumeda
   ) => Promise<boolean>;
   onDelete?: (
     area: string,
     detalleCode: string,
-    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST',
+    subArea?: SubAreaHumeda
   ) => Promise<boolean>;
 }
 
@@ -57,6 +61,7 @@ const COMMON_UNITS = [
 export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   isOpen,
   area,
+  subArea,
   detalleCode: initialCode,
   category = 'CABLE_2_0',
   initialItems,
@@ -216,10 +221,10 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
 
     setIsSaving(true);
     try {
-      const ok = await onSave(area, finalCode, payloadItems, category);
+      const ok = await onSave(area, finalCode, payloadItems, category, subArea);
       if (ok) {
         if (isRenameAction && onDelete) {
-          await onDelete(area, activeCode, category);
+          await onDelete(area, activeCode, category, subArea);
         }
         onClose();
       }
@@ -231,7 +236,7 @@ export const DetalleEditorModal: React.FC<DetalleEditorModalProps> = ({
   return (
     <ModalShell
       title={isCreatingNew ? 'Nuevo detalle' : 'Editar detalle'}
-      subtitle={`${activeCode || 'DETALLE'} · ${area === 'AREA HUMEDA' ? 'ÁREA HÚMEDA' : 'ÁREA SECA'}`}
+      subtitle={`${activeCode || 'DETALLE'} · ${area === 'AREA HUMEDA' ? `ÁREA HÚMEDA (${subArea === 'CORROSIVO' ? 'CORROSIVO' : 'NO CORROSIVO'})` : 'ÁREA SECA'}`}
       onClose={onClose}
       closeDisabled={isSaving}
       dismiss="dirty-confirm"

@@ -1,6 +1,6 @@
 import { createStore } from '../../../shared/lib/store';
 import { TakeoffRule, DetalleVariantItem } from '../../../entities/takeoff-rule/model/types';
-import { SectionType } from '../../../shared/types/common';
+import { SectionType, SubAreaHumeda } from '../../../shared/types/common';
 import { loadStoredRules, saveStoredRules } from '../../../shared/lib/storage';
 import {
   saveTakeoffRuleToSupabase,
@@ -28,12 +28,14 @@ export interface RulesActions {
     area: string,
     detalleCode: string,
     itemsToSave: DetalleVariantItem[],
-    category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
+    category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST',
+    subArea?: SubAreaHumeda
   ) => Promise<boolean>;
   deleteDetalleVariant: (
     area: string,
     detalleCode: string,
-    category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'
+    category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST',
+    subArea?: SubAreaHumeda
   ) => Promise<boolean>;
   setRules: (rules: TakeoffRule[], section: SectionType) => void;
   incrementVariantsVersion: () => void;
@@ -126,16 +128,20 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     area: string,
     detalleCode: string,
     itemsToSave: DetalleVariantItem[],
-    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0',
+    subArea?: SubAreaHumeda
   ) => {
     try {
-      updateSingleDynamicVariant(area, detalleCode, itemsToSave, category);
+      updateSingleDynamicVariant(area, detalleCode, itemsToSave, category, subArea);
       set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
 
       const areaDb = area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
+      const effectiveSubArea = areaDb === 'AREA HUMEDA' ? (subArea || 'NO_CORROSIVO') : 'NO_CORROSIVO';
+      const id = `${areaDb}_${effectiveSubArea}_${category}_${detalleCode}`;
       await saveDetalleVariantToSupabase({
-        id: `${areaDb}_${category}_${detalleCode}`,
+        id,
         area: areaDb,
+        sub_area: effectiveSubArea,
         category,
         detalle_code: detalleCode,
         items: itemsToSave
@@ -150,14 +156,17 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
   deleteDetalleVariant: async (
     area: string,
     detalleCode: string,
-    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+    category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0',
+    subArea?: SubAreaHumeda
   ) => {
     try {
-      deleteSingleDynamicVariant(area, detalleCode, category);
+      deleteSingleDynamicVariant(area, detalleCode, category, subArea);
       set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
 
       const areaDb = area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
-      await deleteDetalleVariantFromSupabase(`${areaDb}_${category}_${detalleCode}`);
+      const effectiveSubArea = areaDb === 'AREA HUMEDA' ? (subArea || 'NO_CORROSIVO') : 'NO_CORROSIVO';
+      const id = `${areaDb}_${effectiveSubArea}_${category}_${detalleCode}`;
+      await deleteDetalleVariantFromSupabase(id);
       return true;
     } catch (err) {
       console.error('Error deleting detalle variant:', err);

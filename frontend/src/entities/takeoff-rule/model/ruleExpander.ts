@@ -106,6 +106,7 @@ export function applyDetalleVariant(
           tagPlano: tagPlano,
           detalle: detalleCode,
           metradoOt: tuberiaOt,
+          subArea: subArea || refItem.subArea,
           instanceId: instanceId || refItem.instanceId
         };
         currentItems.splice(insertTubAt, 0, tuberiaItem);
@@ -237,6 +238,7 @@ export function applyDetalleVariant(
         tagPlano: tagPlano,
         detalle: detalleCode,
         metradoOt: finalOt,
+        subArea: subArea || refItem.subArea,
         instanceId: instanceId || refItem.instanceId
       };
     })
@@ -320,6 +322,7 @@ export function applyBarraPotDetalleVariant(
       tagPlano: tagPlano,
       detalle: detalleCode,
       metradoOt: finalOt,
+      subArea: refItem.subArea,
       instanceId: instanceId || refItem.instanceId
     };
   });

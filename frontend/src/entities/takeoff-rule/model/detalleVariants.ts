@@ -559,11 +559,19 @@ export function updateDynamicVariants(dbRecords: any[]) {
     'AREA SECA': {},
     'AREA HUEMDA': {}
   };
+  const newBySubArea: Record<SubAreaHumeda, Record<string, DetalleVariantItem[]>> = {
+    'NO_CORROSIVO': {},
+    'CORROSIVO': {}
+  };
   const newPot: Record<string, any[]> = {};
   const newInst: Record<string, any[]> = {};
 
   dbRecords.forEach(rec => {
-    const areaKey = rec.area === 'AREA HUMEDA' ? 'AREA HUEMDA' : rec.area;
+    const rawArea = (rec.area || '').toUpperCase().trim();
+    const isHumeda = rawArea.includes('HUMED') || rawArea.includes('HUEMD');
+    const areaKey = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
+    const subAreaKey: SubAreaHumeda = rec.sub_area === 'CORROSIVO' ? 'CORROSIVO' : 'NO_CORROSIVO';
+
     const itemsMapped = (rec.items || []).map((it: any) => ({
       desc: renameCable20RielDesc(it.desc || ''),
       qty: it.qty,
@@ -577,6 +585,11 @@ export function updateDynamicVariants(dbRecords: any[]) {
     if (rec.category === 'CABLE_2_0') {
       if (!newByArea[areaKey]) newByArea[areaKey] = {};
       newByArea[areaKey][rec.detalle_code] = itemsMapped;
+
+      if (isHumeda) {
+        if (!newBySubArea[subAreaKey]) newBySubArea[subAreaKey] = {};
+        newBySubArea[subAreaKey][rec.detalle_code] = itemsMapped;
+      }
     } else if (rec.category === 'BARRA_POT') {
       newPot[rec.detalle_code] = ensureAnclajePerno(
         itemsMapped.map((it: any) => ({
@@ -604,6 +617,9 @@ export function updateDynamicVariants(dbRecords: any[]) {
 
   Object.keys(DYNAMIC_DETALLE_VARIANTS_BY_AREA).forEach(key => delete DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]);
   Object.assign(DYNAMIC_DETALLE_VARIANTS_BY_AREA, newByArea);
+
+  Object.keys(DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA).forEach(key => delete (DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA as any)[key]);
+  Object.assign(DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA, newBySubArea);
 
   const flat: Record<string, DetalleVariantItem[]> = {};
   Object.values(DYNAMIC_DETALLE_VARIANTS_BY_AREA).forEach(area => {
@@ -686,7 +702,8 @@ export function updateSingleDynamicVariant(
 export function deleteSingleDynamicVariant(
   area: string,
   detalleCode: string,
-  category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+  category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0',
+  subArea?: SubAreaHumeda
 ) {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
   const areaKey = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
@@ -696,6 +713,14 @@ export function deleteSingleDynamicVariant(
       delete DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey][detalleCode];
     }
     delete DYNAMIC_DETALLE_VARIANTS[detalleCode];
+    if (isHumeda) {
+      if (subArea && DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]) {
+        delete DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea][detalleCode];
+      } else {
+        delete DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[detalleCode];
+        delete DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA['CORROSIVO']?.[detalleCode];
+      }
+    }
   } else if (category === 'BARRA_POT') {
     delete DYNAMIC_BARRA_POT_VARIANTS[detalleCode];
   } else if (category === 'BARRA_INST') {

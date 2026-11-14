@@ -50,5 +50,6 @@ export interface SupabaseTakeoffRecord {
   metrado_ot: string;
   und: string;
   comentarios?: string;
+  sub_area?: string;
   created_at?: string;
 }

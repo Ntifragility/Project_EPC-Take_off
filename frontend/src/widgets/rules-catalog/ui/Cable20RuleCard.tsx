@@ -8,12 +8,14 @@ import {
 } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { isMetradoExpression, shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { SubAreaHumeda } from '../../../shared/types/common';
 import { MatCell, MatHeader } from './MatCell';
 import { RuleCardShell } from './RuleCardShell';
 
 interface Cable20RuleCardProps {
   rule: TakeoffRule;
   activeArea: 'AREA SECA' | 'AREA HUMEDA';
+  subArea?: SubAreaHumeda;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onDelete?: (id: string) => void;
@@ -23,6 +25,7 @@ interface Cable20RuleCardProps {
 export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   rule,
   activeArea,
+  subArea = 'NO_CORROSIVO',
   isExpanded,
   onToggleExpand,
   onDelete,
@@ -30,8 +33,8 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
 }) => {
   const variantsVersion = useRulesStore(state => state.detalleVariantsVersion);
   const areaDetalles = useMemo(() => {
-    return getDetallesForArea(activeArea);
-  }, [activeArea, variantsVersion]);
+    return getDetallesForArea(activeArea, subArea);
+  }, [activeArea, subArea, variantsVersion]);
 
   return (
     <RuleCardShell

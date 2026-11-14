@@ -253,6 +253,12 @@ export function generateRuleItemsForInstance(
     );
   }
 
+  if (activeArea === 'AREA HUMEDA') {
+    instanceItems.forEach(it => {
+      it.subArea = subArea;
+    });
+  }
+
   return instanceItems;
 }
 

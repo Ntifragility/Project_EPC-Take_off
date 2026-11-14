@@ -21,6 +21,7 @@ import { detalleBelongsToArea, getCatalogForArea } from '../../../entities/takeo
 import { useAuthStore } from '../../../features/auth/model/useAuthStore';
 import { getRoleLevel } from '../../../features/auth/model/authTypes';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
+import { SubAreaHumeda } from '../../../shared/types/common';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 
 export const RulesView: React.FC = () => {
@@ -35,6 +36,8 @@ export const RulesView: React.FC = () => {
   const saveDetalleVariant = useRulesStore(state => state.saveDetalleVariant);
   const deleteDetalleVariant = useRulesStore(state => state.deleteDetalleVariant);
   const activeArea = useAppStore(state => state.activeArea);
+  const subAreaHumeda = useAppStore(state => state.subAreaHumeda);
+  const setSubAreaHumeda = useAppStore(state => state.setSubAreaHumeda);
   const section = useAppStore(state => state.section);
 
   useEffect(() => {
@@ -79,11 +82,13 @@ export const RulesView: React.FC = () => {
   const [editingDetalle, setEditingDetalle] = useState<{
     code: string;
     area: string;
+    subArea?: SubAreaHumeda;
     category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST';
     items: DetalleVariantItem[];
   } | null>(null);
 
-  const areaDetalles = getDetallesForArea(activeArea);
+  const effectiveSubArea = activeArea === 'AREA HUMEDA' ? subAreaHumeda : 'NO_CORROSIVO';
+  const areaDetalles = getDetallesForArea(activeArea, effectiveSubArea);
   const currentAreaCodes: string[] = areaDetalles.map(([c]) => c);
   const catalogRules = getCatalogForArea(rules, activeArea);
 
@@ -113,6 +118,7 @@ export const RulesView: React.FC = () => {
     setEditingDetalle({
       code,
       area: activeArea,
+      subArea: activeArea === 'AREA HUMEDA' ? subAreaHumeda : undefined,
       category,
       items: items && items.length > 0 ? items : getDetalleItemsForCode(code, category)
     });
@@ -199,11 +205,48 @@ export const RulesView: React.FC = () => {
         actionSlot
       )}
       <div className="catalog-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-        <p className="catalog-note" style={{ margin: 0 }}>
-          {activeArea === 'AREA HUMEDA'
-            ? 'Reglas y matrices constructivas para Área Húmeda.'
-            : 'Reglas y matrices estándar para Área Seca.'}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <p className="catalog-note" style={{ margin: 0 }}>
+            {activeArea === 'AREA HUMEDA'
+              ? 'Reglas y matrices constructivas para Área Húmeda.'
+              : 'Reglas y matrices estándar para Área Seca.'}
+          </p>
+
+          {activeArea === 'AREA HUMEDA' && (
+            <div style={{ display: 'inline-flex', borderRadius: '4px', border: '1px solid var(--b1)', overflow: 'hidden' }}>
+              <button
+                type="button"
+                onClick={() => setSubAreaHumeda('NO_CORROSIVO')}
+                style={{
+                  padding: '3px 10px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: subAreaHumeda === 'NO_CORROSIVO' ? 'var(--p1)' : 'var(--s1)',
+                  color: subAreaHumeda === 'NO_CORROSIVO' ? '#fff' : 'var(--tx2)'
+                }}
+              >
+                No Corrosivo
+              </button>
+              <button
+                type="button"
+                onClick={() => setSubAreaHumeda('CORROSIVO')}
+                style={{
+                  padding: '3px 10px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: subAreaHumeda === 'CORROSIVO' ? 'var(--p1)' : 'var(--s1)',
+                  color: subAreaHumeda === 'CORROSIVO' ? '#fff' : 'var(--tx2)'
+                }}
+              >
+                Corrosivo
+              </button>
+            </div>
+          )}
+        </div>
 
         <span
           style={{
@@ -256,6 +299,7 @@ export const RulesView: React.FC = () => {
                 key={r.id}
                 rule={r}
                 activeArea={activeArea}
+                subArea={subAreaHumeda}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
                 onDelete={canEdit ? handleDeleteRule : undefined}
@@ -358,6 +402,7 @@ export const RulesView: React.FC = () => {
         <DetalleEditorModal
           isOpen={detalleModalOpen}
           area={editingDetalle.area}
+          subArea={editingDetalle.subArea}
           detalleCode={editingDetalle.code}
           category={editingDetalle.category}
           initialItems={editingDetalle.items}
@@ -377,13 +422,14 @@ export const RulesView: React.FC = () => {
             setEditingDetalle({
               code: newCode,
               area: activeArea,
+              subArea: editingDetalle.subArea,
               category: editingDetalle.category,
               items: itemsForCode
             });
           }}
           onClose={() => setDetalleModalOpen(false)}
-          onSave={saveDetalleVariant}
-          onDelete={deleteDetalleVariant}
+          onSave={(area, code, items, cat) => saveDetalleVariant(area, code, items, cat, editingDetalle.subArea)}
+          onDelete={(area, code, cat) => deleteDetalleVariant(area, code, cat, editingDetalle.subArea)}
         />
       )}
     </div>

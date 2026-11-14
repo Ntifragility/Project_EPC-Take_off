@@ -50,7 +50,8 @@ export function mapItemsToSupabasePayload(
       cantidad: qtyVal,
       metrado_ot: it.metradoOt || '',
       und: it.unit,
-      item_group: pkgName
+      item_group: pkgName,
+      sub_area: it.subArea || 'NO_CORROSIVO'
     };
   });
 }
@@ -122,6 +123,7 @@ export interface SupabaseRuleRecord {
 export interface SupabaseDetalleVariantRecord {
   id: string;
   area: string;
+  sub_area?: string;
   category: string;
   detalle_code: string;
   items: any;
