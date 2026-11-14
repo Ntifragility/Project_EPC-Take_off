@@ -79,10 +79,10 @@ export const PackagesView: React.FC = () => {
       (p.partidaSicme || p.item || '').toLowerCase().includes(q) ||
       (p.partidaBalance || '').toLowerCase().includes(q) ||
       (p.wbs || p.area || '').toLowerCase().includes(q) ||
-      p.actividad.toLowerCase().includes(q) ||
+      (p.actividad || '').toLowerCase().includes(q) ||
       (p.descripcionBm || p.descripcion || '').toLowerCase().includes(q) ||
       (p.sicmeDesc || '').toLowerCase().includes(q) ||
-      p.forecastDesc.toLowerCase().includes(q)
+      (p.forecastDesc || '').toLowerCase().includes(q)
     );
   });
 

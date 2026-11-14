@@ -21,13 +21,13 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ isOpen, item, onCl
     [allItems]
   );
 
-  const [plano, setPlano] = useState('');
-  const [rev, setRev] = useState('');
-  const [tagPlano, setTagPlano] = useState('');
-  const [detalle, setDetalle] = useState('');
-  const [metradoOt, setMetradoOt] = useState('');
-  const [material, setMaterial] = useState<MaterialType>('P');
-  const [notes, setNotes] = useState('');
+  const [plano, setPlano] = useState(() => item?.plano || '');
+  const [rev, setRev] = useState(() => item?.rev || '');
+  const [tagPlano, setTagPlano] = useState(() => item?.tagPlano || '');
+  const [detalle, setDetalle] = useState(() => item?.detalle || '');
+  const [metradoOt, setMetradoOt] = useState(() => item?.metradoOt || '');
+  const [material, setMaterial] = useState<MaterialType>(() => item?.material || 'P');
+  const [notes, setNotes] = useState(() => item?.notes || '');
   const [numSoportes, setNumSoportes] = useState(1);
   const [numJumpers, setNumJumpers] = useState(1);
 

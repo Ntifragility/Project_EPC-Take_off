@@ -10,8 +10,8 @@ export const DetalleChangeModal: React.FC = () => {
   const cancelDetalleChange = useItemsStore(state => state.cancelDetalleChange);
   const section = useAppStore(state => state.section);
 
-  const [tagPlano, setTagPlano] = useState('');
-  const [lines, setLines] = useState<BomLine[]>([]);
+  const [tagPlano, setTagPlano] = useState(() => pending?.currentTag || '');
+  const [lines, setLines] = useState<BomLine[]>(() => pending?.previewLines.map(line => ({ ...line })) || []);
 
   useEffect(() => {
     if (!pending) return;

@@ -320,7 +320,7 @@ export const UserManagementModal: React.FC = () => {
 
             <tbody>
               {users.map((user, idx) => {
-                const isCurrent = currentUser?.email.toLowerCase() === user.email.toLowerCase();
+                const isCurrent = (currentUser?.email || '').toLowerCase() === (user.email || '').toLowerCase();
 
                 return (
                   <tr

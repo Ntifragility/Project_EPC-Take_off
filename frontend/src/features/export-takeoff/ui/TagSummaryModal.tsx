@@ -21,8 +21,8 @@ export const TagSummaryModal: React.FC<TagSummaryModalProps> = ({ isOpen, onClos
     const q = filterQuery.toLowerCase();
     return summaryData.filter(
       r =>
-        r.tag.toLowerCase().includes(q) ||
-        r.detalle.toLowerCase().includes(q)
+        (r.tag || '').toLowerCase().includes(q) ||
+        (r.detalle || '').toLowerCase().includes(q)
     );
   }, [summaryData, filterQuery]);
 

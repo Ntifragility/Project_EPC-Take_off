@@ -105,7 +105,7 @@ export function generateTagSummary(items: TakeoffItem[]): TagSummaryRow[] {
     }
 
     const cableItem = groupItems.find(i => {
-      const up = i.desc.toUpperCase();
+      const up = (i.desc || '').toUpperCase();
       return up.includes('CABLE') && !up.includes('JUMPER') && !up.includes('AISLADO');
     });
 

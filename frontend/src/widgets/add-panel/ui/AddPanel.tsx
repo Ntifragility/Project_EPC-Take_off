@@ -84,7 +84,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
         return;
       }
 
-      executeImportExcel(text);
+      await executeImportExcel(text);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al procesar el archivo';
       showToast(msg, 'warn');

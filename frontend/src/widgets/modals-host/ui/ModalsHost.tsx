@@ -44,6 +44,7 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
   const items = useItemsStore(state => state.items);
   const editingItemId = useItemsStore(state => state.editingItemId);
   const setEditingItemId = useItemsStore(state => state.setEditingItemId);
+  const pendingDetalleEdit = useItemsStore(state => state.pendingDetalleEdit);
 
   const editingItem = editingItemId ? items.find(i => i.id === editingItemId) || null : null;
   const toast = useUIStore(state => state.toast);
@@ -54,13 +55,19 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
 
   return (
     <>
-      <ItemEditModal
-        isOpen={Boolean(editingItemId && editingItem)}
-        item={editingItem}
-        onClose={() => setEditingItemId(null)}
-      />
+      <ModalErrorBoundary key={editingItemId || 'none'}>
+        {editingItem && (
+          <ItemEditModal
+            isOpen={true}
+            item={editingItem}
+            onClose={() => setEditingItemId(null)}
+          />
+        )}
+      </ModalErrorBoundary>
 
-      <DetalleChangeModal />
+      <ModalErrorBoundary key={pendingDetalleEdit ? 'detalle-change' : 'none'}>
+        {pendingDetalleEdit && <DetalleChangeModal />}
+      </ModalErrorBoundary>
 
       <ModalErrorBoundary key={pendingRule?.id || 'none'}>
         {pendingRule && section !== 'bductos' && (
@@ -73,11 +80,13 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
         )}
       </ModalErrorBoundary>
 
-      <AreaSelectModal
-        isOpen={areaModalOpen}
-        onClose={onCloseAreaModal}
-        canClose={true}
-      />
+      <ModalErrorBoundary key="area-select">
+        <AreaSelectModal
+          isOpen={areaModalOpen}
+          onClose={onCloseAreaModal}
+          canClose={true}
+        />
+      </ModalErrorBoundary>
 
       <Toast toast={toast} />
       <SitePrompt />

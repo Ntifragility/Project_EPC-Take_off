@@ -70,7 +70,7 @@ export const TakeoffRow = React.memo<TakeoffRowProps>(({
 
   useEffect(() => {
     if (highlightedTag && item.tagPlano === highlightedTag) {
-      if (item.material === 'P' || item.desc.toUpperCase().includes('CABLE')) {
+      if (item.material === 'P' || (item.desc || '').toUpperCase().includes('CABLE')) {
         rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }

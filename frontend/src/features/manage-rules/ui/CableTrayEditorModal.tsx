@@ -19,10 +19,14 @@ export const CableTrayEditorModal: React.FC<CableTrayEditorModalProps> = ({
   onSave,
   onDelete
 }) => {
-  const [trigger, setTrigger] = useState('');
-  const [detalle, setDetalle] = useState('');
-  const [tagPrefix, setTagPrefix] = useState('');
-  const [matrixItems, setMatrixItems] = useState<CableTrayMatrixItem[]>([]);
+  const [trigger, setTrigger] = useState(() => rule?.trigger || 'DET.001/2B-X1');
+  const [detalle, setDetalle] = useState(() => rule?.detalle || '001/2B-X1');
+  const [tagPrefix, setTagPrefix] = useState(() => rule?.tagPrefix || 'SE');
+  const [matrixItems, setMatrixItems] = useState<CableTrayMatrixItem[]>(() =>
+    rule?.cableTrayMatrix && rule.cableTrayMatrix.length > 0
+      ? JSON.parse(JSON.stringify(rule.cableTrayMatrix))
+      : JSON.parse(JSON.stringify(DEFAULT_CABLE_TRAY_MATRIX))
+  );
 
   useEffect(() => {
     if (isOpen && rule) {
