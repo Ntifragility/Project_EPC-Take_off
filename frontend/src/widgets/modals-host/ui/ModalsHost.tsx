@@ -63,12 +63,14 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
       <DetalleChangeModal />
 
       <ModalErrorBoundary key={pendingRule?.id || 'none'}>
-        <RuleTriggerModal
-          isOpen={Boolean(pendingRule) && section !== 'bductos'}
-          rule={pendingRule}
-          activeArea={activeArea}
-          onClose={() => setPendingRule(null)}
-        />
+        {pendingRule && section !== 'bductos' && (
+          <RuleTriggerModal
+            isOpen={true}
+            rule={pendingRule}
+            activeArea={activeArea}
+            onClose={() => setPendingRule(null)}
+          />
+        )}
       </ModalErrorBoundary>
 
       <AreaSelectModal

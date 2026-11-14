@@ -34,10 +34,15 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   const setRuleRestoreArmed = useUIStore(state => state.setRuleRestoreArmed);
   const globalSubArea = useAppStore(state => state.subAreaHumeda);
 
-  const [subArea, setSubArea] = useState<SubAreaHumeda>(globalSubArea || 'NO_CORROSIVO');
+  const initialReq = useMemo(
+    () => (activeRule ? resolveRuleRequirements(activeRule, activeArea) : null),
+    [activeRule, activeArea]
+  );
+
+  const [subArea, setSubArea] = useState<SubAreaHumeda>(() => globalSubArea || 'NO_CORROSIVO');
   const [count, setCount] = useState<number>(1);
-  const [baseTag, setBaseTag] = useState<string>('01');
-  const [detalleCode, setDetalleCode] = useState<string>('');
+  const [baseTag, setBaseTag] = useState<string>(() => (initialReq ? `${initialReq.defaultTagPrefix}01` : '01'));
+  const [detalleCode, setDetalleCode] = useState<string>(() => initialReq?.defaultDetalle || '');
   const [numSoportes, setNumSoportes] = useState<number>(1);
   const [numJumpers, setNumJumpers] = useState<number>(1);
   const [cableTrayWidth, setCableTrayWidth] = useState<string>('900 mm');
