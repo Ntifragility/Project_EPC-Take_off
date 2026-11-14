@@ -3,7 +3,7 @@ import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { usePackagesStore } from '../../../features/manage-packages/model/usePackagesStore';
 import { exportTakeoffExcel, exportTagSummaryExcel } from '../../../shared/lib/excelExporter';
-import { consolidateAccessories } from '../../../entities/takeoff-item/model/itemAggregation';
+import { consolidateAccessories, consolidateItemsByTagAndPlano } from '../../../entities/takeoff-item/model/itemAggregation';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { AddPanel } from '../../add-panel/ui/AddPanel';
 import { BductoInsertPanel } from '../../../features/generate-bducto/ui/BductoInsertPanel';
@@ -35,7 +35,12 @@ export const ToolsPanel: React.FC = () => {
   const setIsMergedView = useUIStore(state => state.setIsMergedView);
 
   const handleExport = () => {
-    const exportItems = section === 'canalizado' && accessoryViewMode === 'join' ? consolidateAccessories(items) : items;
+    let exportItems = items;
+    if (isMergedView) {
+      exportItems = consolidateItemsByTagAndPlano(items);
+    } else if (section === 'canalizado' && accessoryViewMode === 'join') {
+      exportItems = consolidateAccessories(items);
+    }
     void exportTakeoffExcel(exportItems, packages, section);
   };
 
@@ -194,7 +199,7 @@ export const ToolsPanel: React.FC = () => {
                 </div>
 
                 <div className="actions-drawer-group">
-                  <div className="actions-drawer-label">DETALLE</div>
+                  <div className="actions-drawer-label">VISTA DE ÍTEMS</div>
                   <div className="mode-toggle">
                     <button
                       type="button"
@@ -208,7 +213,7 @@ export const ToolsPanel: React.FC = () => {
                       type="button"
                       className={`mode-btn ${detailMerged ? 'active' : ''}`}
                       onClick={() => (isBductos ? setBductoDetail('merged') : setIsMergedView(true))}
-                      title={isBductos ? 'Una fila por material dentro del tramo' : 'Fusionar ítems similares de cada DETALLE en una sola fila'}
+                      title={isBductos ? 'Una fila por material dentro del tramo' : 'Consolidar materiales dentro de cada TAG en el mismo plano'}
                     >
                       Consolidado
                     </button>
@@ -219,7 +224,7 @@ export const ToolsPanel: React.FC = () => {
                         ? '● Consolidado: una fila por material del tramo'
                         : '● Separado: cada tubo, curva y vertical en su fila')
                       : (detailMerged
-                        ? '● Consolidado: una fila por DETALLE'
+                        ? '● Consolidado: agrupa materiales por TAG en un mismo plano'
                         : '● Separado: cada ítem en su propia fila')}
                   </div>
                 </div>

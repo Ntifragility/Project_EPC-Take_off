@@ -196,3 +196,4 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
     return this.props.children;
   }
 }
+

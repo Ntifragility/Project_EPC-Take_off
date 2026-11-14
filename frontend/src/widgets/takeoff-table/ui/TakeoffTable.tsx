@@ -535,7 +535,7 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
             <option value={0} style={{ backgroundColor: 'var(--s1)', color: 'var(--tx)' }}>Mostrar Todas ({totalItems.toLocaleString()})</option>
           </select>
           <span style={{ color: 'var(--mu)' }}>
-            {isMergedView ? `✨ ${totalItems} ítems consolidados` : `Mostrando ${startIndex + 1}-${endIndex} de ${totalItems.toLocaleString()} ítems`}
+            {isMergedView ? `✨ ${totalItems} ítems consolidados (por TAG en plano)` : `Mostrando ${startIndex + 1}-${endIndex} de ${totalItems.toLocaleString()} ítems`}
           </span>
             </>
           )}

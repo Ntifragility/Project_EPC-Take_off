@@ -75,69 +75,102 @@ export interface MergedDetalleGroup {
 }
 
 /**
- * Pure aggregation function for TakeoffTable Merged View.
- * Groups items by detalle + desc + material + unit and calculates totals and tag summaries.
+ * Consolidates items ONLY within the same TAG on the same PLANO.
+ * It NEVER combines different TAGs together and NEVER combines different PLANOs together.
+ * Within each (plano, tagPlano), identical materials (same desc, material, unit)
+ * have their quantities and metradoOt summed together.
  */
-export function mergeItemsByDetalle(items: TakeoffItem[]): TakeoffItem[] {
-  const map = new Map<string, MergedDetalleGroup>();
+export function consolidateItemsByTagAndPlano(items: TakeoffItem[]): TakeoffItem[] {
+  if (!items || items.length === 0) return [];
 
-  for (const item of items) {
-    const key = `${item.detalle || 'SIN DETALLE'}____${item.desc.trim().toUpperCase()}____${item.material}____${item.unit.trim().toUpperCase()}`;
-    const qtyVal = typeof item.qty === 'number' ? item.qty : parseFloat(String(item.qty)) || 0;
-    const otVal = parseFloat(item.metradoOt || '') || 0;
+  interface TagItemEntry {
+    sample: TakeoffItem;
+    totalQty: number;
+    totalOt: number;
+    hasNumericOt: boolean;
+    count: number;
+    notesList: string[];
+  }
+
+  const map = new Map<string, TagItemEntry>();
+  const order: string[] = [];
+
+  for (const it of items) {
+    const cleanPlano = (it.plano || '').trim().toUpperCase();
+    const cleanTag = (it.tagPlano || '').trim().toUpperCase();
+    const cleanDesc = (it.desc || '').trim().toUpperCase();
+    const cleanUnit = (it.unit || '').trim().toUpperCase();
+    const mat = it.material || 'C';
+    const pkgId = it.pkgId || '';
+
+    // If an item has a tag, group strictly within (pkgId, plano, tag, desc, material, unit).
+    // If it has NO tag, keep it separate using its id so un-tagged items don't merge unpredictably.
+    const tagKey = cleanTag ? cleanTag : `__NO_TAG_${it.id}__`;
+    const key = `${pkgId}____${cleanPlano}____${tagKey}____${cleanDesc}____${mat}____${cleanUnit}`;
+
+    const numQty = typeof it.qty === 'number' ? it.qty : parseFloat(String(it.qty).replace(',', '.')) || 0;
+    const rawOt = (it.metradoOt !== undefined && it.metradoOt !== null ? String(it.metradoOt) : '').trim().replace(',', '.');
+    const isNumOt = rawOt !== '' && rawOt.toUpperCase() !== 'VAR.' && !isNaN(Number(rawOt));
+    const numOt = isNumOt ? Number(rawOt) : 0;
 
     const existing = map.get(key);
     if (!existing) {
-      const tags = new Set<string>();
-      if (item.tagPlano) tags.add(item.tagPlano.trim());
-      const planos = new Set<string>();
-      if (item.plano) planos.add(item.plano.trim());
-
       map.set(key, {
-        detalle: item.detalle || '',
-        desc: item.desc,
-        material: item.material,
-        unit: item.unit,
-        totalQty: qtyVal,
-        totalOt: otVal,
-        tags,
-        planos,
-        sampleItem: item
+        sample: { ...it },
+        totalQty: numQty,
+        totalOt: numOt,
+        hasNumericOt: isNumOt,
+        count: 1,
+        notesList: it.notes ? [it.notes] : []
       });
+      order.push(key);
     } else {
-      existing.totalQty += qtyVal;
-      existing.totalOt += otVal;
-      if (item.tagPlano) existing.tags.add(item.tagPlano.trim());
-      if (item.plano) existing.planos.add(item.plano.trim());
+      existing.count += 1;
+      existing.totalQty += numQty;
+      if (isNumOt) {
+        existing.totalOt += numOt;
+        existing.hasNumericOt = true;
+      }
+      if (it.notes && !existing.notesList.includes(it.notes)) {
+        existing.notesList.push(it.notes);
+      }
+      if (!existing.sample.detalle && it.detalle) {
+        existing.sample.detalle = it.detalle;
+      }
+      if (!existing.sample.partida && it.partida) {
+        existing.sample.partida = it.partida;
+      }
+      if (!existing.sample.partidaBalance && it.partidaBalance) {
+        existing.sample.partidaBalance = it.partidaBalance;
+      }
     }
   }
 
-  return Array.from(map.entries()).map(([key, group], idx) => {
-    const sortedTags = Array.from(group.tags).sort((a, b) =>
-      a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-    );
+  return order.map((key, idx) => {
+    const entry = map.get(key)!;
+    const sample = entry.sample;
 
-    let tagDisplay = '';
-    if (sortedTags.length === 0) {
-      tagDisplay = '—';
-    } else if (sortedTags.length <= 4) {
-      tagDisplay = sortedTags.join(', ');
-    } else {
-      tagDisplay = `${sortedTags.slice(0, 3).join(', ')} ... (+${sortedTags.length - 3})`;
+    const finalQty =
+      entry.count > 1 || typeof sample.qty === 'number' || !isNaN(Number(sample.qty))
+        ? parseFloat(entry.totalQty.toFixed(4))
+        : sample.qty;
+
+    let finalOt = sample.metradoOt || '';
+    if (entry.hasNumericOt && entry.totalOt > 0) {
+      finalOt = String(parseFloat(entry.totalOt.toFixed(4)));
     }
 
-    const planosList = Array.from(group.planos);
-    const planoDisplay = planosList.length === 1 ? planosList[0] : planosList.length > 1 ? `${planosList[0]} (+${planosList.length - 1})` : '—';
+    const combinedNotes = entry.notesList.filter(Boolean).join('; ');
 
     return {
-      ...group.sampleItem,
-      id: `merged_${idx}_${key}`,
-      tagPlano: tagDisplay,
-      plano: planoDisplay,
-      tagUnico: group.material === 'P' ? `${sortedTags.length} TAG(s)` : '',
-      qty: parseFloat(group.totalQty.toFixed(4)),
-      metradoOt: group.totalOt > 0 ? String(parseFloat(group.totalOt.toFixed(4))) : group.sampleItem.metradoOt,
-      notes: `Consolidado de ${group.tags.size} ubicación(es)`
+      ...sample,
+      id: entry.count > 1 ? `cons_${sample.id}_${idx}` : sample.id,
+      qty: finalQty,
+      metradoOt: finalOt,
+      notes: combinedNotes || sample.notes || ''
     };
   });
 }
+
+/** Alias to ensure backwards compatibility with TakeoffTable callers */
+export const mergeItemsByDetalle = consolidateItemsByTagAndPlano;
