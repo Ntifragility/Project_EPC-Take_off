@@ -16,6 +16,8 @@ export const AreaSelectModal: React.FC<AreaSelectModalProps> = ({
 }) => {
   const activeArea = useAppStore(state => state.activeArea);
   const setActiveArea = useAppStore(state => state.setActiveArea);
+  const subAreaHumeda = useAppStore(state => state.subAreaHumeda);
+  const setSubAreaHumeda = useAppStore(state => state.setSubAreaHumeda);
   const showToast = useUIStore(state => state.showToast);
 
   if (!isOpen) return null;
@@ -76,9 +78,52 @@ export const AreaSelectModal: React.FC<AreaSelectModalProps> = ({
           >
             <div style={{ fontWeight: 700, fontSize: '15px' }}>ÁREA HÚMEDA</div>
             <div style={{ fontSize: '12px', color: 'var(--mu)', lineHeight: 1.5 }}>
-              Ambientes corrosivos. BARRA POT 010/17A–B, BARRA INST 010/17C–D, soportes inox y
-              detalles 008/5, 009/8, 010/13.
+              Ambientes húmedos (Corrosivos y No Corrosivos). BARRA POT 010/17A–B, BARRA INST 010/17C–D,
+              soportes y detalles 008/5, 009/8, 010/13.
             </div>
+            {activeArea === 'AREA HUMEDA' && (
+              <div style={{ marginTop: '4px', paddingTop: '8px', borderTop: '1px dashed var(--b1)' }} onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: '11px', fontWeight: 600, marginBottom: '6px', color: 'var(--tx-hd)' }}>
+                  Ambiente por defecto:
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSubAreaHumeda('NO_CORROSIVO')}
+                    style={{
+                      flex: 1,
+                      padding: '5px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      border: subAreaHumeda === 'NO_CORROSIVO' ? '1.5px solid var(--accent)' : '1px solid var(--b1)',
+                      background: subAreaHumeda === 'NO_CORROSIVO' ? 'var(--accent-dim, rgba(91, 80, 230, 0.12))' : 'var(--s1)',
+                      color: subAreaHumeda === 'NO_CORROSIVO' ? 'var(--accent)' : 'var(--tx)',
+                      borderRadius: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💧 No Corrosivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubAreaHumeda('CORROSIVO')}
+                    style={{
+                      flex: 1,
+                      padding: '5px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      border: subAreaHumeda === 'CORROSIVO' ? '1.5px solid var(--accent)' : '1px solid var(--b1)',
+                      background: subAreaHumeda === 'CORROSIVO' ? 'var(--accent-dim, rgba(91, 80, 230, 0.12))' : 'var(--s1)',
+                      color: subAreaHumeda === 'CORROSIVO' ? 'var(--accent)' : 'var(--tx)',
+                      borderRadius: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🛡️ Corrosivo
+                  </button>
+                </div>
+              </div>
+            )}
             <button
               type="button"
               className={activeArea === 'AREA HUMEDA' ? 'btn-primary' : 'btn-ghost'}

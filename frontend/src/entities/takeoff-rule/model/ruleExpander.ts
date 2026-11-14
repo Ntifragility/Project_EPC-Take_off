@@ -1,9 +1,11 @@
 import { TakeoffItem } from '../../takeoff-item/model/types';
+import { SubAreaHumeda } from '../../../shared/types/common';
 import { uid } from '../../../shared/lib/uid';
 import { componentClass, getAbsoluteUnit } from '../../takeoff-item/model/materialClassifier';
 import { generateTagUnico, assignTagUnicoSuffixes } from '../../takeoff-item/model/tagGenerator';
 import {
   DYNAMIC_DETALLE_VARIANTS,
+  DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA,
   DYNAMIC_BARRA_POT_VARIANTS,
   DYNAMIC_BARRA_INST_VARIANTS,
   R2_SWAPPABLE,
@@ -24,14 +26,15 @@ export function applyDetalleVariant(
   tuberiaOtParam?: string,
   cableOtParam?: string,
   skipAssignSuffixes = false,
-  instanceId?: string
+  instanceId?: string,
+  subArea: SubAreaHumeda = 'NO_CORROSIVO'
 ): TakeoffItem[] {
-  let variant = DYNAMIC_DETALLE_VARIANTS[detalleCode];
+  let variant = DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS[detalleCode];
   if (!variant && (detalleCode === '008/5' || detalleCode === '008/05')) {
-    variant = DYNAMIC_DETALLE_VARIANTS['008/05'] || DYNAMIC_DETALLE_VARIANTS['008/5'];
+    variant = DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]?.['008/05'] || DYNAMIC_DETALLE_VARIANTS['008/05'] || DYNAMIC_DETALLE_VARIANTS['008/5'];
   }
   if (!variant && (detalleCode === 'ND' || detalleCode === 'N/D' || !detalleCode)) {
-    variant = DYNAMIC_DETALLE_VARIANTS['ND'];
+    variant = DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]?.['ND'] || DYNAMIC_DETALLE_VARIANTS['ND'];
   }
   if (!variant && detalleCode.startsWith('020')) {
     variant = DYNAMIC_DETALLE_VARIANTS['020'];

@@ -1,7 +1,7 @@
 import { createStore } from '../../../shared/lib/store';
-import { SectionType, TabType, ThemeType, AreaType } from '../../../shared/types/common';
+import { SectionType, TabType, ThemeType, AreaType, SubAreaHumeda } from '../../../shared/types/common';
 import { AccessoryViewMode } from '../../../entities/takeoff-item/model/types';
-import { STORAGE_KEYS, DEFAULT_SECTION, DEFAULT_AREA, DEFAULT_THEME } from '../../../shared/config/constants';
+import { STORAGE_KEYS, DEFAULT_SECTION, DEFAULT_AREA, DEFAULT_THEME, DEFAULT_SUBAREA_HUMEDA } from '../../../shared/config/constants';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
 import { useItemsStore } from '../../manage-items/model/useItemsStore';
 import { usePackagesStore } from '../../manage-packages/model/usePackagesStore';
@@ -11,6 +11,7 @@ export interface AppState {
   tab: TabType;
   theme: ThemeType;
   activeArea: AreaType;
+  subAreaHumeda: SubAreaHumeda;
   accessoryViewMode: AccessoryViewMode;
 }
 
@@ -19,6 +20,7 @@ export interface AppActions {
   setTab: (tab: TabType) => void;
   toggleTheme: () => void;
   setActiveArea: (area: AreaType) => void;
+  setSubAreaHumeda: (subArea: SubAreaHumeda) => void;
   setAccessoryViewMode: (mode: AccessoryViewMode) => void;
   toggleAccessoryViewMode: () => void;
 }
@@ -28,6 +30,7 @@ export type AppStore = AppState & AppActions;
 const initialSection = (localStorage.getItem(STORAGE_KEYS.ACTIVE_SECTION) as SectionType) || DEFAULT_SECTION;
 const initialTheme = (localStorage.getItem(STORAGE_KEYS.THEME) as ThemeType) || DEFAULT_THEME;
 const initialArea = (localStorage.getItem(STORAGE_KEYS.ACTIVE_AREA) as AreaType) || DEFAULT_AREA;
+const initialSubAreaHumeda = (localStorage.getItem(STORAGE_KEYS.SUBAREA_HUMEDA) as SubAreaHumeda) || DEFAULT_SUBAREA_HUMEDA;
 const initialAccessoryMode = (localStorage.getItem(STORAGE_KEYS.ACCESSORY_VIEW_MODE) as AccessoryViewMode) || 'separated';
 
 // Apply initial theme to document body
@@ -44,6 +47,7 @@ export const useAppStore = createStore<AppStore>((set, get) => ({
   tab: 'takeoff',
   theme: initialTheme,
   activeArea: initialArea,
+  subAreaHumeda: initialSubAreaHumeda,
   accessoryViewMode: initialAccessoryMode,
 
   setSection: (section: SectionType) => {
@@ -76,6 +80,11 @@ export const useAppStore = createStore<AppStore>((set, get) => ({
   setActiveArea: (area: AreaType) => {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_AREA, area);
     set({ activeArea: area });
+  },
+
+  setSubAreaHumeda: (subArea: SubAreaHumeda) => {
+    localStorage.setItem(STORAGE_KEYS.SUBAREA_HUMEDA, subArea);
+    set({ subAreaHumeda: subArea });
   },
 
   setAccessoryViewMode: (mode: AccessoryViewMode) => {

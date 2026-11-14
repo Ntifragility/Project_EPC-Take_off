@@ -1,4 +1,5 @@
 import { DetalleVariantItem } from './types';
+import { SubAreaHumeda } from '../../../shared/types/common';
 export type { DetalleVariantItem };
 export { CABLE_TRAY_WIDTHS, DETALLE_001_2B_X1_ITEMS, getCableTrayStrutLength } from './cableTrayRules';
 
@@ -232,6 +233,16 @@ if (DETALLE_VARIANTS['ND']) {
   DETALLE_VARIANTS['N/D'] = DETALLE_VARIANTS['ND'];
 }
 
+export const DETALLE_VARIANTS_BY_SUBAREA: Record<SubAreaHumeda, Record<string, DetalleVariantItem[]>> = {
+  'NO_CORROSIVO': JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_AREA['AREA HUEMDA'])),
+  'CORROSIVO': JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_AREA['AREA HUEMDA']))
+};
+
+export const DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA: Record<SubAreaHumeda, Record<string, DetalleVariantItem[]>> = {
+  'NO_CORROSIVO': JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_SUBAREA['NO_CORROSIVO'])),
+  'CORROSIVO': JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_SUBAREA['CORROSIVO']))
+};
+
 export const AUTO_TUBERIA_AREAS = ['AREA SECA'];
 
 export function detalleEntriesByArea(): { area: string; entries: [string, DetalleVariantItem[]][] }[] {
@@ -241,10 +252,11 @@ export function detalleEntriesByArea(): { area: string; entries: [string, Detall
   }));
 }
 
-export function getDetallesForArea(area: string): [string, DetalleVariantItem[]][] {
+export function getDetallesForArea(area: string, subArea: SubAreaHumeda = 'NO_CORROSIVO'): [string, DetalleVariantItem[]][] {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
-  const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
-  const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key] || {};
+  const variants = isHumeda
+    ? (DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea] || DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA HUEMDA'] || {})
+    : (DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA SECA'] || {});
   return Object.entries(variants).sort((a, b) =>
     a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' })
   );
@@ -258,19 +270,21 @@ export function shouldAutoManageTuberia(detalleCode: string): boolean {
   return AUTO_TUBERIA_AREAS.includes(getDetalleArea(detalleCode));
 }
 
-export function hasSoporteItems(detalleCode: string, area = 'AREA HUMEDA'): boolean {
+export function hasSoporteItems(detalleCode: string, area = 'AREA HUMEDA', subArea: SubAreaHumeda = 'NO_CORROSIVO'): boolean {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
-  const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
-  const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
+  const variants = isHumeda
+    ? (DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA HUEMDA']?.[detalleCode] || [])
+    : (DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA SECA']?.[detalleCode] || []);
   return variants.some(v => v.unit.toLowerCase().includes('soporte'));
 }
 
-export function hasJumperItems(detalleCode: string, area = 'AREA HUMEDA'): boolean {
+export function hasJumperItems(detalleCode: string, area = 'AREA HUMEDA', subArea: SubAreaHumeda = 'NO_CORROSIVO'): boolean {
   if (!detalleCode) return false;
   if (detalleCode.toUpperCase().includes('JUMPER')) return true;
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
-  const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
-  const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS[detalleCode] || [];
+  const variants = isHumeda
+    ? (DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA HUEMDA']?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS[detalleCode] || [])
+    : (DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA SECA']?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS[detalleCode] || []);
   return variants.some(
     v => v.unit.toLowerCase().includes('jumper') || v.desc.toLowerCase().includes('jumper')
   );
@@ -280,11 +294,13 @@ export function getCalculatedVariantItems(
   detalleCode: string,
   area = 'AREA HUMEDA',
   numSoportes = 0,
-  numJumpers = 0
+  numJumpers = 0,
+  subArea: SubAreaHumeda = 'NO_CORROSIVO'
 ): DetalleVariantItem[] {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
-  const key = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
-  const variants = DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]?.[detalleCode] || [];
+  const variants = isHumeda
+    ? (DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA HUEMDA']?.[detalleCode] || [])
+    : (DYNAMIC_DETALLE_VARIANTS_BY_AREA['AREA SECA']?.[detalleCode] || []);
 
   return variants
     .filter(v => {
@@ -612,7 +628,8 @@ export function updateSingleDynamicVariant(
   area: string,
   detalleCode: string,
   items: DetalleVariantItem[],
-  category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0'
+  category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0',
+  subArea?: SubAreaHumeda
 ) {
   const isHumeda = area.toUpperCase().includes('HUMED') || area.toUpperCase().includes('HUEMD');
   const areaKey = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
@@ -625,6 +642,22 @@ export function updateSingleDynamicVariant(
     DYNAMIC_DETALLE_VARIANTS[detalleCode] = items;
     if (detalleCode === '008/05') DYNAMIC_DETALLE_VARIANTS['008/5'] = items;
     if (detalleCode === 'ND') DYNAMIC_DETALLE_VARIANTS['N/D'] = items;
+
+    if (isHumeda) {
+      if (subArea) {
+        if (!DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]) {
+          DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea] = {};
+        }
+        DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea][detalleCode] = items;
+      } else {
+        if (DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA['NO_CORROSIVO']) {
+          DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][detalleCode] = items;
+        }
+        if (DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA['CORROSIVO']) {
+          DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA['CORROSIVO'][detalleCode] = items;
+        }
+      }
+    }
   } else if (category === 'BARRA_POT') {
     DYNAMIC_BARRA_POT_VARIANTS[detalleCode] = ensureAnclajePerno(
       items.map((it: any) => ({

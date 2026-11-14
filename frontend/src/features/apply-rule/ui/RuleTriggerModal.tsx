@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
-import { AreaType } from '../../../shared/types/common';
+import { AreaType, SubAreaHumeda } from '../../../shared/types/common';
 import { CABLE_TRAY_WIDTHS } from '../../../entities/takeoff-rule/model/cableTrayRules';
 import { resolveRuleRequirements } from '../model/ruleParameterResolver';
 import { executeApplyRule } from '../model/useApplyRule';
@@ -9,6 +9,7 @@ import { getRulePreviewCalculatedItems } from '../model/ruleCalculator';
 import { getSequentialTagsExample } from '../../../entities/takeoff-item/model/tagGenerator';
 import { hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
+import { useAppStore } from '../../app-config/model/useAppStore';
 import { ModalShell } from '../../../shared/ui/ModalShell';
 import { RULE_RESTORE_BUTTON_ID } from '../../../shared/ui/windowMotion';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
@@ -31,7 +32,9 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
   const minimized = useUIStore(state => state.rulePromptMinimized);
   const setRulePromptMinimized = useUIStore(state => state.setRulePromptMinimized);
   const setRuleRestoreArmed = useUIStore(state => state.setRuleRestoreArmed);
+  const globalSubArea = useAppStore(state => state.subAreaHumeda);
 
+  const [subArea, setSubArea] = useState<SubAreaHumeda>(globalSubArea || 'NO_CORROSIVO');
   const [count, setCount] = useState<number>(1);
   const [baseTag, setBaseTag] = useState<string>('01');
   const [detalleCode, setDetalleCode] = useState<string>('');
@@ -56,8 +59,9 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
       setCableTrayWidth(prev => (prev && ['900 mm', '600 mm', '450 mm', '300 mm'].includes(prev)) ? prev : '900 mm');
       setIsCustomDetalle(false);
       setCustomDetalleValue('');
+      setSubArea(globalSubArea || 'NO_CORROSIVO');
     }
-  }, [isOpen, activeRule?.id, activeArea]);
+  }, [isOpen, activeRule?.id, activeArea, globalSubArea]);
 
   if (!isOpen || !activeRule || minimized) return null;
 
@@ -68,12 +72,12 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
 
   const showSoportes =
     req.requiresSoportes ||
-    (req.isCable20 && hasSoporteItems(detalleCode, activeArea)) ||
+    (req.isCable20 && hasSoporteItems(detalleCode, activeArea, subArea)) ||
     ((req.isBarraPot || req.isBarraInst) && activeArea === 'AREA HUMEDA');
 
   const showJumpers =
     req.requiresJumpers ||
-    (req.isCable20 && hasJumperItems(detalleCode, activeArea)) ||
+    (req.isCable20 && hasJumperItems(detalleCode, activeArea, subArea)) ||
     detalleCode.toUpperCase().includes('JUMPER');
 
   const availableOptions = useMemo(() => {
@@ -130,14 +134,20 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
 
   // Live calculation preview: internally calculates all formulas, variants and quantities
   const previewItems = useMemo(() => {
-    return getRulePreviewCalculatedItems(activeRule, activeArea, {
-      detalleCode,
-      numSoportes: showSoportes ? effSoportes : 1,
-      numJumpers: showJumpers ? effJumpers : 1,
-      cableTrayWidth,
-      incluirTuberia,
-      cableLength
-    });
+    try {
+      return getRulePreviewCalculatedItems(activeRule, activeArea, {
+        detalleCode,
+        numSoportes: showSoportes ? effSoportes : 1,
+        numJumpers: showJumpers ? effJumpers : 1,
+        cableTrayWidth,
+        incluirTuberia,
+        cableLength,
+        subArea
+      });
+    } catch (err) {
+      console.warn('Live calculation preview error:', err);
+      return [];
+    }
   }, [
     activeRule,
     activeArea,
@@ -148,7 +158,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
     effJumpers,
     cableTrayWidth,
     incluirTuberia,
-    cableLength
+    cableLength,
+    subArea
   ]);
 
   const isDirty =
@@ -175,7 +186,8 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
         incluirTuberia &&
         (detalleCode.trim().toUpperCase() === '008/3A' || detalleCode.trim().toUpperCase() === '008/3B'),
       cableTrayWidth,
-      cableLength: cableLength.trim()
+      cableLength: cableLength.trim(),
+      subArea
     });
 
     if (applied) onClose();
@@ -231,6 +243,51 @@ export const RuleTriggerModal: React.FC<RuleTriggerModalProps> = ({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-ÁREA / AMBIENTE SELECTION (ÁREA HÚMEDA ONLY) */}
+          {activeArea === 'AREA HUMEDA' && (
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.82rem', color: 'var(--tx-hd)' }}>
+                SUB-ÁREA / AMBIENTE (ÁREA HÚMEDA):
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSubArea('NO_CORROSIVO')}
+                  className={`modal-choice${subArea === 'NO_CORROSIVO' ? ' is-active' : ''}`}
+                  style={{
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>💧 No Corrosivo (Estándar)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubArea('CORROSIVO')}
+                  className={`modal-choice${subArea === 'CORROSIVO' ? ' is-active' : ''}`}
+                  style={{
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>🛡️ Corrosivo</span>
+                </button>
               </div>
             </div>
           )}

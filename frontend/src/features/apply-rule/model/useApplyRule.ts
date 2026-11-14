@@ -1,5 +1,6 @@
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { TakeoffItem } from '../../../entities/takeoff-item/model/types';
+import { SubAreaHumeda } from '../../../shared/types/common';
 import { uid } from '../../../shared/lib/uid';
 import { getSequentialTag, assignTagUnicoSuffixes } from '../../../entities/takeoff-item/model/tagGenerator';
 import { findIntroducedTagCollision, tagCollisionMessage } from '../../../entities/takeoff-item/model/itemIdentity';
@@ -23,9 +24,10 @@ export function executeApplyRule(
     cableTrayWidth?: string;
     incluirTuberia?: boolean;
     cableLength?: string;
+    subArea?: SubAreaHumeda;
   }
 ): boolean {
-  const { count, baseTag, detalleCode } = params;
+  const { count, baseTag, detalleCode, subArea } = params;
   const numSoportes = params.numSoportes ?? 1;
   const numJumpers = params.numJumpers ?? 1;
   const cableTrayWidth = params.cableTrayWidth || '600 mm';
@@ -59,7 +61,8 @@ export function executeApplyRule(
         numJumpers,
         cableTrayWidth,
         incluirTuberia,
-        cableLength
+        cableLength,
+        subArea
       },
       currentTagPlano,
       pkgId,

@@ -9,6 +9,29 @@ import { RuleTriggerModal } from '../../../features/apply-rule/ui/RuleTriggerMod
 import { Toast } from '../../../shared/ui/Toast';
 import { SitePrompt } from '../../../shared/ui/SitePromptDialog';
 
+class ModalErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('Modal caught runtime error:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
 export interface ModalsHostProps {
   areaModalOpen: boolean;
   onCloseAreaModal: () => void;
@@ -39,12 +62,14 @@ export const ModalsHost: React.FC<ModalsHostProps> = ({
 
       <DetalleChangeModal />
 
-      <RuleTriggerModal
-        isOpen={Boolean(pendingRule) && section !== 'bductos'}
-        rule={pendingRule}
-        activeArea={activeArea}
-        onClose={() => setPendingRule(null)}
-      />
+      <ModalErrorBoundary key={pendingRule?.id || 'none'}>
+        <RuleTriggerModal
+          isOpen={Boolean(pendingRule) && section !== 'bductos'}
+          rule={pendingRule}
+          activeArea={activeArea}
+          onClose={() => setPendingRule(null)}
+        />
+      </ModalErrorBoundary>
 
       <AreaSelectModal
         isOpen={areaModalOpen}

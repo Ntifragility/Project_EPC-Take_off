@@ -1,6 +1,6 @@
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { TakeoffItem } from '../../../entities/takeoff-item/model/types';
-import { AreaType } from '../../../shared/types/common';
+import { AreaType, SubAreaHumeda } from '../../../shared/types/common';
 import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico } from '../../../entities/takeoff-item/model/tagGenerator';
 import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
@@ -25,6 +25,7 @@ export interface RuleCalculationParams {
   cableTrayWidth?: string;
   incluirTuberia?: boolean;
   cableLength?: string;
+  subArea?: SubAreaHumeda;
 }
 
 /**
@@ -47,6 +48,7 @@ export function generateRuleItemsForInstance(
   const cableTrayWidth = params.cableTrayWidth || '600 mm';
   const incluirTuberia = params.incluirTuberia === true;
   const cableLength = (params.cableLength || '').trim().replace(',', '.');
+  const subArea: SubAreaHumeda = params.subArea || 'NO_CORROSIVO';
 
   const upTrigger = (currentRule.trigger || '').toUpperCase();
   const isCableTrayRule =
@@ -96,7 +98,8 @@ export function generateRuleItemsForInstance(
       detalleCode,
       'AREA HUMEDA',
       numSoportes,
-      numJumpers
+      numJumpers,
+      subArea
     );
     instanceItems = variantItems.map(v => {
       const isVar = v.qty === 'Var.' || String(v.ot).toUpperCase() === 'VAR.';
@@ -229,7 +232,8 @@ export function generateRuleItemsForInstance(
       tOt,
       cOt,
       true,
-      instanceId
+      instanceId,
+      subArea
     );
   }
 
