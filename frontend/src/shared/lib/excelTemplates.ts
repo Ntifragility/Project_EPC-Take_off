@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { useTemplatesStore } from '../../features/manage-templates/model/useTemplatesStore';
 
 export interface TableXlsxOptions {
   sheetName: string;
@@ -96,6 +97,12 @@ export const METRADO_TEMPLATE_GUIDE: { text: string; strong?: boolean }[] = [
 ];
 
 export async function downloadMetradoTemplateXlsx(): Promise<void> {
+  const custom = useTemplatesStore.getState().templates['metrado_pat'];
+  if (custom && custom.file_data) {
+    await useTemplatesStore.getState().downloadTemplate('metrado_pat', () => {});
+    return;
+  }
+
   const wb = new ExcelJS.Workbook();
   wb.creator = 'EPC TakeOff';
   wb.created = new Date();

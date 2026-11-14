@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { PartidaRecord } from '../../entities/partida/model/types';
 import { downloadTableXlsx } from './excelTemplates';
+import { useTemplatesStore } from '../../features/manage-templates/model/useTemplatesStore';
 
 /**
  * Generates and downloads the official Excel Template for Partidas.
@@ -8,6 +9,11 @@ import { downloadTableXlsx } from './excelTemplates';
  * ACTIVIDAD | WBS | PARTIDA SICME | PARTIDA BALANCE | UND | FORECAST DESCRIPTION | SICME DESCRIPTION | BM DESCRIPTION
  */
 export async function downloadPartidasTemplateXlsx(): Promise<void> {
+  const custom = useTemplatesStore.getState().templates['partidas_master'];
+  if (custom && custom.file_data) {
+    await useTemplatesStore.getState().downloadTemplate('partidas_master', () => {});
+    return;
+  }
   const headers = [
     'ACTIVIDAD',
     'WBS',

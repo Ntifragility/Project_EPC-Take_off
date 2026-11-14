@@ -12,6 +12,8 @@ import { CatalogDrawer } from '../shared/ui/CatalogDrawer';
 import { useAuthStore } from '../features/auth/model/useAuthStore';
 import { LoginScreen } from '../features/auth/ui/LoginScreen';
 import { UserManagementModal } from '../features/auth/ui/UserManagementModal';
+import { TemplateManagementModal } from '../features/manage-templates/ui/TemplateManagementModal';
+import { useTemplatesStore } from '../features/manage-templates/model/useTemplatesStore';
 
 export const App: React.FC = () => {
   const tab = useAppStore(state => state.tab);
@@ -27,6 +29,9 @@ export const App: React.FC = () => {
   useEffect(() => {
     // Initialize authentication and users
     void initAuth();
+
+    // Initialize official excel templates in background
+    void useTemplatesStore.getState().loadTemplates();
 
     // Load initial cloud configuration asynchronously
     loadInitialCloudConfig();
@@ -69,6 +74,7 @@ export const App: React.FC = () => {
       />
 
       <UserManagementModal />
+      <TemplateManagementModal />
     </>
   );
 };

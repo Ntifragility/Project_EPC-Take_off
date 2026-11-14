@@ -296,6 +296,55 @@ export async function deleteDetalleVariantFromSupabase(
   }
 }
 
+export async function fetchExcelTemplatesFromSupabase(): Promise<{
+  data: import('../../features/manage-templates/model/templateTypes').ExcelTemplateRecord[] | null;
+  error?: string;
+}> {
+  if (!supabase) {
+    return { data: null, error: 'Supabase no está configurado' };
+  }
+  try {
+    const { data, error } = await supabase.from('excel_templates').select('*');
+    if (error) throw error;
+    return { data: (data as any) || [] };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al obtener plantillas de Supabase';
+    return { data: null, error: message };
+  }
+}
+
+export async function saveExcelTemplateToSupabase(
+  template: import('../../features/manage-templates/model/templateTypes').ExcelTemplateRecord
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado' };
+  }
+  try {
+    const { error } = await supabase.from('excel_templates').upsert(template);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al guardar plantilla en Supabase';
+    return { success: false, error: message };
+  }
+}
+
+export async function deleteExcelTemplateFromSupabase(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado' };
+  }
+  try {
+    const { error } = await supabase.from('excel_templates').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error al eliminar plantilla en Supabase';
+    return { success: false, error: message };
+  }
+}
+
 export async function syncPartidasToSupabase(
   partidas: PartidaRecord[]
 ): Promise<{ success: boolean; count: number; error?: string }> {

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, ShieldCheck, Shield, LogOut, UserPlus } from 'lucide-react';
+import { User, ShieldCheck, Shield, LogOut, UserPlus, FileSpreadsheet } from 'lucide-react';
 import { getRoleDisplayName } from '../model/authTypes';
 import { useAuthStore } from '../model/useAuthStore';
+import { useTemplatesStore } from '../../manage-templates/model/useTemplatesStore';
 
 export const UserProfileButton: React.FC = () => {
   const { currentUser, setShowUserManagement, signOut } = useAuthStore();
@@ -245,6 +246,45 @@ export const UserProfileButton: React.FC = () => {
             >
               <UserPlus size={14} color="#818cf8" />
               <span>Gestión de Usuarios</span>
+            </button>
+          )}
+
+          {/* Level 3 Excel Templates Management */}
+          {isLevel3 && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                useTemplatesStore.getState().setShowModal(true);
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '7px 10px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#e4e4e7',
+                fontSize: '12.5px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'background-color 0.15s',
+                marginBottom: '4px'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#1c1e27';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#e4e4e7';
+              }}
+            >
+              <FileSpreadsheet size={14} color="#10b981" />
+              <span>Gestión de Plantillas</span>
             </button>
           )}
 

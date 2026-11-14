@@ -1,6 +1,7 @@
 import { BductoRow } from '../../../entities/bducto/model/types';
 import { downloadTableXlsx } from '../../../shared/lib/excelTemplates';
 import { sitePrompt } from '../../../shared/ui/askSite';
+import { useTemplatesStore } from '../../manage-templates/model/useTemplatesStore';
 
 export const BDUCTO_TEMPLATE_HEADERS = ['PLANO', 'DESDE', 'HASTA', 'TAG EN PLANO', 'LONGITUD TUBERÍA'] as const;
 
@@ -17,6 +18,12 @@ export const BDUCTO_TEMPLATE_GUIDE: { text: string; strong?: boolean }[] = [
 ];
 
 export async function downloadBductoTemplate(): Promise<void> {
+  const custom = useTemplatesStore.getState().templates['bductos'];
+  if (custom && custom.file_data) {
+    await useTemplatesStore.getState().downloadTemplate('bductos', () => {});
+    return;
+  }
+
   await downloadTableXlsx({
     sheetName: 'BDUCTOS',
     tableName: 'PlantillaBductos',
