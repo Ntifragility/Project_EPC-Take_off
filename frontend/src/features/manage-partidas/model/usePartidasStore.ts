@@ -67,7 +67,7 @@ export const usePartidasStore = createStore<PartidasStore>((set, get) => ({
   uploadPartidasList: async (newPartidas: PartidaRecord[]) => {
     const res = await syncPartidasToSupabase(newPartidas);
     if (!res.success) {
-      throw new Error(res.error || 'Error al guardar partidas en Supabase');
+      throw new Error(res.error || 'Error al guardar partidas en Base de Datos');
     }
 
     const keyOf = (p: PartidaRecord) =>
@@ -104,7 +104,7 @@ export const usePartidasStore = createStore<PartidasStore>((set, get) => ({
 
     const cloud = await updatePartidaInSupabase(row);
     if (!cloud.success) {
-      throw new Error(cloud.error || 'Error al actualizar la partida en Supabase');
+      throw new Error(cloud.error || 'Error al actualizar la partida en Base de Datos');
     }
   },
 
@@ -117,7 +117,7 @@ export const usePartidasStore = createStore<PartidasStore>((set, get) => ({
     const meta = target ? { wbs: target.wbs || target.area || '', partidaSicme: target.partidaSicme || target.item || '' } : undefined;
     const cloud = await deletePartidaFromSupabase(id, meta);
     if (!cloud.success) {
-      throw new Error(cloud.error || 'Error al eliminar la partida en Supabase');
+      throw new Error(cloud.error || 'Error al eliminar la partida en Base de Datos');
     }
   }
 }));

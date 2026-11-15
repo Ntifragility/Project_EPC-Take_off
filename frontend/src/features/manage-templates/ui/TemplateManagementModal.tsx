@@ -53,7 +53,7 @@ export const TemplateManagementModal: React.FC = () => {
 
   const handleRestore = async (key: TemplateKey, name: string) => {
     const ok = await siteConfirm(
-      `¿Deseas restaurar la plantilla predeterminada de "${name}"? Se eliminará el archivo personalizado de Supabase y volverá a generarse por código.`
+      `¿Deseas restaurar la plantilla predeterminada de "${name}"? Se eliminará el archivo personalizado de Base de Datos y volverá a generarse por código.`
     );
     if (!ok) return;
 

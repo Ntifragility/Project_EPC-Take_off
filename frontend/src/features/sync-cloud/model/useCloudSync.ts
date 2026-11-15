@@ -128,7 +128,7 @@ export async function executeSyncToDatabase(skipConfirm = false) {
   if (!skipConfirm) {
     const confirmMessage =
       `Confirmar envío a base de datos\n\n` +
-      `Vas a depositar ${itemsToSync.length} filas en Supabase.\n\n` +
+      `Vas a depositar ${itemsToSync.length} filas en Base de Datos.\n\n` +
       `Los accesorios base y jumpers se guardarán en líneas independientes.\n\n` +
       `¿Deseas proceder y enviar los ${itemsToSync.length} ítems a la base de datos?`;
 
@@ -141,7 +141,7 @@ export async function executeSyncToDatabase(skipConfirm = false) {
   try {
     const result = await syncItemsToSupabase(itemsToSync, packages);
     if (result.success) {
-      showToast(`¡${result.count} ítems guardados en Supabase con éxito!`, 'success');
+      showToast(`¡${result.count} ítems guardados en Base de Datos con éxito!`, 'success');
     } else {
       showToast(result.error || 'Error al guardar en el servidor', 'warn');
     }

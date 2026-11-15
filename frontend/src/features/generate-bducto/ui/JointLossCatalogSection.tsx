@@ -185,7 +185,7 @@ export const JointLossCatalogSection: React.FC = () => {
 
   const handleSaveToSupabase = async () => {
     if (!canEdit) {
-      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Supabase', 'warn');
+      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Base de Datos', 'warn');
       return;
     }
     setSaving(true);
@@ -206,13 +206,13 @@ export const JointLossCatalogSection: React.FC = () => {
       const ok = await syncJointLossCatalogToSupabase(itemsToSync);
       if (ok) {
         setJointLossCatalog(itemsToSync);
-        showToast('Catálogo de pérdidas guardado en Supabase', 'success');
+        showToast('Catálogo de pérdidas guardado en Base de Datos', 'success');
       } else {
-        showToast('Guardado local (Supabase no disponible o sin conexión)', 'info');
+        showToast('Guardado local (Base de Datos no disponible o sin conexión)', 'info');
       }
     } catch (err) {
       console.error('Error guardando catálogo de pérdidas:', err);
-      showToast('Error al guardar en Supabase', 'warn');
+      showToast('Error al guardar en Base de Datos', 'warn');
     } finally {
       setSaving(false);
     }

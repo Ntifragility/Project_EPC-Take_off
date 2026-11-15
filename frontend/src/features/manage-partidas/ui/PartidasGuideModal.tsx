@@ -183,10 +183,10 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
           {partidas && partidas.length > 0 && parsedPartidas.length === 0 && (
             <div style={{ background: 'var(--s2)', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--b1)' }}>
               <div style={{ color: 'var(--tx)', fontWeight: 600 }}>
-                Base de Datos Activa: {partidas.length} partidas cargadas en memoria / Supabase.
+                Base de Datos Activa: {partidas.length} partidas cargadas en memoria / Base de Datos.
               </div>
               <div style={{ color: 'var(--mu)', fontSize: '10.5px', marginTop: '2px' }}>
-                Al subir un nuevo archivo Excel, se agregarán y actualizarán en la base de datos de Supabase.
+                Al subir un nuevo archivo Excel, se agregarán y actualizarán en la Base de Datos.
               </div>
             </div>
           )}
@@ -212,7 +212,7 @@ export const PartidasGuideModal: React.FC<PartidasGuideModalProps> = ({ isOpen, 
           </label>
           {parsedPartidas.length > 0 && (
             <button className="btn-primary" onClick={handleSendToSupabase} disabled={isUploading}>
-              {isUploading ? 'Guardando...' : `Enviar a Supabase (${parsedPartidas.length})`}
+              {isUploading ? 'Guardando...' : `Enviar a Base de Datos (${parsedPartidas.length})`}
             </button>
           )}
         </div>

@@ -558,7 +558,7 @@ export const BductoPromptModal: React.FC<BductoPromptModalProps> = ({
           ) : curves.length === 0 ? (
             <p className="bducto-preview">
               {catalogSize === 0
-                ? 'El catálogo de curvas se carga desde Supabase.'
+                ? 'El catálogo de curvas se carga desde la Base de Datos.'
                 : `No hay curvas en el catálogo para D=${diameter}.`}
             </p>
           ) : (

@@ -215,8 +215,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAreaModal }) => {
             !hasSupabase
               ? 'Configura VITE_SUPABASE_URL en .env para guardar directamente en BD'
               : section === 'bductos'
-                ? 'Depositar las filas de BDUCTOS y el catálogo de curvas en Supabase'
-                : 'Depositar/Añadir los datos de la pantalla a Supabase (main_PAT_table)'
+                ? 'Depositar las filas de BDUCTOS y el catálogo de curvas en Base de Datos'
+                : 'Depositar/Añadir los datos de la pantalla a Base de Datos (main_PAT_table)'
           }
         >
           {isSyncing ? 'Guardando...' : 'Guardar en BD'}

@@ -65,7 +65,7 @@ export async function syncItemsToSupabase(
     return {
       success: false,
       count: 0,
-      error: 'Supabase client no está configurado. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_KEY en .env.'
+      error: 'La Base de Datos no está configurada. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_KEY en .env.'
     };
   }
 
@@ -82,7 +82,7 @@ export async function syncItemsToSupabase(
     }
     return { success: true, count: payload.length };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error desconocido al sincronizar con Supabase';
+    const message = err instanceof Error ? err.message : 'Error desconocido al sincronizar con la Base de Datos';
     console.error('Supabase write exception:', err);
     return { success: false, count: 0, error: message };
   }
@@ -92,7 +92,7 @@ export async function fetchItemsFromSupabase(
   tableName = 'main_PAT_table'
 ): Promise<{ data: SupabaseTakeoffRecord[] | null; error?: string }> {
   if (!supabase) {
-    return { data: null, error: 'Supabase no está configurado' };
+    return { data: null, error: 'La Base de Datos no está configurada' };
   }
 
   try {
@@ -104,7 +104,7 @@ export async function fetchItemsFromSupabase(
     if (error) throw error;
     return { data: (data as SupabaseTakeoffRecord[]) || [] };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al consultar Supabase';
+    const message = err instanceof Error ? err.message : 'Error al consultar la Base de Datos';
     return { data: null, error: message };
   }
 }
@@ -133,7 +133,7 @@ export async function fetchTakeoffRulesFromSupabase(
   section: SectionType
 ): Promise<{ data: TakeoffRule[] | null; error?: string }> {
   if (!supabase) {
-    return { data: null, error: 'Supabase no está configurado' };
+    return { data: null, error: 'La Base de Datos no está configurada' };
   }
   try {
     const { data, error } = await supabase
@@ -176,7 +176,7 @@ export async function fetchTakeoffRulesFromSupabase(
     });
     return { data: rules };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al obtener reglas de Supabase';
+    const message = err instanceof Error ? err.message : 'Error al obtener reglas de la Base de Datos';
     return { data: null, error: message };
   }
 }
@@ -187,7 +187,7 @@ export async function saveTakeoffRuleToSupabase(
   orderIndex = 0
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
-    return { success: false, error: 'Supabase no está configurado' };
+    return { success: false, error: 'La Base de Datos no está configurada' };
   }
   try {
     const v3Payload: any = {
@@ -234,7 +234,7 @@ export async function saveTakeoffRuleToSupabase(
 
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al guardar regla en Supabase';
+    const message = err instanceof Error ? err.message : 'Error al guardar regla en Base de Datos';
     return { success: false, error: message };
   }
 }
@@ -243,7 +243,7 @@ export async function deleteTakeoffRuleFromSupabase(
   ruleId: string
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
-    return { success: false, error: 'Supabase no está configurado' };
+    return { success: false, error: 'La Base de Datos no está configurada' };
   }
   try {
     // Delete any dependent child records first to prevent foreign key constraint rejections
@@ -254,7 +254,7 @@ export async function deleteTakeoffRuleFromSupabase(
     if (error) throw error;
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al eliminar regla en Supabase';
+    const message = err instanceof Error ? err.message : 'Error al eliminar regla en Base de Datos';
     return { success: false, error: message };
   }
 }
@@ -264,7 +264,7 @@ export async function fetchDetalleVariantsFromSupabase(): Promise<{
   error?: string;
 }> {
   if (!supabase) {
-    return { data: null, error: 'Supabase no está configurado' };
+    return { data: null, error: 'La Base de Datos no está configurada' };
   }
   try {
     const { data, error } = await supabase
@@ -274,7 +274,7 @@ export async function fetchDetalleVariantsFromSupabase(): Promise<{
     if (error) throw error;
     return { data: (data as SupabaseDetalleVariantRecord[]) || [] };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al obtener variantes de detalles de Supabase';
+    const message = err instanceof Error ? err.message : 'Error al obtener variantes de detalles de la Base de Datos';
     return { data: null, error: message };
   }
 }
@@ -282,7 +282,7 @@ export async function fetchDetalleVariantsFromSupabase(): Promise<{
 export function withTimeout<T>(
   promise: Promise<T>,
   ms = 6000,
-  operationName = 'Operación Supabase'
+  operationName = 'Operación en Base de Datos'
 ): Promise<T> {
   let timer: any;
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -303,7 +303,7 @@ export async function saveDetalleVariantToSupabase(
   variant: SupabaseDetalleVariantRecord
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
-    return { success: false, error: 'Supabase no está configurado' };
+    return { success: false, error: 'La Base de Datos no está configurada' };
   }
   try {
     return await withTimeout(
@@ -413,7 +413,7 @@ export async function saveDetalleVariantToSupabase(
       'Guardar variante de detalle'
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al guardar variante de detalle en Supabase';
+    const message = err instanceof Error ? err.message : 'Error al guardar variante de detalle en Base de Datos';
     console.warn('[Supabase] Warning en saveDetalleVariantToSupabase:', message);
     return { success: false, error: message };
   }
@@ -424,7 +424,7 @@ export async function deleteDetalleVariantFromSupabase(
   meta?: { area: string; category: string; detalle_code: string; sub_area?: string }
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
-    return { success: false, error: 'Supabase no está configurado' };
+    return { success: false, error: 'La Base de Datos no está configurada' };
   }
   try {
     const { error } = await supabase.from('detalle_variants').delete().eq('id', id);
@@ -444,7 +444,7 @@ export async function deleteDetalleVariantFromSupabase(
     }
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al eliminar variante de detalle en Supabase';
+    const message = err instanceof Error ? err.message : 'Error al eliminar variante de detalle en Base de Datos';
     console.error('[Supabase] Error en deleteDetalleVariantFromSupabase:', err);
     return { success: false, error: message };
   }
@@ -455,14 +455,14 @@ export async function fetchExcelTemplatesFromSupabase(): Promise<{
   error?: string;
 }> {
   if (!supabase) {
-    return { data: null, error: 'Supabase no está configurado' };
+    return { data: null, error: 'La Base de Datos no está configurada' };
   }
   try {
     const { data, error } = await supabase.from('excel_templates').select('*');
     if (error) throw error;
     return { data: (data as any) || [] };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al obtener plantillas de Supabase';
+    const message = err instanceof Error ? err.message : 'Error al obtener plantillas de la Base de Datos';
     return { data: null, error: message };
   }
 }
@@ -471,14 +471,14 @@ export async function saveExcelTemplateToSupabase(
   template: import('../../features/manage-templates/model/templateTypes').ExcelTemplateRecord
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
-    return { success: false, error: 'Supabase no está configurado' };
+    return { success: false, error: 'La Base de Datos no está configurada' };
   }
   try {
     const { error } = await supabase.from('excel_templates').upsert(template);
     if (error) throw error;
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al guardar plantilla en Supabase';
+    const message = err instanceof Error ? err.message : 'Error al guardar plantilla en Base de Datos';
     return { success: false, error: message };
   }
 }
@@ -487,14 +487,14 @@ export async function deleteExcelTemplateFromSupabase(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
-    return { success: false, error: 'Supabase no está configurado' };
+    return { success: false, error: 'La Base de Datos no está configurada' };
   }
   try {
     const { error } = await supabase.from('excel_templates').delete().eq('id', id);
     if (error) throw error;
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al eliminar plantilla en Supabase';
+    const message = err instanceof Error ? err.message : 'Error al eliminar plantilla en Base de Datos';
     return { success: false, error: message };
   }
 }
@@ -506,7 +506,7 @@ export async function syncPartidasToSupabase(
     return {
       success: false,
       count: 0,
-      error: 'Supabase client no está configurado. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_KEY en .env.'
+      error: 'La Base de Datos no está configurada. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_KEY en .env.'
     };
   }
 
@@ -536,7 +536,7 @@ export async function syncPartidasToSupabase(
     }
     return { success: true, count: payload.length };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al sincronizar partidas con Supabase';
+    const message = err instanceof Error ? err.message : 'Error al sincronizar partidas con la Base de Datos';
     console.error('Supabase partidas write exception:', err);
     return { success: false, count: 0, error: message };
   }
@@ -566,7 +566,7 @@ export async function updatePartidaInSupabase(
   partida: PartidaRecord
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
-    return { success: false, error: 'Supabase no está configurado' };
+    return { success: false, error: 'La Base de Datos no está configurada' };
   }
 
   try {
@@ -597,7 +597,7 @@ export async function updatePartidaInSupabase(
     }
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al actualizar partida en Supabase';
+    const message = err instanceof Error ? err.message : 'Error al actualizar partida en Base de Datos';
     console.error('Supabase partida update exception:', err);
     return { success: false, error: message };
   }
@@ -608,7 +608,7 @@ export async function deletePartidaFromSupabase(
   meta?: { wbs: string; partidaSicme: string }
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
-    return { success: false, error: 'Supabase no está configurado' };
+    return { success: false, error: 'La Base de Datos no está configurada' };
   }
 
   try {
@@ -636,7 +636,7 @@ export async function deletePartidaFromSupabase(
 
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al eliminar partida en Supabase';
+    const message = err instanceof Error ? err.message : 'Error al eliminar partida en Base de Datos';
     console.error('Supabase partida delete exception:', err);
     return { success: false, error: message };
   }
@@ -647,7 +647,7 @@ export async function fetchPartidasFromSupabase(): Promise<{
   error?: string;
 }> {
   if (!supabase) {
-    return { data: null, error: 'Supabase no está configurado' };
+    return { data: null, error: 'La Base de Datos no está configurada' };
   }
 
   try {
@@ -676,7 +676,7 @@ export async function fetchPartidasFromSupabase(): Promise<{
 
     return { data: mapped };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al obtener partidas de Supabase';
+    const message = err instanceof Error ? err.message : 'Error al obtener partidas de la Base de Datos';
     console.error('Supabase partidas fetch exception:', err);
     return { data: null, error: message };
   }
@@ -687,7 +687,7 @@ const CURVE_CATALOG_TABLE = 'bducto_curve_catalog';
 
 function missingTableHint(message: string): string {
   if (/does not exist|schema cache|Could not find the table/i.test(message)) {
-    return `${message} Ejecuta frontend/src/sql/schema_bductos.sql en el editor SQL de Supabase.`;
+    return `${message} Ejecuta frontend/src/sql/schema_bductos.sql en el editor SQL de la Base de Datos.`;
   }
   return message;
 }
@@ -699,7 +699,7 @@ export async function syncBductosToSupabase(
     return {
       success: false,
       count: 0,
-      error: 'Supabase client no está configurado. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_KEY en .env.'
+      error: 'La Base de Datos no está configurada. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_KEY en .env.'
     };
   }
   if (rows.length === 0) return { success: true, count: 0 };
@@ -718,7 +718,7 @@ export async function syncCurveCatalogToSupabase(
   items: CurveCatalogItem[] = getCurveCatalog()
 ): Promise<{ success: boolean; count: number; error?: string; data?: CurveCatalogItem[] }> {
   if (!supabase) {
-    return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+    return { success: false, count: 0, error: 'La Base de Datos no está configurada.' };
   }
   if (items.length === 0) return { success: true, count: 0 };
 
@@ -730,7 +730,7 @@ export async function syncCurveCatalogToSupabase(
     if (error) return { success: false, count: 0, error: missingTableHint(error.message) };
     const stored = ((data || []) as CurveCatalogDbRecord[]).map(curveFromRecord);
     if (stored.length === 0) {
-      return { success: false, count: 0, error: 'Supabase no devolvió las curvas guardadas.' };
+      return { success: false, count: 0, error: 'La Base de Datos no devolvió las curvas guardadas.' };
     }
     return { success: true, count: stored.length, data: stored };
   } catch (err: unknown) {
@@ -742,7 +742,7 @@ export async function syncCurveCatalogToSupabase(
 export async function deleteCurveCatalogFromSupabase(
   ids: string[]
 ): Promise<{ success: boolean; count: number; error?: string }> {
-  if (!supabase) return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  if (!supabase) return { success: false, count: 0, error: 'La Base de Datos no está configurada.' };
   if (ids.length === 0) return { success: true, count: 0 };
   try {
     const { error } = await supabase.from(CURVE_CATALOG_TABLE).delete().in('id', ids);
@@ -755,7 +755,7 @@ export async function deleteCurveCatalogFromSupabase(
 }
 
 export async function fetchCurveCatalogFromSupabase(): Promise<{ data: CurveCatalogItem[] | null; error?: string }> {
-  if (!supabase) return { data: null, error: 'Supabase no está configurado' };
+  if (!supabase) return { data: null, error: 'La Base de Datos no está configurada' };
 
   try {
     const { data, error } = await supabase
@@ -802,7 +802,7 @@ function lossFromRecord(record: any): JointLossCatalogItem {
 }
 
 export async function fetchJointLossCatalogFromSupabase(): Promise<{ data: JointLossCatalogItem[] | null; error?: string }> {
-  if (!supabase) return { data: null, error: 'Supabase no está configurado' };
+  if (!supabase) return { data: null, error: 'La Base de Datos no está configurada' };
   try {
     const { data, error } = await supabase
       .from(JOINT_LOSS_CATALOG_TABLE)
@@ -819,7 +819,7 @@ export async function fetchJointLossCatalogFromSupabase(): Promise<{ data: Joint
 export async function syncJointLossCatalogToSupabase(
   items: JointLossCatalogItem[]
 ): Promise<{ success: boolean; count: number; data?: JointLossCatalogItem[]; error?: string }> {
-  if (!supabase) return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  if (!supabase) return { success: false, count: 0, error: 'La Base de Datos no está configurada.' };
   if (items.length === 0) return { success: true, count: 0 };
   try {
     const { data, error } = await supabase
@@ -838,7 +838,7 @@ export async function syncJointLossCatalogToSupabase(
 export async function deleteJointLossCatalogFromSupabase(
   ids: string[]
 ): Promise<{ success: boolean; count: number; error?: string }> {
-  if (!supabase) return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  if (!supabase) return { success: false, count: 0, error: 'La Base de Datos no está configurada.' };
   if (ids.length === 0) return { success: true, count: 0 };
   try {
     const { error } = await supabase.from(JOINT_LOSS_CATALOG_TABLE).delete().in('id', ids);
@@ -888,7 +888,7 @@ function materialFromRecord(record: any): MaterialCatalogItem {
 }
 
 export async function fetchMaterialCatalogFromSupabase(): Promise<{ data: MaterialCatalogItem[] | null; error?: string }> {
-  if (!supabase) return { data: null, error: 'Supabase no está configurado' };
+  if (!supabase) return { data: null, error: 'La Base de Datos no está configurada' };
   try {
     const { data, error } = await supabase
       .from(MATERIAL_CATALOG_TABLE)
@@ -905,7 +905,7 @@ export async function fetchMaterialCatalogFromSupabase(): Promise<{ data: Materi
 export async function syncMaterialCatalogToSupabase(
   items: MaterialCatalogItem[]
 ): Promise<{ success: boolean; count: number; data?: MaterialCatalogItem[]; error?: string }> {
-  if (!supabase) return { success: false, count: 0, error: 'Supabase client no está configurado.' };
+  if (!supabase) return { success: false, count: 0, error: 'La Base de Datos no está configurada.' };
   if (items.length === 0) return { success: true, count: 0 };
   try {
     const { data, error } = await supabase
@@ -924,7 +924,7 @@ export async function syncMaterialCatalogToSupabase(
 export async function deleteMaterialCatalogFromSupabase(
   ids: string[]
 ): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) return { success: false, error: 'Supabase client no está configurado.' };
+  if (!supabase) return { success: false, error: 'La Base de Datos no está configurada.' };
   if (ids.length === 0) return { success: true };
   try {
     const { error } = await supabase.from(MATERIAL_CATALOG_TABLE).delete().in('id', ids);

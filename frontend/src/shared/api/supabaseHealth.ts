@@ -80,7 +80,7 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
       endpointUrl: SUPABASE_URL || 'No configurado',
       status: 'not_configured',
       latencyMs: null,
-      diagnosticTitle: 'Supabase no configurado',
+      diagnosticTitle: 'Base de Datos no configurada',
       diagnosticDetail: 'Faltan variables VITE_SUPABASE_URL o VITE_SUPABASE_KEY en la configuración del entorno.',
       isFirewallBlocked: false,
       tables: [],
@@ -212,7 +212,7 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
       errorMessage: httpError || 'Bloqueo de red detectado',
       diagnosticTitle: 'Bloqueado por Red Corporativa / Firewall',
       diagnosticDetail:
-        'La red o proxy corporativo está bloqueando las conexiones SSL salientes hacia *.supabase.co. El sistema opera en modo Offline-First (LocalStorage) garantizando que tus reglas y metrados se guarden localmente sin pérdidas.',
+        'La red o proxy corporativo está bloqueando las conexiones SSL salientes hacia la Base de Datos. El sistema opera en modo Offline-First (LocalStorage) garantizando que tus reglas y metrados se guarden localmente sin pérdidas.',
       isFirewallBlocked: true,
       tables: tableChecks,
       checkedAt: timestamp
@@ -230,7 +230,7 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
       status: 'error',
       latencyMs,
       errorMessage: httpError,
-      diagnosticTitle: 'Error de Conexión a Supabase',
+      diagnosticTitle: 'Error de Conexión a Base de Datos',
       diagnosticDetail: `El servidor respondió con un error: ${httpError}. La aplicación utilizará almacenamiento local para preservar tus datos.`,
       isFirewallBlocked: false,
       tables: tableChecks,
@@ -244,9 +244,9 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
       endpointUrl: SUPABASE_URL,
       status: 'connected',
       latencyMs,
-      diagnosticTitle: 'Supabase Conectado y Operativo',
+      diagnosticTitle: 'Base de Datos Conectada y Operativa',
       diagnosticDetail:
-        'La conexión HTTPS con Supabase es estable y todas las tablas críticas admiten lectura y actualización sin restricciones.',
+        'La conexión HTTPS con la Base de Datos es estable y todas las tablas críticas admiten lectura y actualización sin restricciones.',
       isFirewallBlocked: false,
       tables: tableChecks,
       checkedAt: timestamp
@@ -263,8 +263,8 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
       : 'Una o más tablas no están accesibles',
     diagnosticTitle: allReadable ? 'Lectura OK · Actualización Restringida' : 'Conexión Parcial',
     diagnosticDetail: allReadable
-      ? 'Las tablas permiten lectura, pero Supabase está rechazando escrituras o actualizaciones en al menos una tabla.'
-      : 'Supabase es alcanzable, pero una o más tablas devolvieron errores de acceso.',
+      ? 'Las tablas permiten lectura, pero la Base de Datos está rechazando escrituras o actualizaciones en al menos una tabla.'
+      : 'La Base de Datos es alcanzable, pero una o más tablas devolvieron errores de acceso.',
     isFirewallBlocked: false,
     tables: tableChecks,
     checkedAt: timestamp

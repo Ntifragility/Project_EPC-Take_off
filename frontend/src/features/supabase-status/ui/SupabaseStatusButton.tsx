@@ -43,8 +43,8 @@ export const SupabaseStatusButton: React.FC = () => {
       <button
         type="button"
         onClick={() => setModalOpen(true)}
-        title="Ver diagnóstico de conexión con Supabase"
-        aria-label="Estado de conexión con Supabase"
+        title="Ver diagnóstico de conexión con Base de Datos"
+        aria-label="Estado de conexión con Base de Datos"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -70,7 +70,7 @@ export const SupabaseStatusButton: React.FC = () => {
             display: 'inline-block'
           }}
         />
-        <span>Supabase: {labelText}</span>
+        <span>Base de Datos: {labelText}</span>
       </button>
 
       {modalOpen && (

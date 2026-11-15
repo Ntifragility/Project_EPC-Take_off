@@ -58,7 +58,7 @@ export const PackagesView: React.FC = () => {
   const handleDeletePartida = async (p: PartidaRecord) => {
     if (!p.id) return;
     const label = p.partidaSicme || p.item || p.forecastDesc || 'esta partida';
-    if (!(await siteConfirm(`¿Eliminar la partida "${label}" de la matriz master? Esta acción también la quita de Supabase.`))) {
+    if (!(await siteConfirm(`¿Eliminar la partida "${label}" de la matriz master? Esta acción también la quita de la Base de Datos.`))) {
       return;
     }
     try {
@@ -158,7 +158,7 @@ export const PackagesView: React.FC = () => {
 
         {partidas.length === 0 ? (
           <div style={{ color: 'var(--mu)', fontSize: '12px', textAlign: 'center', padding: '30px 0', border: '1px dashed var(--b1)', borderRadius: '6px' }}>
-            <div>No hay partidas cargadas en Supabase o memoria local.</div>
+            <div>No hay partidas cargadas en Base de Datos o memoria local.</div>
             <button
               className="btn-green"
               onClick={() => setIsGuideOpen(true)}

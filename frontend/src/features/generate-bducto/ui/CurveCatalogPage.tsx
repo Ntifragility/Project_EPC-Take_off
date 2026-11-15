@@ -245,7 +245,7 @@ export const CurveCatalogPage: React.FC = () => {
       const stored = await syncCurveCatalogToSupabase([sent]);
       const saved = stored.data?.[0];
       if (!stored.success || !storedMatches(sent, saved) || !saved) {
-        showToast(stored.error || 'Supabase no guardó el cambio', 'warn');
+        showToast(stored.error || 'La Base de Datos no guardó el cambio', 'warn');
         return;
       }
       setRows(current => current.map(item => (item.id === row.id ? toDraft(saved) : item)));
@@ -259,7 +259,7 @@ export const CurveCatalogPage: React.FC = () => {
 
   const save = async () => {
     if (!canEdit) {
-      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Supabase', 'warn');
+      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Base de Datos', 'warn');
       return;
     }
     setSaving(true);
@@ -276,7 +276,7 @@ export const CurveCatalogPage: React.FC = () => {
       const byId = new Map(stored.data.map(item => [item.id, item]));
       const rejected = cleaned.filter(item => !storedMatches(item, byId.get(item.id)));
       if (rejected.length > 0) {
-        showToast('Supabase no guardó todos los cambios. Los valores de la tabla se mantienen.', 'warn');
+        showToast('La Base de Datos no guardó todos los cambios. Los valores de la tabla se mantienen.', 'warn');
         return;
       }
       const next = cleaned.map(item => byId.get(item.id) ?? item);
@@ -285,7 +285,7 @@ export const CurveCatalogPage: React.FC = () => {
       setRemovedIds([]);
       setEditor(null);
       useCurveCatalogHistory.getState().clear();
-      showToast(`${stored.count} curvas guardadas en Supabase.`, 'success');
+      showToast(`${stored.count} curvas guardadas en Base de Datos.`, 'success');
     } finally {
       setSaving(false);
     }
@@ -344,7 +344,7 @@ export const CurveCatalogPage: React.FC = () => {
       </div>
 
       {visible.length === 0 ? (
-        <p className="bducto-preview">El catálogo de curvas se carga desde Supabase.</p>
+        <p className="bducto-preview">El catálogo de curvas se carga desde la Base de Datos.</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table className="bducto-mini curve-catalog">

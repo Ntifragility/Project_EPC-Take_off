@@ -110,7 +110,7 @@ export const useTemplatesStore = createStore<TemplatesStore>((set, get) => ({
 
       const res = await saveExcelTemplateToSupabase(record);
       if (!res.success) {
-        return { success: false, error: res.error || 'Error al guardar en Supabase' };
+        return { success: false, error: res.error || 'Error al guardar en Base de Datos' };
       }
 
       set(state => ({
@@ -133,7 +133,7 @@ export const useTemplatesStore = createStore<TemplatesStore>((set, get) => ({
     try {
       const res = await deleteExcelTemplateFromSupabase(key);
       if (!res.success) {
-        return { success: false, error: res.error || 'Error al eliminar en Supabase' };
+        return { success: false, error: res.error || 'Error al eliminar en Base de Datos' };
       }
 
       set(state => ({

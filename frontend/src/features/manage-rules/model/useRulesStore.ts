@@ -174,7 +174,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     } catch (err) {
       console.warn('Supabase sync background notice:', err);
       useUIStore.getState().showToast(
-        'Regla guardada localmente (Supabase no disponible o bloqueado por cortafuegos)',
+        'Regla guardada localmente (Base de Datos no disponible o bloqueada por cortafuegos)',
         'info'
       );
     }
@@ -187,7 +187,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     try {
       await deleteTakeoffRuleFromSupabase(id);
       await deleteRuleLines(id);
-      useUIStore.getState().showToast('Regla eliminada de Supabase', 'info');
+      useUIStore.getState().showToast('Regla eliminada de Base de Datos', 'info');
     } catch (err) {
       console.warn('Supabase delete background notice:', err);
     }
@@ -219,7 +219,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       if (!res.success) {
         console.warn('Detalle saved locally. Supabase synchronization notice:', res.error);
         useUIStore.getState().showToast(
-          'Detalle guardado localmente (Offline). Supabase no disponible o bloqueado por cortafuegos.',
+          'Detalle guardado localmente (Offline). Base de Datos no disponible o bloqueada por cortafuegos.',
           'info'
         );
         return true;
@@ -230,7 +230,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     } catch (err) {
       console.warn('Error saving detalle variant to Supabase (saved locally):', err);
       useUIStore.getState().showToast(
-        'Detalle guardado localmente. Supabase no disponible.',
+        'Detalle guardado localmente. Base de Datos no disponible.',
         'info'
       );
       return true;
@@ -259,9 +259,9 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
 
       if (!res.success) {
         console.warn('Supabase delete detalle notice:', res.error);
-        useUIStore.getState().showToast(`Advertencia al eliminar en Supabase: ${res.error}`, 'warn');
+        useUIStore.getState().showToast(`Advertencia al eliminar en Base de Datos: ${res.error}`, 'warn');
       } else {
-        useUIStore.getState().showToast('Detalle eliminado de Supabase', 'info');
+        useUIStore.getState().showToast('Detalle eliminado de Base de Datos', 'info');
       }
       return true;
     } catch (err) {

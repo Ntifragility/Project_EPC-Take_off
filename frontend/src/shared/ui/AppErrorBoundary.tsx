@@ -37,7 +37,7 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
   };
 
   handleResetState = () => {
-    if (window.confirm('¿Deseas restaurar la caché local y recargar? Tus datos en Supabase están seguros.')) {
+    if (window.confirm('¿Deseas restaurar la caché local y recargar? Tus datos en Base de Datos están seguros.')) {
       try {
         sessionStorage.clear();
       } catch {}

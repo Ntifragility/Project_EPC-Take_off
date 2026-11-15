@@ -45,7 +45,7 @@ export const SupabaseHealthModal: React.FC<SupabaseHealthModalProps> = ({
 
   return (
     <ModalShell
-      title="Estado de Conexión con Supabase"
+      title="Estado de Conexión con Base de Datos"
       subtitle="Diagnóstico de conectividad, permisos de lectura y validación de actualizaciones"
       onClose={onClose}
       maxWidth="780px"
@@ -96,7 +96,7 @@ export const SupabaseHealthModal: React.FC<SupabaseHealthModalProps> = ({
           </div>
           <p style={{ margin: 0, fontSize: '12px', color: 'var(--tx2, #4b5563)', lineHeight: 1.5 }}>
             {isTesting
-              ? 'Probando consultas de lectura y permisos de actualización contra el endpoint de Supabase...'
+              ? 'Probando consultas de lectura y permisos de actualización contra el endpoint de Base de Datos...'
               : report?.diagnosticDetail}
           </p>
         </div>
@@ -267,7 +267,7 @@ export const SupabaseHealthModal: React.FC<SupabaseHealthModalProps> = ({
           <strong style={{ color: '#107c41', display: 'block', marginBottom: '2px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
             Garantía de Funcionamiento Offline-First
           </strong>
-          Si la red de la empresa bloquea Supabase o una actualización remota falla, sus cambios se guardan inmediatamente en almacenamiento local (LocalStorage) para continuar trabajando sin interrupciones.
+          Si la red de la empresa bloquea la Base de Datos o una actualización remota falla, sus cambios se guardan inmediatamente en almacenamiento local (LocalStorage) para continuar trabajando sin interrupciones.
         </div>
 
         {/* Footer Actions matching ModalShell / RuleEditorModal styling */}
@@ -288,7 +288,7 @@ export const SupabaseHealthModal: React.FC<SupabaseHealthModalProps> = ({
             onClick={runTest}
             disabled={isTesting}
           >
-            {isTesting ? 'Comprobando...' : 'Probar conexión ahora'}
+            {isTesting ? 'Comprobando...' : 'Probar conexión'}
           </button>
           <button
             type="button"

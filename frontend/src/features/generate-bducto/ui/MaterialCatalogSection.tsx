@@ -209,7 +209,7 @@ export const MaterialCatalogSection: React.FC = () => {
 
   const handleSaveToSupabase = async () => {
     if (!canEdit) {
-      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Supabase', 'warn');
+      showToast('Permiso denegado: Solo Level 2 y Level 3 pueden guardar cambios en Base de Datos', 'warn');
       return;
     }
     setSaving(true);
@@ -231,13 +231,13 @@ export const MaterialCatalogSection: React.FC = () => {
       const ok = await syncMaterialCatalogToSupabase(itemsToSync);
       if (ok && ok.success) {
         setMaterialCatalog(itemsToSync);
-        showToast('Catálogo de materiales guardado en Supabase', 'success');
+        showToast('Catálogo de materiales guardado en Base de Datos', 'success');
       } else {
-        showToast(ok?.error || 'Guardado localmente (sin conexión a Supabase)', 'info');
+        showToast(ok?.error || 'Guardado localmente (sin conexión a Base de Datos)', 'info');
       }
     } catch (err) {
       console.error('Error guardando catálogo de materiales:', err);
-      showToast('Error al guardar en Supabase', 'warn');
+      showToast('Error al guardar en Base de Datos', 'warn');
     } finally {
       setSaving(false);
     }
@@ -289,7 +289,7 @@ export const MaterialCatalogSection: React.FC = () => {
       <div className="catalog-hd" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
         <p className="catalog-note" style={{ margin: 0 }}>
           {canEdit
-            ? 'Catálogo maestro de materiales. Al pasar el cursor sobre cualquier fila puedes editar o eliminar. Los cambios confirmados se envían a Supabase.'
+            ? 'Catálogo maestro de materiales. Al pasar el cursor sobre cualquier fila puedes editar o eliminar. Los cambios confirmados se envían a Base de Datos.'
             : 'Catálogo maestro de materiales en modo de consulta. La edición está reservada para usuarios Level 2 y Level 3.'}
         </p>
 
