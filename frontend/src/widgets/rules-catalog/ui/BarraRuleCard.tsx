@@ -13,6 +13,7 @@ import { RuleCardShell } from './RuleCardShell';
 
 interface BarraRuleCardProps {
   rule: TakeoffRule;
+  customRules?: TakeoffRule[];
   category: 'BARRA_POT' | 'BARRA_INST';
   activeArea: 'AREA SECA' | 'AREA HUMEDA';
   isExpanded: boolean;
@@ -21,10 +22,13 @@ interface BarraRuleCardProps {
   onDelete?: (id: string) => void;
   onEditDetalle?: (code: string, items: DetalleVariantItem[], category: 'BARRA_POT' | 'BARRA_INST') => void;
   onDuplicateDetalle?: (code: string, items: DetalleVariantItem[], category: 'BARRA_POT' | 'BARRA_INST') => void;
+  onEditCustomRule?: (rule: TakeoffRule) => void;
+  onDeleteCustomRule?: (ruleId: string) => void;
 }
 
 export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   rule,
+  customRules = [],
   category,
   activeArea,
   isExpanded,
@@ -32,13 +36,41 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   onDuplicate,
   onDelete,
   onEditDetalle,
-  onDuplicateDetalle
+  onDuplicateDetalle,
+  onEditCustomRule,
+  onDeleteCustomRule
 }) => {
   const variantsVersion = useRulesStore(state => state.detalleVariantsVersion);
   const variantMap = category === 'BARRA_POT' ? DYNAMIC_BARRA_POT_VARIANTS : DYNAMIC_BARRA_INST_VARIANTS;
-  const entries = useMemo(() => {
-    return Object.entries(variantMap).filter(([code]) => detalleBelongsToArea(code, activeArea));
-  }, [variantMap, activeArea, variantsVersion]);
+  const entries: [string, DetalleVariantItem[], TakeoffRule?][] = useMemo(() => {
+    const list: [string, DetalleVariantItem[], TakeoffRule?][] = Object.entries(variantMap)
+      .filter(([code]) => detalleBelongsToArea(code, activeArea))
+      .map(([code, items]) => [code, items as any, undefined]);
+
+    if (customRules && customRules.length > 0) {
+      for (const cr of customRules) {
+        const detCode = cr.detalle || cr.defaultDetalle;
+        if (!detCode) continue;
+        const existingIdx = list.findIndex(([c]) => c === detCode);
+        const crItems: DetalleVariantItem[] = cr.subitems.map(s => ({
+          desc: s.desc,
+          qty: s.qty,
+          unit: s.unit,
+          formula: s.formula,
+          material: s.material
+        }));
+        if (existingIdx >= 0) {
+          list[existingIdx] = [detCode, crItems, cr];
+        } else {
+          list.push([detCode, crItems, cr]);
+        }
+      }
+    }
+
+    return list.sort((a, b) =>
+      a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [variantMap, activeArea, variantsVersion, customRules]);
 
   return (
     <RuleCardShell
@@ -129,7 +161,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {entries.map(([detCode, vItems], detIdx) =>
+                {entries.map(([detCode, vItems, customRule], detIdx) =>
                   vItems.map((item, i) => {
                     const isLast = i === vItems.length - 1;
                     const bb = isLast ? '2px solid var(--b1)' : '1px solid var(--b2)';
@@ -163,20 +195,31 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
                             >
                               {detCode}
                             </span>
-                            {(onEditDetalle || onDuplicateDetalle) && (
+                            {(onEditDetalle || onDuplicateDetalle || (customRule && onDeleteCustomRule)) && (
                               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px', gap: '4px' }}>
-                                {onEditDetalle && (
-                                  <IconActionButton
-                                    kind="edit"
-                                    title={`Editar materiales de ${detCode}`}
-                                    onClick={() => onEditDetalle(detCode, vItems as any, category)}
-                                  />
-                                )}
+                                <IconActionButton
+                                  kind="edit"
+                                  title={`Editar materiales de ${detCode}`}
+                                  onClick={() => {
+                                    if (customRule && onEditCustomRule) {
+                                      onEditCustomRule(customRule);
+                                    } else if (onEditDetalle) {
+                                      onEditDetalle(detCode, vItems as any, category);
+                                    }
+                                  }}
+                                />
                                 {onDuplicateDetalle && (
                                   <IconActionButton
                                     kind="copy"
                                     title={`Crear nueva regla basada en el detalle ${detCode}`}
                                     onClick={() => onDuplicateDetalle(detCode, vItems as any, category)}
+                                  />
+                                )}
+                                {customRule && onDeleteCustomRule && (
+                                  <IconActionButton
+                                    kind="delete"
+                                    title={`Eliminar detalle ${detCode}`}
+                                    onClick={() => onDeleteCustomRule(customRule.id)}
                                   />
                                 )}
                               </div>
@@ -210,7 +253,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
                             textAlign: 'center'
                           }}
                         >
-                          {item.metradoOt || item.qty}
+                          {(item as any).metradoOt || (item as any).ot || item.qty}
                         </td>
                         <td
                           style={{

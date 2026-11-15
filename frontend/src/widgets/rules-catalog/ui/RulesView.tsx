@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRulesStore } from '../../../features/manage-rules/model/useRulesStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
@@ -93,6 +93,42 @@ export const RulesView: React.FC = () => {
   const areaDetalles = getDetallesForArea(activeArea, effectiveSubArea);
   const currentAreaCodes: string[] = areaDetalles.map(([c]) => c);
   const catalogRules = getCatalogForArea(rules, activeArea);
+
+  const isCable20Trigger = (trigger: string) => {
+    const up = (trigger || '').trim().toUpperCase();
+    return up === 'CABLE DESNUDO 2/0 AWG' || up === 'CABLE DESNUDO 2/0' || up === 'CABLE 2/0 AWG';
+  };
+
+  const isBarraPotTrigger = (trigger: string) => {
+    const up = (trigger || '').trim().toUpperCase();
+    return up === 'BARRA POT' || up === 'BARRA DE POTENCIAL' || up === 'BARRA DE POTENCIAL A TIERRA';
+  };
+
+  const isBarraInstTrigger = (trigger: string) => {
+    const up = (trigger || '').trim().toUpperCase();
+    return up === 'BARRA INST' || up === 'BARRA DE INSTRUMENTACIÓN' || up === 'BARRA DE INSTRUMENTACION';
+  };
+
+  const cable20CustomRules = useMemo(() => {
+    return catalogRules.filter(r => isCable20Trigger(r.trigger) && r.id !== 'r2');
+  }, [catalogRules]);
+
+  const barraPotCustomRules = useMemo(() => {
+    return catalogRules.filter(r => isBarraPotTrigger(r.trigger) && r.id !== 'r8');
+  }, [catalogRules]);
+
+  const barraInstCustomRules = useMemo(() => {
+    return catalogRules.filter(r => isBarraInstTrigger(r.trigger) && r.id !== 'r9');
+  }, [catalogRules]);
+
+  const visibleCatalogRules = useMemo(() => {
+    return catalogRules.filter(r => {
+      if (r.id !== 'r2' && isCable20Trigger(r.trigger)) return false;
+      if (r.id !== 'r8' && isBarraPotTrigger(r.trigger)) return false;
+      if (r.id !== 'r9' && isBarraInstTrigger(r.trigger)) return false;
+      return true;
+    });
+  }, [catalogRules]);
 
   const getDetalleItemsForCode = (
     code: string,
@@ -258,13 +294,13 @@ export const RulesView: React.FC = () => {
     });
   };
 
-  const allExpanded = catalogRules.length > 0 && catalogRules.every(r => expandedRules.has(r.id));
+  const allExpanded = visibleCatalogRules.length > 0 && visibleCatalogRules.every(r => expandedRules.has(r.id));
 
   const toggleAllExpand = () => {
     if (allExpanded) {
       setExpandedRules(new Set());
     } else {
-      setExpandedRules(new Set(catalogRules.map(r => r.id)));
+      setExpandedRules(new Set(visibleCatalogRules.map(r => r.id)));
     }
   };
 
@@ -272,7 +308,7 @@ export const RulesView: React.FC = () => {
     <div className="catalog-pane">
       {actionSlot && createPortal(
         <>
-          {catalogRules.length > 0 && (
+          {visibleCatalogRules.length > 0 && (
             <button type="button" className="btn-ghost" onClick={toggleAllExpand}>
               {allExpanded ? '▲ Colapsar todas' : '▼ Expandir todas'}
             </button>
@@ -348,7 +384,7 @@ export const RulesView: React.FC = () => {
         </span>
       </div>
 
-      {catalogRules.length === 0 ? (
+      {visibleCatalogRules.length === 0 ? (
         <div className="empty">
           <div className="empty-icon">—</div>
           <div className="empty-title">Sin reglas para esta área</div>
@@ -356,7 +392,7 @@ export const RulesView: React.FC = () => {
         </div>
       ) : (
         <div className="rules-catalog">
-        {catalogRules.map(r => {
+        {visibleCatalogRules.map(r => {
           const isExpanded = expandedRules.has(r.id);
 
           // CABLE DESNUDO 4/0 AWG in Area Humeda
@@ -374,12 +410,13 @@ export const RulesView: React.FC = () => {
             );
           }
 
-          // CABLE DESNUDO 2/0 AWG
-          if (r.id === 'r2') {
+          // CABLE DESNUDO 2/0 AWG (Anchor rule or primary Cable 2/0)
+          if (r.id === 'r2' || isCable20Trigger(r.trigger)) {
             return (
               <Cable20RuleCard
                 key={r.id}
                 rule={r}
+                customRules={cable20CustomRules}
                 activeArea={activeArea}
                 subArea={subAreaHumeda}
                 isExpanded={isExpanded}
@@ -388,16 +425,19 @@ export const RulesView: React.FC = () => {
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? (code, items) => handleOpenDetalleEdit(code, items, 'CABLE_2_0') : undefined}
                 onDuplicateDetalle={canEdit ? handleOpenDuplicateCable20Detalle : undefined}
+                onEditCustomRule={canEdit ? handleOpenEdit : undefined}
+                onDeleteCustomRule={canEdit ? handleDeleteRule : undefined}
               />
             );
           }
 
           // BARRA POT in Area Humeda
-          if (r.id === 'r8' && activeArea === 'AREA HUMEDA') {
+          if ((r.id === 'r8' || isBarraPotTrigger(r.trigger)) && activeArea === 'AREA HUMEDA') {
             return (
               <BarraRuleCard
                 key={r.id}
                 rule={r}
+                customRules={barraPotCustomRules}
                 category="BARRA_POT"
                 activeArea={activeArea}
                 isExpanded={isExpanded}
@@ -406,16 +446,19 @@ export const RulesView: React.FC = () => {
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? handleOpenDetalleEdit : undefined}
                 onDuplicateDetalle={canEdit ? handleOpenDuplicateBarraDetalle : undefined}
+                onEditCustomRule={canEdit ? handleOpenEdit : undefined}
+                onDeleteCustomRule={canEdit ? handleDeleteRule : undefined}
               />
             );
           }
 
           // BARRA INST in Area Humeda
-          if (r.id === 'r9' && activeArea === 'AREA HUMEDA') {
+          if ((r.id === 'r9' || isBarraInstTrigger(r.trigger)) && activeArea === 'AREA HUMEDA') {
             return (
               <BarraRuleCard
                 key={r.id}
                 rule={r}
+                customRules={barraInstCustomRules}
                 category="BARRA_INST"
                 activeArea={activeArea}
                 isExpanded={isExpanded}
@@ -424,6 +467,8 @@ export const RulesView: React.FC = () => {
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? handleOpenDetalleEdit : undefined}
                 onDuplicateDetalle={canEdit ? handleOpenDuplicateBarraDetalle : undefined}
+                onEditCustomRule={canEdit ? handleOpenEdit : undefined}
+                onDeleteCustomRule={canEdit ? handleDeleteRule : undefined}
               />
             );
           }

@@ -14,6 +14,7 @@ import { RuleCardShell } from './RuleCardShell';
 
 interface Cable20RuleCardProps {
   rule: TakeoffRule;
+  customRules?: TakeoffRule[];
   activeArea: 'AREA SECA' | 'AREA HUMEDA';
   subArea?: SubAreaHumeda;
   isExpanded: boolean;
@@ -22,10 +23,13 @@ interface Cable20RuleCardProps {
   onDelete?: (id: string) => void;
   onEditDetalle?: (code: string, items: DetalleVariantItem[]) => void;
   onDuplicateDetalle?: (code: string, items: DetalleVariantItem[]) => void;
+  onEditCustomRule?: (rule: TakeoffRule) => void;
+  onDeleteCustomRule?: (ruleId: string) => void;
 }
 
 export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   rule,
+  customRules = [],
   activeArea,
   subArea = 'NO_CORROSIVO',
   isExpanded,
@@ -33,18 +37,46 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   onDuplicate,
   onDelete,
   onEditDetalle,
-  onDuplicateDetalle
+  onDuplicateDetalle,
+  onEditCustomRule,
+  onDeleteCustomRule
 }) => {
   const variantsVersion = useRulesStore(state => state.detalleVariantsVersion);
-  const areaDetalles = useMemo(() => {
+  const baseDetalles = useMemo(() => {
     return getDetallesForArea(activeArea, subArea);
   }, [activeArea, subArea, variantsVersion]);
+
+  const allDetalles: [string, DetalleVariantItem[], TakeoffRule?][] = useMemo(() => {
+    const list: [string, DetalleVariantItem[], TakeoffRule?][] = baseDetalles.map(([code, items]) => [code, items, undefined]);
+    if (customRules && customRules.length > 0) {
+      for (const cr of customRules) {
+        const detCode = cr.detalle || cr.defaultDetalle;
+        if (!detCode) continue;
+        const existingIdx = list.findIndex(([c]) => c === detCode);
+        const crItems: DetalleVariantItem[] = cr.subitems.map(s => ({
+          desc: s.desc,
+          qty: s.qty,
+          unit: s.unit,
+          formula: s.formula,
+          material: s.material
+        }));
+        if (existingIdx >= 0) {
+          list[existingIdx] = [detCode, crItems, cr];
+        } else {
+          list.push([detCode, crItems, cr]);
+        }
+      }
+    }
+    return list.sort((a, b) =>
+      a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [baseDetalles, customRules]);
 
   return (
     <RuleCardShell
       trigger={rule.trigger}
-      preview={areaDetalles.map(([code]) => code)}
-      badge={`${areaDetalles.length} detalles`}
+      preview={allDetalles.map(([code]) => code)}
+      badge={`${allDetalles.length} detalles`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
       onDuplicate={onDuplicate ? () => onDuplicate(rule) : undefined}
@@ -129,7 +161,7 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {areaDetalles.map(([detalleCode, itemsList], detIdx) => {
+                  {allDetalles.map(([detalleCode, itemsList, customRule], detIdx) => {
                     const tuberiaDesc = detalleCode.startsWith('020')
                       ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"'
                       : 'TUBERIA PVC SCH 80 Ø3/4"';
@@ -194,20 +226,31 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                               >
                                 {detalleCode}
                               </span>
-                              {(onEditDetalle || onDuplicateDetalle) && (
+                              {(onEditDetalle || onDuplicateDetalle || (customRule && onDeleteCustomRule)) && (
                                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px', gap: '4px' }}>
-                                  {onEditDetalle && (
-                                    <IconActionButton
-                                      kind="edit"
-                                      title={`Editar la lista de ${detalleCode}`}
-                                      onClick={() => onEditDetalle(detalleCode, itemsList)}
-                                    />
-                                  )}
+                                  <IconActionButton
+                                    kind="edit"
+                                    title={`Editar materiales de ${detalleCode}`}
+                                    onClick={() => {
+                                      if (customRule && onEditCustomRule) {
+                                        onEditCustomRule(customRule);
+                                      } else if (onEditDetalle) {
+                                        onEditDetalle(detalleCode, itemsList);
+                                      }
+                                    }}
+                                  />
                                   {onDuplicateDetalle && (
                                     <IconActionButton
                                       kind="copy"
                                       title={`Crear nueva regla basada en el detalle ${detalleCode}`}
                                       onClick={() => onDuplicateDetalle(detalleCode, sortedItems)}
+                                    />
+                                  )}
+                                  {customRule && onDeleteCustomRule && (
+                                    <IconActionButton
+                                      kind="delete"
+                                      title={`Eliminar detalle ${detalleCode}`}
+                                      onClick={() => onDeleteCustomRule(customRule.id)}
                                     />
                                   )}
                                 </div>

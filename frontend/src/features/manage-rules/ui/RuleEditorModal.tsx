@@ -330,126 +330,116 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
               marginBottom: '1.2rem',
               padding: '12px 14px',
               background: 'var(--s1)',
-              borderRadius: '6px',
-              border: '1px solid var(--b1)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px'
+              borderRadius: '4px',
+              border: '1px solid var(--b1)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--tx)', whiteSpace: 'nowrap' }}>
-                📋 Basar en regla existente:
-              </span>
-              <select
-                value={selectedTemplateId}
-                onChange={e => handleSelectTemplate(e.target.value)}
-                style={{
-                  flex: 1,
-                  minWidth: '220px',
-                  padding: '6px 10px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--b1)',
-                  background: 'var(--bg)',
-                  color: 'var(--tx)',
-                  fontSize: '12px',
-                  fontFamily: 'inherit'
-                }}
-              >
-                <option value="">-- Comenzar desde cero (regla en blanco) --</option>
-                {availableRules.map(r => (
-                  <option key={r.id} value={r.id}>
-                    {r.trigger} ({r.subitems?.length || 0} materiales)
-                  </option>
-                ))}
-              </select>
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: 'var(--tx2)',
+                marginBottom: '8px'
+              }}
+            >
+              Plantilla base (opcional)
             </div>
 
-            {/* SECONDARY SELECTOR FOR CABLE 2/0 OPTIONS */}
-            {isCable20Selected && cable20DetalleList.length > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '8px 12px',
-                  background: 'var(--s2)',
-                  borderRadius: '4px',
-                  borderLeft: '3px solid var(--p1)',
-                  flexWrap: 'wrap'
-                }}
-              >
-                <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--p1)', whiteSpace: 'nowrap' }}>
-                  ⚡ Elegir opción / variante de Detalle (Cable 2/0):
-                </span>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  (isCable20Selected && cable20DetalleList.length > 0) ||
+                  ((isBarraPotSelected || isBarraInstSelected) && barraDetalleList.length > 0)
+                    ? '1fr 1fr'
+                    : '1fr',
+                gap: '1rem',
+                alignItems: 'end'
+              }}
+            >
+              <label style={{ margin: 0, fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>
+                Regla base:
                 <select
-                  value={selectedVariantCode}
-                  onChange={e => handleSelectCable20Option(e.target.value)}
+                  value={selectedTemplateId}
+                  onChange={e => handleSelectTemplate(e.target.value)}
                   style={{
-                    flex: 1,
-                    minWidth: '240px',
-                    padding: '6px 10px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--p1)',
-                    background: 'var(--bg)',
-                    color: 'var(--tx)',
+                    width: '100%',
+                    marginTop: '4px',
+                    padding: '6px 8px',
                     fontSize: '12px',
-                    fontWeight: '600',
-                    fontFamily: 'inherit'
+                    borderRadius: '2px',
+                    border: '1px solid var(--b1)',
+                    background: 'var(--bg)',
+                    color: 'var(--tx)'
                   }}
                 >
-                  <option value="">-- Seleccionar detalle de Cable 2/0 ({cable20DetalleList.length} disponibles) --</option>
-                  {cable20DetalleList.map(([code, items]) => (
-                    <option key={code} value={code}>
-                      Detalle {code} ({items.length} insumos: {items.map(it => it.desc).slice(0, 2).join(', ')}{items.length > 2 ? '...' : ''})
+                  <option value="">Regla en blanco (desde cero)</option>
+                  {availableRules.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.trigger} ({r.subitems?.length || 0} materiales)
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              </label>
 
-            {/* SECONDARY SELECTOR FOR BARRA POT / INST OPTIONS */}
-            {(isBarraPotSelected || isBarraInstSelected) && barraDetalleList.length > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '8px 12px',
-                  background: 'var(--s2)',
-                  borderRadius: '4px',
-                  borderLeft: '3px solid var(--p1)',
-                  flexWrap: 'wrap'
-                }}
-              >
-                <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--p1)', whiteSpace: 'nowrap' }}>
-                  ⚡ Elegir opción / variante de Detalle ({isBarraPotSelected ? 'Barra Potencial' : 'Barra Inst.'}):
-                </span>
-                <select
-                  value={selectedVariantCode}
-                  onChange={e => handleSelectBarraOption(e.target.value)}
-                  style={{
-                    flex: 1,
-                    minWidth: '240px',
-                    padding: '6px 10px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--p1)',
-                    background: 'var(--bg)',
-                    color: 'var(--tx)',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    fontFamily: 'inherit'
-                  }}
-                >
-                  <option value="">-- Seleccionar detalle de Barra ({barraDetalleList.length} disponibles) --</option>
-                  {barraDetalleList.map(([code, items]) => (
-                    <option key={code} value={code}>
-                      Detalle {code} ({items.length} insumos: {items.map((it: any) => it.desc).slice(0, 2).join(', ')}{items.length > 2 ? '...' : ''})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+              {isCable20Selected && cable20DetalleList.length > 0 && (
+                <label style={{ margin: 0, fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>
+                  Detalle constructivo (Cable 2/0):
+                  <select
+                    value={selectedVariantCode}
+                    onChange={e => handleSelectCable20Option(e.target.value)}
+                    style={{
+                      width: '100%',
+                      marginTop: '4px',
+                      padding: '6px 8px',
+                      fontSize: '12px',
+                      borderRadius: '2px',
+                      border: '1px solid #107c41',
+                      background: 'var(--bg)',
+                      color: 'var(--tx)',
+                      fontWeight: 600
+                    }}
+                  >
+                    <option value="">Seleccionar variante de detalle...</option>
+                    {cable20DetalleList.map(([code, items]) => (
+                      <option key={code} value={code}>
+                        Detalle {code} ({items.length} insumos: {items.map(it => it.desc).slice(0, 2).join(', ')}{items.length > 2 ? '...' : ''})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {(isBarraPotSelected || isBarraInstSelected) && barraDetalleList.length > 0 && (
+                <label style={{ margin: 0, fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>
+                  Detalle constructivo ({isBarraPotSelected ? 'Barra Potencial' : 'Barra Instrumentación'}):
+                  <select
+                    value={selectedVariantCode}
+                    onChange={e => handleSelectBarraOption(e.target.value)}
+                    style={{
+                      width: '100%',
+                      marginTop: '4px',
+                      padding: '6px 8px',
+                      fontSize: '12px',
+                      borderRadius: '2px',
+                      border: '1px solid #107c41',
+                      background: 'var(--bg)',
+                      color: 'var(--tx)',
+                      fontWeight: 600
+                    }}
+                  >
+                    <option value="">Seleccionar variante de detalle...</option>
+                    {barraDetalleList.map(([code, items]) => (
+                      <option key={code} value={code}>
+                        Detalle {code} ({items.length} insumos: {items.map((it: any) => it.desc).slice(0, 2).join(', ')}{items.length > 2 ? '...' : ''})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
           </div>
         )}
 
