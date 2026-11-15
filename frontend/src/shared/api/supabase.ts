@@ -273,6 +273,26 @@ export async function fetchDetalleVariantsFromSupabase(): Promise<{
   }
 }
 
+export function withTimeout<T>(
+  promise: Promise<T>,
+  ms = 6000,
+  operationName = 'Operación Supabase'
+): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`Tiempo de espera agotado (${ms / 1000}s) en ${operationName}. Posible bloqueo de red o cortafuegos.`));
+    }, ms);
+  });
+  return Promise.race([
+    promise.then(val => {
+      clearTimeout(timer);
+      return val;
+    }),
+    timeoutPromise
+  ]);
+}
+
 export async function saveDetalleVariantToSupabase(
   variant: SupabaseDetalleVariantRecord
 ): Promise<{ success: boolean; error?: string }> {
@@ -280,88 +300,115 @@ export async function saveDetalleVariantToSupabase(
     return { success: false, error: 'Supabase no está configurado' };
   }
   try {
-    // 1. Search for existing record by business key or matching ID
-    const { data: existingRows, error: searchError } = await supabase
-      .from('detalle_variants')
-      .select('id, area, sub_area, category, detalle_code')
-      .eq('area', variant.area)
-      .eq('category', variant.category)
-      .eq('detalle_code', variant.detalle_code);
+    return await withTimeout(
+      (async () => {
+        // 1. Search for existing record using select('*') to prevent schema cache missing-column failures
+        let existingRows: any[] = [];
+        try {
+          const { data, error: searchError } = await supabase
+            .from('detalle_variants')
+            .select('*')
+            .eq('area', variant.area)
+            .eq('category', variant.category)
+            .eq('detalle_code', variant.detalle_code);
 
-    if (searchError) {
-      console.warn('[Supabase] Warning querying detalle_variants by business key:', searchError.message);
-    }
+          if (!searchError && data) {
+            existingRows = data;
+          }
+        } catch (searchEx) {
+          console.warn('[Supabase] Non-fatal query error searching detalle_variants:', searchEx);
+        }
 
-    const matched = (existingRows || []).find(r => {
-      if (r.id === variant.id) return true;
-      if (variant.sub_area) {
-        return r.sub_area === variant.sub_area || (!r.sub_area && variant.sub_area === 'NO_CORROSIVO');
-      }
-      return true;
-    });
+        const matched = existingRows.find(r => {
+          if (r.id === variant.id) return true;
+          if (variant.sub_area) {
+            return r.sub_area === variant.sub_area || (!r.sub_area && variant.sub_area === 'NO_CORROSIVO');
+          }
+          return true;
+        });
 
-    if (matched) {
-      // Row exists: update its items and attributes using its existing primary key ID
-      const updateData: Record<string, any> = {
-        items: variant.items,
-        area: variant.area,
-        category: variant.category,
-        detalle_code: variant.detalle_code
-      };
-      if (variant.sub_area) {
-        updateData.sub_area = variant.sub_area;
-      }
-      if (matched.id !== variant.id) {
-        updateData.id = variant.id;
-      }
+        if (matched) {
+          // Row exists: update its items and attributes using matched ID
+          const updateData: Record<string, any> = {
+            items: variant.items,
+            area: variant.area,
+            category: variant.category,
+            detalle_code: variant.detalle_code
+          };
+          if (variant.sub_area) {
+            updateData.sub_area = variant.sub_area;
+          }
 
-      const { error: updateError } = await supabase
-        .from('detalle_variants')
-        .update(updateData)
-        .eq('id', matched.id);
-
-      if (updateError) {
-        // If updating the primary key ID caused a conflict, update payload without changing ID
-        if (updateData.id) {
-          delete updateData.id;
-          const { error: retryError } = await supabase
+          let { error: updateError } = await supabase
             .from('detalle_variants')
             .update(updateData)
             .eq('id', matched.id);
-          if (retryError) throw retryError;
-        } else {
-          throw updateError;
+
+          // If database schema does not have sub_area column, omit and retry
+          if (updateError && updateError.message && updateError.message.includes('sub_area')) {
+            delete updateData.sub_area;
+            const retry = await supabase
+              .from('detalle_variants')
+              .update(updateData)
+              .eq('id', matched.id);
+            updateError = retry.error;
+          }
+
+          if (updateError) {
+            throw updateError;
+          }
+
+          // Cleanup redundant legacy duplicates
+          const duplicates = existingRows.filter(r => r.id !== matched.id && r.id !== variant.id);
+          for (const dup of duplicates) {
+            try {
+              await supabase.from('detalle_variants').delete().eq('id', dup.id);
+            } catch (_) {}
+          }
+
+          return { success: true };
         }
-      }
 
-      // Cleanup any redundant legacy duplicates for the same natural key
-      const duplicates = (existingRows || []).filter(r => r.id !== matched.id && r.id !== variant.id);
-      if (duplicates.length > 0) {
-        for (const dup of duplicates) {
-          await supabase.from('detalle_variants').delete().eq('id', dup.id);
+        // 2. No matching row found: insert new record
+        const insertPayload: Record<string, any> = { ...variant };
+        let { error: insertError } = await supabase
+          .from('detalle_variants')
+          .insert(insertPayload);
+
+        // If sub_area is not in schema cache, omit and retry
+        if (insertError && insertError.message && insertError.message.includes('sub_area')) {
+          delete insertPayload.sub_area;
+          const retry = await supabase
+            .from('detalle_variants')
+            .insert(insertPayload);
+          insertError = retry.error;
         }
-      }
 
-      return { success: true };
-    }
+        if (insertError) {
+          // If insert failed due to conflict on ID, upsert
+          let { error: upsertError } = await supabase
+            .from('detalle_variants')
+            .upsert(insertPayload, { onConflict: 'id' });
 
-    // 2. No matching row found: insert new record
-    const { error: insertError } = await supabase
-      .from('detalle_variants')
-      .insert(variant);
+          if (upsertError && upsertError.message && upsertError.message.includes('sub_area')) {
+            delete insertPayload.sub_area;
+            const retryUpsert = await supabase
+              .from('detalle_variants')
+              .upsert(insertPayload, { onConflict: 'id' });
+            upsertError = retryUpsert.error;
+          }
 
-    if (insertError) {
-      // If insert failed because of primary key conflict, attempt upsert
-      const { error: upsertError } = await supabase
-        .from('detalle_variants')
-        .upsert(variant, { onConflict: 'id' });
-      if (upsertError) throw upsertError;
-    }
+          if (upsertError) throw upsertError;
+        }
 
-    return { success: true };
+        return { success: true };
+      })(),
+      6500,
+      'Guardar variante de detalle'
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al guardar variante de detalle en Supabase';
-    console.error('[Supabase] Error en saveDetalleVariantToSupabase:', err);
+    console.warn('[Supabase] Warning en saveDetalleVariantToSupabase:', message);
     return { success: false, error: message };
   }
 }

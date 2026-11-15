@@ -12,6 +12,7 @@ import { rememberRestoreAnchor, RESTORE_BUTTON_ID, RULE_RESTORE_BUTTON_ID } from
 import { SectionType, TabType } from '../../../shared/types/common';
 import { useAuthStore } from '../../../features/auth/model/useAuthStore';
 import { UserProfileButton } from '../../../features/auth/ui/UserProfileButton';
+import { SupabaseStatusButton } from '../../../features/supabase-status/ui/SupabaseStatusButton';
 
 export interface HeaderProps {
   onOpenAreaModal: () => void;
@@ -220,6 +221,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAreaModal }) => {
         >
           {isSyncing ? 'Guardando...' : 'Guardar en BD'}
         </button>
+
+        <SupabaseStatusButton />
 
         <span
           style={{

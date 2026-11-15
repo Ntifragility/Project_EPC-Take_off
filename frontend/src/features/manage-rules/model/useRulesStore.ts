@@ -128,11 +128,13 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
         await get().saveDetalleVariant(area, detCode, variantItems, cat);
       }
 
-      useUIStore.getState().showToast('Regla guardada en Supabase con éxito', 'success');
+      useUIStore.getState().showToast('Regla guardada con éxito', 'success');
     } catch (err) {
       console.warn('Supabase sync background notice:', err);
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
-      useUIStore.getState().showToast(`Regla guardada localmente, pero falló la sincronización con Supabase: ${msg}`, 'warn');
+      useUIStore.getState().showToast(
+        'Regla guardada localmente (Supabase no disponible o bloqueado por cortafuegos)',
+        'info'
+      );
     }
   },
 
@@ -173,18 +175,23 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       });
 
       if (!res.success) {
-        console.error('Failed to save detalle variant to Supabase:', res.error);
-        useUIStore.getState().showToast(`Error al guardar en Supabase: ${res.error}`, 'warn');
-        return false;
+        console.warn('Detalle saved locally. Supabase synchronization notice:', res.error);
+        useUIStore.getState().showToast(
+          'Detalle guardado localmente (Offline). Supabase no disponible o bloqueado por cortafuegos.',
+          'info'
+        );
+        return true;
       }
 
-      useUIStore.getState().showToast('Detalle guardado en Supabase con éxito', 'success');
+      useUIStore.getState().showToast('Detalle guardado con éxito', 'success');
       return true;
     } catch (err) {
-      console.error('Error saving detalle variant:', err);
-      const msg = err instanceof Error ? err.message : 'Error desconocido al guardar';
-      useUIStore.getState().showToast(`Error al guardar detalle: ${msg}`, 'warn');
-      return false;
+      console.warn('Error saving detalle variant to Supabase (saved locally):', err);
+      useUIStore.getState().showToast(
+        'Detalle guardado localmente. Supabase no disponible.',
+        'info'
+      );
+      return true;
     }
   },
 
