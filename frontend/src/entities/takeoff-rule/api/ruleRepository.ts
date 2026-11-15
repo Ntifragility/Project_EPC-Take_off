@@ -1,4 +1,4 @@
-import { supabase } from '../../../shared/api/supabase';
+import { supabase, withTimeout } from '../../../shared/api/supabase';
 import { TakeoffRule, DetalleDefinition, RuleSubitem, RuleItemOverride, RuleParameterOption } from '../model/types';
 import { SectionType } from '../../../shared/types/common';
 import { loadStoredRules, saveStoredRules } from '../../../shared/lib/storage';
@@ -137,16 +137,21 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
           if (itemsData && itemsData.some(i => i.rule_id === r.id)) {
             subitems = itemsData
               .filter(i => i.rule_id === r.id)
-              .map(i => ({
-                id: i.id,
-                desc: i.descripcion,
-                qty: i.base_qty,
-                unit: i.unit,
-                material: i.material,
-                formula: i.formula,
-                optional: i.optional,
-                subitemDetalle: i.subitem_detalle
-              }));
+              .map(i => {
+                const rawQty = i.base_qty ?? i.qty ?? 1;
+                const numQty = Number(rawQty);
+                const parsedQty = rawQty !== '' && Number.isFinite(numQty) && String(numQty) === String(rawQty) ? numQty : rawQty;
+                return {
+                  id: i.id,
+                  desc: i.descripcion ?? i.desc ?? '',
+                  qty: parsedQty,
+                  unit: i.unit || 'und',
+                  material: i.material || 'C',
+                  formula: i.formula || '',
+                  optional: i.optional,
+                  subitemDetalle: i.subitem_detalle
+                };
+              });
           } else if (Array.isArray(r.subitems)) {
             subitems = r.subitems;
           }
@@ -223,143 +228,130 @@ export async function saveUnifiedRule(
   if (!supabase) return;
 
   try {
-    // 1. Upsert Rule Header
-    // Primary: Schema V3 format matching public.takeoff_rules in migration_unified_rules_v3.sql
-    const v3Header: Record<string, any> = {
-      id: rule.id,
-      section,
-      trigger: rule.trigger,
-      default_detalle: rule.defaultDetalle || rule.detalle || null,
-      tag_prefix: rule.tagPrefix || 'M',
-      allowed_areas: rule.areas || ['AREA SECA', 'AREA HUMEDA'],
-      area_detalles: rule.areaDetalles || {},
-      allow_detalle_edit: rule.allowDetalleEdit ?? true,
-      has_dimension_param: rule.hasDimensionParam ?? false,
-      dimension_param_name: rule.dimensionParamName || null,
-      order_index: orderIndex,
-      updated_at: new Date().toISOString()
-    };
+    await withTimeout(
+      (async () => {
+        if (!supabase) return;
 
-    let { error: headerErr } = await supabase.from('takeoff_rules').upsert(v3Header);
-    if (headerErr) {
-      console.warn('[Supabase] V3 rule header upsert failed, retrying with schema-safe fallback:', headerErr.message);
-
-      // Fallback 1: Legacy schema (which uses 'areas', 'detalle', 'subitems')
-      const legacyHeader: Record<string, any> = {
-        id: rule.id,
-        section,
-        trigger: rule.trigger,
-        detalle: rule.defaultDetalle || rule.detalle || null,
-        tag_prefix: rule.tagPrefix || 'M',
-        areas: rule.areas || ['AREA SECA', 'AREA HUMEDA'],
-        subitems: rule.subitems,
-        order_index: orderIndex,
-        updated_at: new Date().toISOString()
-      };
-      let retry = await supabase.from('takeoff_rules').upsert(legacyHeader);
-
-      if (retry.error) {
-        console.warn('[Supabase] Legacy schema upsert failed, trying universal minimal header:', retry.error.message);
-        // Fallback 2: Minimal universal header without 'areas' or 'allowed_areas' or 'subitems'
-        const minimalHeader: Record<string, any> = {
+        // 1. Upsert Rule Header (strip any missing schema-cache column progressively so valid fields like detalle/subitems are preserved)
+        const headerPayload: Record<string, any> = {
           id: rule.id,
           section,
           trigger: rule.trigger,
+          default_detalle: rule.defaultDetalle || rule.detalle || null,
+          detalle: rule.defaultDetalle || rule.detalle || null,
           tag_prefix: rule.tagPrefix || 'M',
+          allowed_areas: rule.areas || ['AREA SECA', 'AREA HUMEDA'],
+          areas: rule.areas || ['AREA SECA', 'AREA HUMEDA'],
+          area_detalles: rule.areaDetalles || {},
+          allow_detalle_edit: rule.allowDetalleEdit ?? true,
+          has_dimension_param: rule.hasDimensionParam ?? false,
+          dimension_param_name: rule.dimensionParamName || null,
+          subitems: rule.subitems,
           order_index: orderIndex,
           updated_at: new Date().toISOString()
         };
-        retry = await supabase.from('takeoff_rules').upsert(minimalHeader);
-        if (retry.error) {
-          console.error('[Supabase] Error saving rule header on minimal fallback retry:', retry.error);
-          throw new Error(retry.error.message);
+
+        for (let attempt = 0; attempt < 10; attempt++) {
+          const { error: headerErr } = await supabase.from('takeoff_rules').upsert(headerPayload);
+          if (!headerErr) break;
+
+          const missingColMatch = /Could not find the '([^']+)' column/i.exec(headerErr.message || '');
+          if (missingColMatch && missingColMatch[1] && missingColMatch[1] in headerPayload) {
+            delete headerPayload[missingColMatch[1]];
+            continue;
+          }
+
+          console.error('[Supabase] Error saving rule header:', headerErr);
+          throw new Error(headerErr.message);
         }
-      }
-    }
 
-    // 2. Upsert Rule Subitems
-    if (rule.subitems && rule.subitems.length > 0) {
-      const v3Items = rule.subitems.map((s, idx) => {
-        const rawMat = (s.material || 'C').toUpperCase().trim();
-        const cleanMat = (rawMat === 'P' || rawMat === 'C') ? rawMat : 'C';
-        return {
-          id: s.id,
-          rule_id: rule.id,
-          order_index: idx + 1,
-          descripcion: s.desc,
-          unit: s.unit || 'und',
-          material: cleanMat,
-          base_qty: String(s.qty ?? '1'),
-          formula: s.formula || '',
-          optional: Boolean(s.optional),
-          subitem_detalle: s.subitemDetalle || null
-        };
-      });
+        // 2. Upsert Rule Subitems
+        if (rule.subitems && rule.subitems.length > 0) {
+          const v3Items = rule.subitems.map((s, idx) => {
+            const rawMat = (s.material || 'C').toUpperCase().trim();
+            const cleanMat = (rawMat === 'P' || rawMat === 'C') ? rawMat : 'C';
+            return {
+              id: s.id,
+              rule_id: rule.id,
+              order_index: idx + 1,
+              descripcion: s.desc,
+              unit: s.unit || 'und',
+              material: cleanMat,
+              base_qty: String(s.qty ?? '1'),
+              formula: s.formula || '',
+              optional: Boolean(s.optional),
+              subitem_detalle: s.subitemDetalle || null
+            };
+          });
 
-      // Delete existing subitems and insert fresh to prevent orphan rows
-      await supabase.from('rule_items').delete().eq('rule_id', rule.id);
-      let { error: itemsErr } = await supabase.from('rule_items').insert(v3Items);
-      if (itemsErr) {
-        console.warn('[Supabase] V3 rule items insert failed, retrying with legacy schema (qty):', itemsErr.message);
-        const legacyItems = rule.subitems.map((s, idx) => {
-          const rawMat = (s.material || 'C').toUpperCase().trim();
-          const cleanMat = (rawMat === 'P' || rawMat === 'C') ? rawMat : 'C';
-          return {
-            id: s.id,
+          // Delete existing subitems and insert fresh to prevent orphan rows
+          await supabase.from('rule_items').delete().eq('rule_id', rule.id);
+          let { error: itemsErr } = await supabase.from('rule_items').insert(v3Items);
+          if (itemsErr) {
+            console.warn('[Supabase] V3 rule items insert failed, retrying with legacy schema (qty):', itemsErr.message);
+            const legacyItems = rule.subitems.map((s, idx) => {
+              const rawMat = (s.material || 'C').toUpperCase().trim();
+              const cleanMat = (rawMat === 'P' || rawMat === 'C') ? rawMat : 'C';
+              return {
+                id: s.id,
+                rule_id: rule.id,
+                order_index: idx + 1,
+                descripcion: s.desc,
+                unit: s.unit || 'und',
+                material: cleanMat,
+                qty: String(s.qty ?? '1'),
+                formula: s.formula || '',
+                optional: Boolean(s.optional)
+              };
+            });
+            const retryItems = await supabase.from('rule_items').insert(legacyItems);
+            if (retryItems.error) {
+              console.warn('[Supabase] Warning saving rule items to table:', retryItems.error.message);
+            }
+          }
+        }
+
+        // 3. Upsert Parameter Options if any
+        if (rule.parameterOptions && rule.parameterOptions.length > 0) {
+          await supabase.from('rule_parameter_options').delete().eq('rule_id', rule.id);
+          const paramsPayload = rule.parameterOptions.map(p => ({
+            id: p.id,
+            rule_id: rule.id,
+            param_key: p.paramKey,
+            option_label: p.optionLabel,
+            option_value: p.optionValue,
+            multiplier_map: p.multiplierMap
+          }));
+          const { error: paramsErr } = await supabase.from('rule_parameter_options').insert(paramsPayload);
+          if (paramsErr) {
+            console.warn('[Supabase] Warning saving rule parameter options:', paramsErr);
+          }
+        }
+
+        // 4. Upsert Cable Tray Matrix if any
+        if (rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0) {
+          await supabase.from('cable_tray_matrix').delete().eq('rule_id', rule.id);
+          const matrixPayload = rule.cableTrayMatrix.map((m, idx) => ({
+            id: m.id || `${rule.id}_matrix_${idx}`,
             rule_id: rule.id,
             order_index: idx + 1,
-            descripcion: s.desc,
-            unit: s.unit || 'und',
-            material: cleanMat,
-            qty: String(s.qty ?? '1'),
-            formula: s.formula || '',
-            optional: Boolean(s.optional)
-          };
-        });
-        const retryItems = await supabase.from('rule_items').insert(legacyItems);
-        if (retryItems.error) {
-          console.warn('[Supabase] Warning saving rule items to table:', retryItems.error.message);
+            descripcion: m.desc,
+            unit: m.unit || 'm',
+            material: m.material || 'C',
+            w900: String(m.w900 ?? ''),
+            w600: String(m.w600 ?? ''),
+            w450: String(m.w450 ?? ''),
+            w300: String(m.w300 ?? '')
+          }));
+          const { error: matrixErr } = await supabase.from('cable_tray_matrix').insert(matrixPayload);
+          if (matrixErr) {
+            console.warn('[Supabase] Warning saving cable tray matrix:', matrixErr.message);
+          }
         }
-      }
-    }
-
-    // 3. Upsert Parameter Options if any
-    if (rule.parameterOptions && rule.parameterOptions.length > 0) {
-      await supabase.from('rule_parameter_options').delete().eq('rule_id', rule.id);
-      const paramsPayload = rule.parameterOptions.map(p => ({
-        id: p.id,
-        rule_id: rule.id,
-        param_key: p.paramKey,
-        option_label: p.optionLabel,
-        option_value: p.optionValue,
-        multiplier_map: p.multiplierMap
-      }));
-      const { error: paramsErr } = await supabase.from('rule_parameter_options').insert(paramsPayload);
-      if (paramsErr) {
-        console.warn('[Supabase] Warning saving rule parameter options:', paramsErr);
-      }
-    }
-
-    // 4. Upsert Cable Tray Matrix if any
-    if (rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0) {
-      await supabase.from('cable_tray_matrix').delete().eq('rule_id', rule.id);
-      const matrixPayload = rule.cableTrayMatrix.map((m, idx) => ({
-        id: m.id || `${rule.id}_matrix_${idx}`,
-        rule_id: rule.id,
-        order_index: idx + 1,
-        descripcion: m.desc,
-        unit: m.unit || 'm',
-        material: m.material || 'C',
-        w900: String(m.w900 ?? ''),
-        w600: String(m.w600 ?? ''),
-        w450: String(m.w450 ?? ''),
-        w300: String(m.w300 ?? '')
-      }));
-      const { error: matrixErr } = await supabase.from('cable_tray_matrix').insert(matrixPayload);
-      if (matrixErr) {
-        console.warn('[Supabase] Warning saving cable tray matrix:', matrixErr.message);
-      }
-    }
+      })(),
+      6500,
+      'Guardar regla unificada'
+    );
   } catch (err) {
     console.error('Error saving unified rule to Supabase:', err);
     throw err;

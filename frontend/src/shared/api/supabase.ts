@@ -146,13 +146,13 @@ export async function fetchTakeoffRulesFromSupabase(
     const rules: TakeoffRule[] = (data || []).map((r: any) => {
       let subitems = r.subitems;
       let cableTrayMatrix = r.cable_tray_matrix || r.cableTrayMatrix;
-      let detalle = r.detalle || r.detalle_code;
+      let detalle = r.default_detalle || r.detalle || r.detalle_code;
       let tagPrefix = r.tag_prefix || r.tagPrefix;
-      let areas = r.areas;
+      let areas = r.allowed_areas || r.areas;
 
       if (subitems && typeof subitems === 'object' && !Array.isArray(subitems)) {
         if (subitems.cableTrayMatrix) cableTrayMatrix = subitems.cableTrayMatrix;
-        if (subitems.detalle) detalle = subitems.detalle;
+        if (subitems.detalle || subitems.defaultDetalle) detalle = subitems.detalle || subitems.defaultDetalle;
         if (subitems.tagPrefix) tagPrefix = subitems.tagPrefix;
         if (subitems.areas) areas = subitems.areas;
         if (Array.isArray(subitems.items)) subitems = subitems.items;
@@ -160,12 +160,18 @@ export async function fetchTakeoffRulesFromSupabase(
 
       return {
         id: r.id,
+        section: r.section,
         trigger: r.trigger,
         subitems: Array.isArray(subitems) ? subitems : [],
         detalle,
+        defaultDetalle: r.default_detalle || detalle,
         tagPrefix,
         cableTrayMatrix,
-        areas
+        areas,
+        areaDetalles: r.area_detalles && typeof r.area_detalles === 'object' ? r.area_detalles : undefined,
+        allowDetalleEdit: r.allow_detalle_edit,
+        hasDimensionParam: r.has_dimension_param,
+        dimensionParamName: r.dimension_param_name
       };
     });
     return { data: rules };

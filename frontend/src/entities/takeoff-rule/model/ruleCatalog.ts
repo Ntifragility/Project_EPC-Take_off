@@ -234,9 +234,11 @@ export function hydrateRules(rules: TakeoffRule[], items: RuleItemRecord[], matr
   });
 }
 
-function toSubitem(line: RuleItemRecord): RuleSubitem {
-  const numeric = Number(line.qty);
-  const qty = line.qty !== '' && Number.isFinite(numeric) && String(numeric) === line.qty ? numeric : line.qty;
+function toSubitem(line: RuleItemRecord & { base_qty?: string | number }): RuleSubitem {
+  const rawQty = line.base_qty ?? line.qty ?? '';
+  const text = rawQty === null || rawQty === undefined ? '' : String(rawQty);
+  const numeric = Number(text);
+  const qty = text !== '' && Number.isFinite(numeric) && String(numeric) === text ? numeric : text;
   return {
     id: line.id.split(':').slice(1).join(':') || line.id,
     desc: line.descripcion,

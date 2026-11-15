@@ -47,8 +47,9 @@ export type RulesStore = RulesState & RulesActions;
 const initialSection = (localStorage.getItem('epc-active-section') as SectionType) || 'pat';
 const initialRules = loadStoredRules(initialSection);
 
-function syncRulesToDynamicVariants(rules: TakeoffRule[]) {
+export function syncRulesToDynamicVariants(rules: TakeoffRule[]) {
   for (const r of rules) {
+    if (r.id === 'r2' || r.id === 'r8' || r.id === 'r9') continue;
     const upTrigger = (r.trigger || '').trim().toUpperCase();
     const detCode = r.detalle || r.defaultDetalle;
     if (detCode && (upTrigger.includes('2/0') || upTrigger.includes('BARRA'))) {
@@ -57,7 +58,7 @@ function syncRulesToDynamicVariants(rules: TakeoffRule[]) {
         : upTrigger.includes('BARRA')
         ? 'BARRA_POT'
         : 'CABLE_2_0';
-      const area = r.areas?.[0] || 'AREA HUMEDA';
+      const targetAreas = r.areas && r.areas.length > 0 ? r.areas : ['AREA HUMEDA'];
       const variantItems: DetalleVariantItem[] = r.subitems.map(s => {
         const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
         return {
@@ -69,7 +70,9 @@ function syncRulesToDynamicVariants(rules: TakeoffRule[]) {
           ot: rawOt
         };
       });
-      updateSingleDynamicVariant(area, detCode, variantItems, cat);
+      for (const area of targetAreas) {
+        updateSingleDynamicVariant(area, detCode, variantItems, cat);
+      }
     }
   }
 }
@@ -89,18 +92,19 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     // 2. Refresh from Supabase in background
     try {
       const remoteRules = await fetchUnifiedRules(section);
+      const activeRules = remoteRules && remoteRules.length > 0 ? remoteRules : cachedRules;
       if (remoteRules && remoteRules.length > 0) {
         set({ rules: remoteRules });
-        syncRulesToDynamicVariants(remoteRules);
-        set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
       }
 
-      // Also hydrate detalle variants from Supabase as single source of truth
+      // Hydrate detalle variants from Supabase FIRST, then overlay custom rules so they aren't wiped
       const { data: cloudVariants, error: varErr } = await fetchDetalleVariantsFromSupabase();
       if (!varErr && cloudVariants && cloudVariants.length > 0) {
         updateDynamicVariants(cloudVariants);
-        set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
       }
+
+      syncRulesToDynamicVariants(activeRules);
+      set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
     } catch (e) {
       console.warn('Background rule fetch failed:', e);
     }
@@ -132,7 +136,8 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     }
 
     saveStoredRules(section, nextRules);
-    set({ rules: nextRules });
+    syncRulesToDynamicVariants([rule]);
+    set({ rules: nextRules, detalleVariantsVersion: get().detalleVariantsVersion + 1 });
 
     // Sync with Supabase asynchronously without blocking local state
     try {
@@ -142,13 +147,13 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       // If this rule belongs to Cable 2/0 or Barra, also mirror into detalle_variants table in Supabase
       const upTrigger = rule.trigger.trim().toUpperCase();
       const detCode = rule.detalle || rule.defaultDetalle;
-      if (detCode && (upTrigger.includes('2/0') || upTrigger.includes('BARRA'))) {
+      if (detCode && rule.id !== 'r2' && rule.id !== 'r8' && rule.id !== 'r9' && (upTrigger.includes('2/0') || upTrigger.includes('BARRA'))) {
         const cat = upTrigger.includes('BARRA INST')
           ? 'BARRA_INST'
           : upTrigger.includes('BARRA')
           ? 'BARRA_POT'
           : 'CABLE_2_0';
-        const area = rule.areas?.[0] || 'AREA HUMEDA';
+        const targetAreas = rule.areas && rule.areas.length > 0 ? rule.areas : ['AREA HUMEDA'];
         const variantItems: DetalleVariantItem[] = rule.subitems.map(s => {
           const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
           return {
@@ -160,7 +165,9 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
             ot: rawOt
           };
         });
-        await get().saveDetalleVariant(area, detCode, variantItems, cat);
+        for (const area of targetAreas) {
+          await get().saveDetalleVariant(area, detCode, variantItems, cat);
+        }
       }
 
       useUIStore.getState().showToast('Regla guardada con éxito', 'success');
@@ -265,10 +272,12 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
 
   setRules: (rules: TakeoffRule[], section: SectionType) => {
     saveStoredRules(section, rules);
+    syncRulesToDynamicVariants(rules);
     set({ rules });
   },
 
   incrementVariantsVersion: () => {
+    syncRulesToDynamicVariants(get().rules);
     set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
   }
 }));
