@@ -107,6 +107,27 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     try {
       const orderIndex = isNew ? nextRules.length - 1 : Math.max(0, nextRules.findIndex(r => r.id === rule.id));
       await saveUnifiedRule(rule, section, orderIndex);
+
+      // If this rule belongs to Cable 2/0 or Barra, also mirror into detalle_variants table in Supabase
+      const upTrigger = rule.trigger.trim().toUpperCase();
+      const detCode = rule.detalle || rule.defaultDetalle;
+      if (detCode && (upTrigger.includes('2/0') || upTrigger.includes('BARRA'))) {
+        const cat = upTrigger.includes('BARRA INST')
+          ? 'BARRA_INST'
+          : upTrigger.includes('BARRA')
+          ? 'BARRA_POT'
+          : 'CABLE_2_0';
+        const area = rule.areas?.[0] || 'AREA HUMEDA';
+        const variantItems: DetalleVariantItem[] = rule.subitems.map(s => ({
+          desc: s.desc,
+          qty: s.qty,
+          unit: s.unit,
+          formula: s.formula,
+          material: s.material
+        }));
+        await get().saveDetalleVariant(area, detCode, variantItems, cat);
+      }
+
       useUIStore.getState().showToast('Regla guardada en Supabase con éxito', 'success');
     } catch (err) {
       console.warn('Supabase sync background notice:', err);
