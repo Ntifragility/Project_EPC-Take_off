@@ -107,7 +107,6 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     try {
       const orderIndex = isNew ? nextRules.length - 1 : Math.max(0, nextRules.findIndex(r => r.id === rule.id));
       await saveUnifiedRule(rule, section, orderIndex);
-      await replaceRuleLines(rule);
       useUIStore.getState().showToast('Regla guardada en Supabase con éxito', 'success');
     } catch (err) {
       console.warn('Supabase sync background notice:', err);

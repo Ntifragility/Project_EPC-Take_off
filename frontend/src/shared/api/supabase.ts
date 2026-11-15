@@ -184,38 +184,47 @@ export async function saveTakeoffRuleToSupabase(
     return { success: false, error: 'Supabase no está configurado' };
   }
   try {
-    const payload: any = {
+    const v3Payload: any = {
+      id: rule.id,
+      section,
+      trigger: rule.trigger,
+      default_detalle: rule.defaultDetalle || rule.detalle || null,
+      tag_prefix: rule.tagPrefix || 'M',
+      allowed_areas: rule.areas || ['AREA SECA', 'AREA HUMEDA'],
+      area_detalles: rule.areaDetalles || {},
+      allow_detalle_edit: rule.allowDetalleEdit ?? true,
+      has_dimension_param: rule.hasDimensionParam ?? false,
+      dimension_param_name: rule.dimensionParamName || null,
+      order_index: orderIndex,
+      updated_at: new Date().toISOString()
+    };
+    const { error: v3Err } = await supabase.from('takeoff_rules').upsert(v3Payload);
+    if (!v3Err) return { success: true };
+
+    // Fallback for legacy schema
+    const legacyPayload: any = {
       id: rule.id,
       section,
       trigger: rule.trigger,
       subitems: rule.subitems,
       order_index: orderIndex,
       detalle: rule.detalle,
-      tag_prefix: rule.tagPrefix,
-      cable_tray_matrix: rule.cableTrayMatrix
+      tag_prefix: rule.tagPrefix
     };
-    const { error } = await supabase.from('takeoff_rules').upsert(payload);
-    if (!error) return { success: true };
+    if (rule.areas && rule.areas.length) legacyPayload.areas = rule.areas;
+    const { error: legErr } = await supabase.from('takeoff_rules').upsert(legacyPayload);
+    if (!legErr) return { success: true };
 
-    // Fallback if cable_tray_matrix column does not exist on PostgreSQL table
-    const fallbackSubitems = Array.isArray(rule.subitems) ? [...rule.subitems] : [];
-    const subitemsWithMeta = {
-      items: fallbackSubitems,
-      cableTrayMatrix: rule.cableTrayMatrix,
-      detalle: rule.detalle,
-      tagPrefix: rule.tagPrefix,
-      areas: rule.areas
-    };
-
-    const basePayload: any = {
+    // Fallback minimal
+    const minPayload = {
       id: rule.id,
       section,
       trigger: rule.trigger,
-      subitems: rule.cableTrayMatrix ? subitemsWithMeta : rule.subitems,
+      tag_prefix: rule.tagPrefix || 'M',
       order_index: orderIndex
     };
-    const { error: fallbackErr } = await supabase.from('takeoff_rules').upsert(basePayload);
-    if (fallbackErr) throw fallbackErr;
+    const { error: minErr } = await supabase.from('takeoff_rules').upsert(minPayload);
+    if (minErr) throw minErr;
 
     return { success: true };
   } catch (err: unknown) {
