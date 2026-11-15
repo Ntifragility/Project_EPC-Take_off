@@ -1,5 +1,6 @@
 import { DetalleVariantItem, RuleSubitem, TakeoffRule } from './types';
 import { TakeoffItem } from '../../takeoff-item/model/types';
+import { cleanFloat } from '../../../shared/lib/cleanNumber';
 
 const EMPTY_LINE_HINT = 'Vacío = esa línea se puede llenar en la tabla.';
 
@@ -115,7 +116,8 @@ export function evaluateMetradoFormula(formula: string, vars: MetradoVars): Metr
 
 function numberResult(number: number): MetradoResult {
   if (!Number.isFinite(number)) return { status: 'needs-input' };
-  return { status: 'value', number, text: String(parseFloat(number.toFixed(4))) };
+  const clean = cleanFloat(number);
+  return { status: 'value', number: clean, text: String(parseFloat(clean.toFixed(4))) };
 }
 
 class NeedsInput extends Error {}

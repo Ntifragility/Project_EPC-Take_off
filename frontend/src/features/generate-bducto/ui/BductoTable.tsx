@@ -5,6 +5,7 @@ import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 import { cellKey, cellsInRect, extendSelection, isSingleCell, rangeEdgesByCol, type CellRef, type RangeEdges } from '../../../widgets/takeoff-table/model/cellRange';
 import { ExcelColumnFilter } from '../../../widgets/takeoff-table/ui/ExcelColumnFilter';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
+import { ExcelStatusBar, computeSelectionStats } from '../../../shared/ui/ExcelStatusBar';
 import { useBductoStore } from '../model/useBductoStore';
 import { BductoDisplayRow, presentBductoRows } from '../model/bductoView';
 import { BDUCTO_COLUMNS, bductoCell } from '../model/exportBductosExcel';
@@ -94,31 +95,6 @@ function rowMatchesFilters(row: BductoRow, columnFilters: Record<string, string[
     if (!allowed.includes(filterText(row, key))) return false;
   }
   return true;
-}
-
-/** Excel status bar: Recuento is non-empty cells, Suma adds numbers only. */
-function selectionStats(rows: BductoRow[], keys: Set<string>): { count: number; sum: number; hasNumbers: boolean } {
-  const byId = new Map(rows.map(row => [row.id, row]));
-  let count = 0;
-  let sum = 0;
-  let hasNumbers = false;
-  keys.forEach(key => {
-    const split = key.indexOf('::');
-    const row = byId.get(key.slice(0, split));
-    if (!row) return;
-    const value = bductoCell(row, key.slice(split + 2));
-    if (value === '') return;
-    count += 1;
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      sum += value;
-      hasNumbers = true;
-    }
-  });
-  return { count, sum: Math.round(sum * 100) / 100, hasNumbers };
-}
-
-function formatStat(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
 
 function edgeClass(edges?: RangeEdges): string {
@@ -336,7 +312,7 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
   };
 
   const rangeIsSingle = Boolean(selectedCell && isSingleCell(selectedCell, rangeFocus));
-  const stats = useMemo(() => (rangeKeys.size === 0 ? null : selectionStats(visibleRows, rangeKeys)), [visibleRows, rangeKeys]);
+  const stats = useMemo(() => computeSelectionStats(visibleRows, rangeKeys, bductoCell), [visibleRows, rangeKeys]);
 
   const storedSeeds = (target: BductoDisplayRow): BductoRow[] => {
     if (!target.viewMemberIds) return rowsRef.current.filter(row => row.id === target.id);
@@ -719,10 +695,7 @@ export const BductoTable: React.FC<{ rows: BductoRow[] }> = ({ rows }) => {
           </tbody>
         </table>
       </div>
-      <div className="excel-status-bar" role="status" aria-live="polite">
-        {stats && stats.count > 0 && <span>Recuento: <strong>{stats.count}</strong></span>}
-        {stats && stats.hasNumbers && <span>Suma: <strong>{formatStat(stats.sum)}</strong></span>}
-      </div>
+      <ExcelStatusBar stats={stats} fixedDecimals={2} />
     </div>
   );
 };

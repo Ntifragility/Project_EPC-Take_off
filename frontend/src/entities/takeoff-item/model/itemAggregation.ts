@@ -1,4 +1,5 @@
 import { TakeoffItem } from './types';
+import { cleanFloat } from '../../../shared/lib/cleanNumber';
 
 /**
  * Consolidates consumable accessories sharing the same pkgId, plano, rev, tagPlano, and description.
@@ -19,11 +20,11 @@ export function consolidateAccessories(items: TakeoffItem[]): TakeoffItem[] {
       } else {
         const q1 = typeof existing.qty === 'number' ? existing.qty : parseFloat(existing.qty as string) || 0;
         const q2 = typeof it.qty === 'number' ? it.qty : parseFloat(it.qty as string) || 0;
-        const newQty = q1 + q2;
+        const newQty = cleanFloat(q1 + q2);
 
         const ot1 = parseFloat(existing.metradoOt || '') || 0;
         const ot2 = parseFloat(it.metradoOt || '') || 0;
-        const newOt = (ot1 + ot2).toString();
+        const newOt = String(cleanFloat(ot1 + ot2));
 
         const combinedNotes = [existing.notes, it.notes].filter(Boolean).join('; ');
 

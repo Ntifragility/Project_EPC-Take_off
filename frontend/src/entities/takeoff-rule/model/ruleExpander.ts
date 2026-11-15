@@ -1,6 +1,7 @@
 import { TakeoffItem } from '../../takeoff-item/model/types';
 import { SubAreaHumeda } from '../../../shared/types/common';
 import { uid } from '../../../shared/lib/uid';
+import { cleanFloat } from '../../../shared/lib/cleanNumber';
 import { componentClass, getAbsoluteUnit } from '../../takeoff-item/model/materialClassifier';
 import { generateTagUnico, assignTagUnicoSuffixes } from '../../takeoff-item/model/tagGenerator';
 import {
@@ -71,7 +72,8 @@ export function applyDetalleVariant(
   }
 
   const tuberiaOt = (tuberiaOtParam !== undefined && tuberiaOtParam !== '') ? tuberiaOtParam : (tuberiaItem ? tuberiaItem.metradoOt : '');
-  const cableOt = (cableOtParam !== undefined && cableOtParam !== '') ? parseFloat(cableOtParam) : (cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0);
+  const rawCableOt = (cableOtParam !== undefined && cableOtParam !== '') ? parseFloat(cableOtParam) : (cableItem ? (parseFloat(cableItem.metradoOt) || 0) : 0);
+  const cableOt = cleanFloat(rawCableOt);
   const autoManageTuberia = shouldAutoManageTuberia(detalleCode);
 
   if (detalleCode === '153' || detalleCode === 'NA') {
@@ -302,10 +304,10 @@ export function applyBarraPotDetalleVariant(
       : null;
     const finalQty = evaluated?.status === 'value'
       ? evaluated.number
-      : isSoporte ? v.qty * numSoportes : v.qty;
+      : isSoporte && typeof v.qty === 'number' ? cleanFloat(v.qty * numSoportes) : v.qty;
     const finalOt = evaluated?.status === 'value'
       ? evaluated.text
-      : isSoporte ? String(parseFloat(v.metradoOt || '1') * numSoportes) : v.metradoOt;
+      : isSoporte ? String(cleanFloat((parseFloat(v.metradoOt || '1') || 0) * numSoportes)) : v.metradoOt;
 
     return {
       id: uid(),

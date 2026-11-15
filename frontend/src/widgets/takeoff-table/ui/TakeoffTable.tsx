@@ -16,6 +16,7 @@ import { mergeItemsByDetalle } from '../../../entities/takeoff-item/model/itemAg
 import { useItemsStore } from '../../../features/manage-items/model/useItemsStore';
 import { useAppStore } from '../../../features/app-config/model/useAppStore';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
+import { ExcelStatusBar, computeSelectionStats } from '../../../shared/ui/ExcelStatusBar';
 
 export interface TakeoffTableProps {
   items: TakeoffItem[];
@@ -48,6 +49,42 @@ function rowInSourceColumn(clientY: number, colKey: string): string | null {
     }
   }
   return null;
+}
+
+function takeoffCellValue(item: TakeoffItem, colKey: string): string | number {
+  switch (colKey) {
+    case 'partida':
+      return item.partida || 'NA';
+    case 'partidaBalance':
+      return item.partidaBalance || 'NA';
+    case 'material':
+      return item.material || '';
+    case 'plano':
+      return item.plano || '';
+    case 'rev':
+      return item.rev || '';
+    case 'tagUnico':
+      return item.tagUnico || '';
+    case 'tagPlano':
+      return item.tagPlano || '';
+    case 'detalle':
+      return item.detalle || '';
+    case 'desc':
+      return item.desc || '';
+    case 'unit':
+      return item.unit || '';
+    case 'metradoOt': {
+      const raw = String(item.metradoOt ?? '').trim().replace(',', '.');
+      if (!raw) return '';
+      if (/^-?\d+(\.\d+)?$/.test(raw)) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) return n;
+      }
+      return String(item.metradoOt ?? '').trim();
+    }
+    default:
+      return '';
+  }
 }
 
 export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
@@ -405,6 +442,10 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
   }, [selectedCell, rangeFocus, visibleItems]);
 
   const rangeIsSingle = Boolean(selectedCell && isSingleCell(selectedCell, rangeFocus));
+  const stats = useMemo(
+    () => computeSelectionStats(visibleItems, rangeKeys, takeoffCellValue),
+    [visibleItems, rangeKeys]
+  );
 
   const selectedItemIds = useMemo(() => {
     if (!selectedCell) return EMPTY_SELECTED_IDS;
@@ -738,6 +779,8 @@ export const TakeoffTable: React.FC<TakeoffTableProps> = ({ items }) => {
           </tbody>
         </table>
       </div>
+
+      <ExcelStatusBar stats={stats} />
 
       <datalist id="available-planos-list">
         {availablePlanos.map(p => (

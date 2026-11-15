@@ -1,4 +1,5 @@
 import { readSheetMatrices, foldHeaderCell } from './readSheetMatrix';
+import { cleanFloat } from './cleanNumber';
 import { TakeoffItem } from '../../entities/takeoff-item/model/types';
 import { TakeoffRule } from '../../entities/takeoff-rule/model/types';
 import { uid } from './uid';
@@ -392,7 +393,11 @@ export async function parseTakeoffCsv(
       lengthRawStr = '1';
     }
 
-    const lengthRaw = parseFloat(lengthRawStr.replace(',', '.'));
+    const parsedLengthRaw = parseFloat(lengthRawStr.replace(',', '.'));
+    const lengthRaw = cleanFloat(parsedLengthRaw);
+    const cleanLengthStr = !isNaN(lengthRaw) ? String(lengthRaw) : lengthRawStr;
+    const parsedTuberiaRaw = tuberiaRaw !== '' ? parseFloat(tuberiaRaw.replace(',', '.')) : NaN;
+    const cleanTuberiaStr = !isNaN(parsedTuberiaRaw) ? String(cleanFloat(parsedTuberiaRaw)) : tuberiaRaw;
 
     if (!ruleName) {
       rejectedRows.push({
@@ -479,7 +484,7 @@ export async function parseTakeoffCsv(
       } else if (descUp.includes('MOLDE')) {
         metradoOt = '0.0167';
       } else if (descUp.includes('TUBERIA') || descUp.includes('TUBERÍA')) {
-        metradoOt = (tuberiaRaw !== '' && !isNaN(parseFloat(tuberiaRaw))) ? String(parseFloat(tuberiaRaw)) : '';
+        metradoOt = cleanTuberiaStr !== '' && !isNaN(parsedTuberiaRaw) ? cleanTuberiaStr : '';
       } else if (
         ruleName === 'CABLE DESNUDO 2/0 AWG' &&
         (descUp.includes('TERMINAL') || descUp.includes('PERNO') || descUp.includes('SOLDADURA') || descUp.includes('CARGA'))
@@ -488,7 +493,7 @@ export async function parseTakeoffCsv(
       } else if (ruleName && (ruleName.toUpperCase().includes('SOLDADURA') || isPozoRule || ruleName.startsWith('BARRA'))) {
         metradoOt = '1';
       } else {
-        metradoOt = String(lengthRaw);
+        metradoOt = cleanLengthStr;
       }
 
       return {
@@ -552,7 +557,7 @@ export async function parseTakeoffCsv(
         if (jumpersRaw && !isNaN(parseInt(jumpersRaw, 10)) && parseInt(jumpersRaw, 10) > 0) {
           numJumpers = parseInt(jumpersRaw, 10);
         }
-        processedBatch = applyDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, tuberiaRaw, lengthRawStr, true, importInstanceId);
+        processedBatch = applyDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, cleanTuberiaStr, cleanLengthStr, true, importInstanceId);
       }
     } else if (rule.id === 'r8' || rule.id === 'r9') {
       const rowDetalle = detalleRaw || (rule.id === 'r8' ? '010/17A' : '010/17C');

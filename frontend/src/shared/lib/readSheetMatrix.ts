@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { cleanFloat } from './cleanNumber';
 
 export interface ReadSheetsOptions {
   /** When true, return one matrix per sheet; otherwise only the first sheet. */
@@ -54,7 +55,12 @@ async function readWorkbook(file: File): Promise<XLSX.WorkBook> {
 
 function sheetMatrixOf(sheet: XLSX.WorkSheet | undefined): unknown[][] {
   if (!sheet) return [];
-  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true }) as unknown[][];
+  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true }) as unknown[][];
+  return matrix.map(row =>
+    Array.isArray(row)
+      ? row.map(cell => (typeof cell === 'number' ? cleanFloat(cell) : cell))
+      : row
+  );
 }
 
 /** Detect whether a sheet name indicates an auxiliary summary, count, chart or dashboard sheet */
