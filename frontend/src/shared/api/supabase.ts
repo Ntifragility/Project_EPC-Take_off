@@ -271,17 +271,95 @@ export async function saveDetalleVariantToSupabase(
     return { success: false, error: 'Supabase no está configurado' };
   }
   try {
-    const { error } = await supabase.from('detalle_variants').upsert(variant);
-    if (error) throw error;
+    // 1. Search for existing record by business key or matching ID
+    const { data: existingRows, error: searchError } = await supabase
+      .from('detalle_variants')
+      .select('id, area, sub_area, category, detalle_code')
+      .eq('area', variant.area)
+      .eq('category', variant.category)
+      .eq('detalle_code', variant.detalle_code);
+
+    if (searchError) {
+      console.warn('[Supabase] Warning querying detalle_variants by business key:', searchError.message);
+    }
+
+    const matched = (existingRows || []).find(r => {
+      if (r.id === variant.id) return true;
+      if (variant.sub_area) {
+        return r.sub_area === variant.sub_area || (!r.sub_area && variant.sub_area === 'NO_CORROSIVO');
+      }
+      return true;
+    });
+
+    if (matched) {
+      // Row exists: update its items and attributes using its existing primary key ID
+      const updateData: Record<string, any> = {
+        items: variant.items,
+        area: variant.area,
+        category: variant.category,
+        detalle_code: variant.detalle_code
+      };
+      if (variant.sub_area) {
+        updateData.sub_area = variant.sub_area;
+      }
+      if (matched.id !== variant.id) {
+        updateData.id = variant.id;
+      }
+
+      const { error: updateError } = await supabase
+        .from('detalle_variants')
+        .update(updateData)
+        .eq('id', matched.id);
+
+      if (updateError) {
+        // If updating the primary key ID caused a conflict, update payload without changing ID
+        if (updateData.id) {
+          delete updateData.id;
+          const { error: retryError } = await supabase
+            .from('detalle_variants')
+            .update(updateData)
+            .eq('id', matched.id);
+          if (retryError) throw retryError;
+        } else {
+          throw updateError;
+        }
+      }
+
+      // Cleanup any redundant legacy duplicates for the same natural key
+      const duplicates = (existingRows || []).filter(r => r.id !== matched.id && r.id !== variant.id);
+      if (duplicates.length > 0) {
+        for (const dup of duplicates) {
+          await supabase.from('detalle_variants').delete().eq('id', dup.id);
+        }
+      }
+
+      return { success: true };
+    }
+
+    // 2. No matching row found: insert new record
+    const { error: insertError } = await supabase
+      .from('detalle_variants')
+      .insert(variant);
+
+    if (insertError) {
+      // If insert failed because of primary key conflict, attempt upsert
+      const { error: upsertError } = await supabase
+        .from('detalle_variants')
+        .upsert(variant, { onConflict: 'id' });
+      if (upsertError) throw upsertError;
+    }
+
     return { success: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al guardar variante de detalle en Supabase';
+    console.error('[Supabase] Error en saveDetalleVariantToSupabase:', err);
     return { success: false, error: message };
   }
 }
 
 export async function deleteDetalleVariantFromSupabase(
-  id: string
+  id: string,
+  meta?: { area: string; category: string; detalle_code: string; sub_area?: string }
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     return { success: false, error: 'Supabase no está configurado' };
@@ -289,9 +367,23 @@ export async function deleteDetalleVariantFromSupabase(
   try {
     const { error } = await supabase.from('detalle_variants').delete().eq('id', id);
     if (error) throw error;
+
+    if (meta) {
+      let q = supabase
+        .from('detalle_variants')
+        .delete()
+        .eq('area', meta.area)
+        .eq('category', meta.category)
+        .eq('detalle_code', meta.detalle_code);
+      if (meta.sub_area) {
+        q = q.or(`sub_area.eq.${meta.sub_area},sub_area.is.null`);
+      }
+      await q;
+    }
     return { success: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al eliminar variante de detalle en Supabase';
+    console.error('[Supabase] Error en deleteDetalleVariantFromSupabase:', err);
     return { success: false, error: message };
   }
 }

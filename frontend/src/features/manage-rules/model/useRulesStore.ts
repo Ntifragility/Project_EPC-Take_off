@@ -12,6 +12,7 @@ import {
 import { deleteRuleLines, replaceRuleLines } from '../../sync-cloud/model/publishRuleCatalog';
 import { updateDynamicVariants, updateSingleDynamicVariant, deleteSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { fetchUnifiedRules, saveUnifiedRule } from '../../../entities/takeoff-rule/api/ruleRepository';
+import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 
 export interface RulesState {
   rules: TakeoffRule[];
@@ -107,8 +108,11 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       const orderIndex = isNew ? nextRules.length - 1 : Math.max(0, nextRules.findIndex(r => r.id === rule.id));
       await saveUnifiedRule(rule, section, orderIndex);
       await replaceRuleLines(rule);
+      useUIStore.getState().showToast('Regla guardada en Supabase con éxito', 'success');
     } catch (err) {
       console.warn('Supabase sync background notice:', err);
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      useUIStore.getState().showToast(`Regla guardada localmente, pero falló la sincronización con Supabase: ${msg}`, 'warn');
     }
   },
 
@@ -119,6 +123,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     try {
       await deleteTakeoffRuleFromSupabase(id);
       await deleteRuleLines(id);
+      useUIStore.getState().showToast('Regla eliminada de Supabase', 'info');
     } catch (err) {
       console.warn('Supabase delete background notice:', err);
     }
@@ -138,7 +143,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       const areaDb = area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
       const effectiveSubArea = areaDb === 'AREA HUMEDA' ? (subArea || 'NO_CORROSIVO') : 'NO_CORROSIVO';
       const id = `${areaDb}_${effectiveSubArea}_${category}_${detalleCode}`;
-      await saveDetalleVariantToSupabase({
+      const res = await saveDetalleVariantToSupabase({
         id,
         area: areaDb,
         sub_area: effectiveSubArea,
@@ -146,9 +151,19 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
         detalle_code: detalleCode,
         items: itemsToSave
       });
+
+      if (!res.success) {
+        console.error('Failed to save detalle variant to Supabase:', res.error);
+        useUIStore.getState().showToast(`Error al guardar en Supabase: ${res.error}`, 'warn');
+        return false;
+      }
+
+      useUIStore.getState().showToast('Detalle guardado en Supabase con éxito', 'success');
       return true;
     } catch (err) {
       console.error('Error saving detalle variant:', err);
+      const msg = err instanceof Error ? err.message : 'Error desconocido al guardar';
+      useUIStore.getState().showToast(`Error al guardar detalle: ${msg}`, 'warn');
       return false;
     }
   },
@@ -166,7 +181,19 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       const areaDb = area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
       const effectiveSubArea = areaDb === 'AREA HUMEDA' ? (subArea || 'NO_CORROSIVO') : 'NO_CORROSIVO';
       const id = `${areaDb}_${effectiveSubArea}_${category}_${detalleCode}`;
-      await deleteDetalleVariantFromSupabase(id);
+      const res = await deleteDetalleVariantFromSupabase(id, {
+        area: areaDb,
+        category,
+        detalle_code: detalleCode,
+        sub_area: effectiveSubArea
+      });
+
+      if (!res.success) {
+        console.warn('Supabase delete detalle notice:', res.error);
+        useUIStore.getState().showToast(`Advertencia al eliminar en Supabase: ${res.error}`, 'warn');
+      } else {
+        useUIStore.getState().showToast('Detalle eliminado de Supabase', 'info');
+      }
       return true;
     } catch (err) {
       console.error('Error deleting detalle variant:', err);

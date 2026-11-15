@@ -221,7 +221,11 @@ export async function saveUnifiedRule(
       updated_at: new Date().toISOString()
     };
 
-    await supabase.from('takeoff_rules').upsert(ruleHeader);
+    const { error: headerErr } = await supabase.from('takeoff_rules').upsert(ruleHeader);
+    if (headerErr) {
+      console.error('[Supabase] Error saving rule header:', headerErr);
+      throw new Error(headerErr.message);
+    }
 
     // 2. Upsert Rule Subitems
     if (rule.subitems && rule.subitems.length > 0) {
@@ -240,7 +244,11 @@ export async function saveUnifiedRule(
 
       // Delete existing subitems and insert fresh to prevent orphan rows
       await supabase.from('rule_items').delete().eq('rule_id', rule.id);
-      await supabase.from('rule_items').insert(itemsPayload);
+      const { error: itemsErr } = await supabase.from('rule_items').insert(itemsPayload);
+      if (itemsErr) {
+        console.error('[Supabase] Error saving rule items:', itemsErr);
+        throw new Error(itemsErr.message);
+      }
     }
 
     // 3. Upsert Parameter Options if any
@@ -254,9 +262,13 @@ export async function saveUnifiedRule(
         option_value: p.optionValue,
         multiplier_map: p.multiplierMap
       }));
-      await supabase.from('rule_parameter_options').insert(paramsPayload);
+      const { error: paramsErr } = await supabase.from('rule_parameter_options').insert(paramsPayload);
+      if (paramsErr) {
+        console.warn('[Supabase] Warning saving rule parameter options:', paramsErr);
+      }
     }
   } catch (err) {
-    console.warn('Error saving unified rule to Supabase:', err);
+    console.error('Error saving unified rule to Supabase:', err);
+    throw err;
   }
 }

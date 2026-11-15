@@ -51,6 +51,7 @@ export interface CableTrayRecord {
 export interface DetalleVariantRecord {
   id: string;
   area: string;
+  sub_area?: string;
   category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST';
   detalle_code: string;
   items: DetalleVariantItem[];
@@ -161,8 +162,9 @@ export function detalleVariantRows(): DetalleVariantRecord[] {
     const storedArea = area.toUpperCase().includes('HUEM') || area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
     for (const [code, items] of Object.entries(byCode)) {
       rows.push({
-        id: `${storedArea}_CABLE_2_0_${code}`,
+        id: `${storedArea}_NO_CORROSIVO_CABLE_2_0_${code}`,
         area: storedArea,
+        sub_area: 'NO_CORROSIVO',
         category: 'CABLE_2_0',
         detalle_code: code,
         items: variantItems(items)
@@ -171,8 +173,9 @@ export function detalleVariantRows(): DetalleVariantRecord[] {
   }
   for (const [code, items] of Object.entries(BARRA_POT_VARIANTS_HUMEDA)) {
     rows.push({
-      id: `AREA HUMEDA_BARRA_POT_${code}`,
+      id: `AREA HUMEDA_NO_CORROSIVO_BARRA_POT_${code}`,
       area: 'AREA HUMEDA',
+      sub_area: 'NO_CORROSIVO',
       category: 'BARRA_POT',
       detalle_code: code,
       items: variantItems(items)
@@ -180,8 +183,9 @@ export function detalleVariantRows(): DetalleVariantRecord[] {
   }
   for (const [code, items] of Object.entries(BARRA_INST_VARIANTS_HUMEDA)) {
     rows.push({
-      id: `AREA HUMEDA_BARRA_INST_${code}`,
+      id: `AREA HUMEDA_NO_CORROSIVO_BARRA_INST_${code}`,
       area: 'AREA HUMEDA',
+      sub_area: 'NO_CORROSIVO',
       category: 'BARRA_INST',
       detalle_code: code,
       items: variantItems(items)
