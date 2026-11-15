@@ -18,6 +18,7 @@ interface Cable20RuleCardProps {
   subArea?: SubAreaHumeda;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onDuplicate?: (rule: TakeoffRule) => void;
   onDelete?: (id: string) => void;
   onEditDetalle?: (code: string, items: DetalleVariantItem[]) => void;
 }
@@ -28,6 +29,7 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   subArea = 'NO_CORROSIVO',
   isExpanded,
   onToggleExpand,
+  onDuplicate,
   onDelete,
   onEditDetalle
 }) => {
@@ -43,6 +45,7 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
       badge={`${areaDetalles.length} detalles`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
+      onDuplicate={onDuplicate ? () => onDuplicate(rule) : undefined}
       onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
             <>

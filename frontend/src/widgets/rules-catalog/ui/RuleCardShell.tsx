@@ -1,4 +1,5 @@
 import React from 'react';
+import { Copy } from 'lucide-react';
 
 interface RuleCardShellProps {
   trigger: string;
@@ -6,6 +7,7 @@ interface RuleCardShellProps {
   preview?: string[];
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onDuplicate?: () => void;
   onDelete?: () => void;
   children?: React.ReactNode;
 }
@@ -18,6 +20,7 @@ export const RuleCardShell: React.FC<RuleCardShellProps> = ({
   preview = [],
   isExpanded,
   onToggleExpand,
+  onDuplicate,
   onDelete,
   children
 }) => {
@@ -58,6 +61,41 @@ export const RuleCardShell: React.FC<RuleCardShellProps> = ({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
           <span className="rule-card-badge">{badge}</span>
+          {onDuplicate && (
+            <button
+              type="button"
+              className="btn-ghost"
+              title={`Crear nueva regla basada en "${trigger}"`}
+              aria-label={`Crear nueva regla basada en "${trigger}"`}
+              onClick={e => {
+                e.stopPropagation();
+                onDuplicate();
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--tx-muted, #64748b)',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0.8,
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.color = 'var(--p1, #2563eb)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.opacity = '0.8';
+                e.currentTarget.style.color = 'var(--tx-muted, #64748b)';
+              }}
+            >
+              <Copy size={14} />
+            </button>
+          )}
           {onDelete && (
             <button
               type="button"

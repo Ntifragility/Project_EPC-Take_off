@@ -11,6 +11,7 @@ interface CableTrayRuleCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onEdit?: (rule: TakeoffRule) => void;
+  onDuplicate?: (rule: TakeoffRule) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -19,6 +20,7 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
   isExpanded,
   onToggleExpand,
   onEdit,
+  onDuplicate,
   onDelete
 }) => {
   const cableTrayRows: CableTrayMatrixItem[] =
@@ -35,6 +37,7 @@ export const CableTrayRuleCard: React.FC<CableTrayRuleCardProps> = ({
       badge={`${cableTrayRows.length} ${cableTrayRows.length === 1 ? 'material' : 'materiales'} · 4 anchos`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
+      onDuplicate={onDuplicate ? () => onDuplicate(rule) : undefined}
       onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
 

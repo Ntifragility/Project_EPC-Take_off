@@ -1,13 +1,14 @@
 import React from 'react';
-import { Pencil, Trash2, Check, X, type LucideIcon } from 'lucide-react';
+import { Pencil, Trash2, Check, X, Copy, type LucideIcon } from 'lucide-react';
 
-export type IconActionKind = 'edit' | 'delete' | 'save' | 'cancel';
+export type IconActionKind = 'edit' | 'delete' | 'save' | 'cancel' | 'copy';
 
 const ICONS: Record<IconActionKind, LucideIcon> = {
   edit: Pencil,
   delete: Trash2,
   save: Check,
-  cancel: X
+  cancel: X,
+  copy: Copy
 };
 
 export interface IconActionButtonProps {

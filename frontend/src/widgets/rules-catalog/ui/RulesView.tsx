@@ -22,6 +22,7 @@ import { useAuthStore } from '../../../features/auth/model/useAuthStore';
 import { getRoleLevel } from '../../../features/auth/model/authTypes';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
 import { SubAreaHumeda } from '../../../shared/types/common';
+import { uid } from '../../../shared/lib/uid';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 
 export const RulesView: React.FC = () => {
@@ -131,6 +132,22 @@ export const RulesView: React.FC = () => {
       return;
     }
     setEditingRule(null);
+    setIsNew(true);
+    setModalOpen(true);
+  };
+
+  const handleOpenDuplicate = (rule: TakeoffRule) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden crear o duplicar reglas', 'warn');
+      return;
+    }
+    const clonedRule: TakeoffRule = {
+      ...rule,
+      id: uid(),
+      trigger: `${rule.trigger} (COPIA)`,
+      subitems: rule.subitems ? rule.subitems.map(s => ({ ...s, id: uid() })) : []
+    };
+    setEditingRule(clonedRule);
     setIsNew(true);
     setModalOpen(true);
   };
@@ -302,6 +319,7 @@ export const RulesView: React.FC = () => {
                 subArea={subAreaHumeda}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
+                onDuplicate={canEdit ? handleOpenDuplicate : undefined}
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? (code, items) => handleOpenDetalleEdit(code, items, 'CABLE_2_0') : undefined}
               />
@@ -318,6 +336,7 @@ export const RulesView: React.FC = () => {
                 activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
+                onDuplicate={canEdit ? handleOpenDuplicate : undefined}
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? handleOpenDetalleEdit : undefined}
               />
@@ -334,6 +353,7 @@ export const RulesView: React.FC = () => {
                 activeArea={activeArea}
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
+                onDuplicate={canEdit ? handleOpenDuplicate : undefined}
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? handleOpenDetalleEdit : undefined}
               />
@@ -356,6 +376,7 @@ export const RulesView: React.FC = () => {
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
                 onEdit={canEdit ? handleOpenCableTrayEdit : undefined}
+                onDuplicate={canEdit ? handleOpenDuplicate : undefined}
                 onDelete={canEdit ? handleDeleteRule : undefined}
               />
             );
@@ -370,6 +391,7 @@ export const RulesView: React.FC = () => {
               isExpanded={isExpanded}
               onToggleExpand={() => toggleRuleExpand(r.id)}
               onEdit={canEdit ? handleOpenEdit : undefined}
+              onDuplicate={canEdit ? handleOpenDuplicate : undefined}
               onDelete={canEdit ? handleDeleteRule : undefined}
             />
           );
@@ -382,6 +404,7 @@ export const RulesView: React.FC = () => {
         initialRule={editingRule}
         isNew={isNew}
         activeArea={activeArea}
+        availableRules={rules}
         onClose={() => setModalOpen(false)}
         onSave={handleSaveRule}
         onDelete={handleDeleteRule}

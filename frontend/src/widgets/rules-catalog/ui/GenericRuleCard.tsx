@@ -13,6 +13,7 @@ interface GenericRuleCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onEdit?: (rule: TakeoffRule) => void;
+  onDuplicate?: (rule: TakeoffRule) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -40,6 +41,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
   isExpanded,
   onToggleExpand,
   onEdit,
+  onDuplicate,
   onDelete
 }) => {
   const configuredDetalle = (rule.areaDetalles?.[activeArea] || rule.defaultDetalle || rule.detalle || '').trim();
@@ -56,6 +58,7 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
       badge={`${rule.subitems.length} ${rule.subitems.length === 1 ? 'insumo' : 'insumos'}`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
+      onDuplicate={onDuplicate ? () => onDuplicate(rule) : undefined}
       onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
             <div
@@ -134,6 +137,13 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
                                   kind="edit"
                                   title="Editar la lista de este detalle"
                                   onClick={() => onEdit(rule)}
+                                />
+                              )}
+                              {onDuplicate && (
+                                <IconActionButton
+                                  kind="copy"
+                                  title="Crear nueva regla basada en esta"
+                                  onClick={() => onDuplicate(rule)}
                                 />
                               )}
                             </div>

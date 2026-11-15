@@ -13,6 +13,7 @@ export interface RuleEditorModalProps {
   initialRule: TakeoffRule | null;
   isNew: boolean;
   activeArea?: AreaType;
+  availableRules?: TakeoffRule[];
   onClose: () => void;
   onSave: (rule: TakeoffRule, isNew: boolean) => void;
   onDelete?: (id: string) => void;
@@ -23,6 +24,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   initialRule,
   isNew,
   activeArea = 'AREA SECA',
+  availableRules = [],
   onClose,
   onSave,
   onDelete
@@ -34,6 +36,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   const [allowDetalleEdit, setAllowDetalleEdit] = useState(true);
   const [subitems, setSubitems] = useState<RuleSubitem[]>([]);
   const [detalleOptions, setDetalleOptions] = useState<DetalleDefinition[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
@@ -60,10 +63,12 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       const copy: RuleSubitem[] = JSON.parse(JSON.stringify(initialRule.subitems || []));
       setSubitems(copy.map(item => ({
         ...item,
+        id: isNew ? uid() : item.id,
         formula: shownFormula(item, initialRule.trigger),
         material: componentClass(item.desc, item.material),
         optional: Boolean(item.optional)
       })));
+      setSelectedTemplateId(initialRule.id || '');
     } else {
       setTrigger('');
       setTagPrefix('M');
@@ -71,8 +76,51 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       const defaultDet = getRuleDetallesForArea('', currentArea)[0] || (currentArea === 'AREA HUMEDA' ? '008/3A' : '151');
       setDetalle(defaultDet);
       setSubitems([{ id: uid(), desc: '', qty: 1, unit: 'UND', formula: '', material: 'C', optional: false }]);
+      setSelectedTemplateId('');
     }
-  }, [initialRule, isOpen, currentArea]);
+  }, [initialRule, isOpen, currentArea, isNew]);
+
+  if (!isOpen) return null;
+
+  const handleSelectTemplate = (ruleId: string) => {
+    setSelectedTemplateId(ruleId);
+    if (!ruleId) {
+      setTrigger('');
+      setTagPrefix('M');
+      setAllowDetalleEdit(true);
+      const defaultDet = getRuleDetallesForArea('', currentArea)[0] || (currentArea === 'AREA HUMEDA' ? '008/3A' : '151');
+      setDetalle(defaultDet);
+      setSubitems([{ id: uid(), desc: '', qty: 1, unit: 'UND', formula: '', material: 'C', optional: false }]);
+      return;
+    }
+    const baseRule = availableRules.find(r => r.id === ruleId);
+    if (!baseRule) return;
+
+    setTrigger(`${baseRule.trigger} (COPIA)`);
+    setTagPrefix(baseRule.tagPrefix || 'M');
+    setAllowDetalleEdit(baseRule.allowDetalleEdit !== false);
+
+    const defaultDet = getRuleDetallesForArea('', currentArea)[0] || (currentArea === 'AREA HUMEDA' ? '008/3A' : '151');
+    const resolvedDetalle =
+      baseRule.areaDetalles?.[currentArea] ||
+      (baseRule.areas?.includes(currentArea) ? (baseRule.defaultDetalle || baseRule.detalle) : '') ||
+      getRuleDetallesForArea(baseRule.trigger, currentArea)[0] ||
+      baseRule.defaultDetalle ||
+      baseRule.detalle ||
+      defaultDet;
+    setDetalle(resolvedDetalle);
+
+    const copy: RuleSubitem[] = JSON.parse(JSON.stringify(baseRule.subitems || []));
+    setSubitems(
+      copy.map(item => ({
+        ...item,
+        id: uid(),
+        formula: shownFormula(item, baseRule.trigger),
+        material: componentClass(item.desc, item.material),
+        optional: Boolean(item.optional)
+      }))
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -121,17 +169,20 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
 
     const rule: TakeoffRule = {
       ...initialRule,
-      id: initialRule?.id || uid(),
+      id: isNew ? uid() : (initialRule?.id || uid()),
       trigger: cleanTrigger,
       defaultDetalle: cleanDetalle,
       detalle: cleanDetalle,
       tagPrefix: tagPrefix.trim().toUpperCase() || 'M',
       allowDetalleEdit,
-      areas: [currentArea],
+      areas: initialRule?.areas?.length ? initialRule.areas : [currentArea],
       areaDetalles: updatedAreaDetalles,
       subitems: subitems.map(s => {
         const { subitemDetalle, ...rest } = s;
-        return rest;
+        return {
+          ...rest,
+          id: isNew ? uid() : (s.id || uid())
+        };
       })
     };
     onSave(rule, isNew);
@@ -144,12 +195,55 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
 
   return (
     <ModalShell
-      title={isNew ? 'Nueva regla de metrado' : 'Editar regla de metrado'}
+      title={isNew ? (initialRule ? `Nueva regla (basada en ${initialRule.trigger})` : 'Nueva regla de metrado') : 'Editar regla de metrado'}
       subtitle={trigger.trim() || 'Regla'}
       onClose={onClose}
       maxWidth="1050px"
     >
       <div className="modal-body prompt">
+        {/* TEMPLATE PICKER IF CREATING NEW RULE */}
+        {isNew && availableRules && availableRules.length > 0 && (
+          <div
+            style={{
+              marginBottom: '1.2rem',
+              padding: '10px 14px',
+              background: 'var(--s1)',
+              borderRadius: '6px',
+              border: '1px solid var(--b1)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}
+          >
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--tx)', whiteSpace: 'nowrap' }}>
+              📋 Basar en regla existente:
+            </span>
+            <select
+              value={selectedTemplateId}
+              onChange={e => handleSelectTemplate(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: '220px',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                border: '1px solid var(--b1)',
+                background: 'var(--bg)',
+                color: 'var(--tx)',
+                fontSize: '12px',
+                fontFamily: 'inherit'
+              }}
+            >
+              <option value="">-- Comenzar desde cero (regla en blanco) --</option>
+              {availableRules.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.trigger} ({r.subitems?.length || 0} materiales)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* ROW 1: DISPARADOR, DETALLE CONSTRUCTIVO, PREFIJO TAG IN ONE CLEAN LINE */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 0.8fr', gap: '1rem', marginBottom: '1.2rem', alignItems: 'end' }}>
           <label style={{ margin: 0 }}>

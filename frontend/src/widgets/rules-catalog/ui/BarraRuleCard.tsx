@@ -17,6 +17,7 @@ interface BarraRuleCardProps {
   activeArea: 'AREA SECA' | 'AREA HUMEDA';
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onDuplicate?: (rule: TakeoffRule) => void;
   onDelete?: (id: string) => void;
   onEditDetalle?: (code: string, items: DetalleVariantItem[], category: 'BARRA_POT' | 'BARRA_INST') => void;
 }
@@ -27,6 +28,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   activeArea,
   isExpanded,
   onToggleExpand,
+  onDuplicate,
   onDelete,
   onEditDetalle
 }) => {
@@ -43,6 +45,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
       badge={`${entries.length} ${entries.length === 1 ? 'detalle' : 'detalles'}`}
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
+      onDuplicate={onDuplicate ? () => onDuplicate(rule) : undefined}
       onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
           <div
