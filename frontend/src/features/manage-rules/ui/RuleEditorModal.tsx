@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TakeoffRule, RuleSubitem, DetalleDefinition } from '../../../entities/takeoff-rule/model/types';
 import { AreaType } from '../../../shared/types/common';
 import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
-import { formulaHint, shownFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
+import { formulaHint, shownFormula, shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { fetchDetalleCatalog } from '../../../entities/takeoff-rule/api/ruleRepository';
 import { getRuleDetallesForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 import {
@@ -149,9 +149,9 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       itemsWithTuberia.map((it: any) => ({
         id: uid(),
         desc: it.desc,
-        qty: typeof it.qty === 'number' ? it.qty : 1,
+        qty: it.qty !== undefined && it.qty !== '' ? it.qty : (it.ot !== undefined && it.ot !== '' ? it.ot : 1),
         unit: it.unit || 'und',
-        formula: it.formula || (it.otDynamic === '1c/3m' ? 'ceil(length/3)' : ''),
+        formula: shownVariantFormula(it) || (it.otDynamic === '1c/3m' ? 'ceil(length/3)' : ''),
         material: it.material || componentClass(it.desc),
         optional: false
       }))
@@ -171,9 +171,9 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       itemsList.map((it: any) => ({
         id: uid(),
         desc: it.desc,
-        qty: typeof it.qty === 'number' ? it.qty : 1,
+        qty: it.qty !== undefined && it.qty !== '' ? it.qty : (it.ot !== undefined && it.ot !== '' ? it.ot : 1),
         unit: it.unit || 'und',
-        formula: it.formula || '',
+        formula: shownVariantFormula(it) || '',
         material: it.material || componentClass(it.desc),
         optional: false
       }))

@@ -19,6 +19,7 @@ import { CableTrayRuleCard } from './CableTrayRuleCard';
 import { GenericRuleCard } from './GenericRuleCard';
 import { detalleBelongsToArea, getCatalogForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
+import { shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { useAuthStore } from '../../../features/auth/model/useAuthStore';
 import { getRoleLevel } from '../../../features/auth/model/authTypes';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
@@ -216,9 +217,9 @@ export const RulesView: React.FC = () => {
       subitems: itemsList.map(it => ({
         id: uid(),
         desc: it.desc,
-        qty: typeof it.qty === 'number' ? it.qty : 1,
+        qty: it.qty !== undefined && it.qty !== '' ? it.qty : (it.ot !== undefined && it.ot !== '' ? it.ot : 1),
         unit: it.unit || 'und',
-        formula: it.formula || (it.otDynamic === '1c/3m' ? 'ceil(length/3)' : ''),
+        formula: shownVariantFormula(it) || (it.otDynamic === '1c/3m' ? 'ceil(length/3)' : ''),
         material: it.material || componentClass(it.desc),
         optional: false
       }))
@@ -250,9 +251,9 @@ export const RulesView: React.FC = () => {
       subitems: vItems.map(it => ({
         id: uid(),
         desc: it.desc,
-        qty: typeof it.qty === 'number' ? it.qty : 1,
+        qty: it.qty !== undefined && it.qty !== '' ? it.qty : (it.ot !== undefined && it.ot !== '' ? it.ot : 1),
         unit: it.unit || 'und',
-        formula: it.formula || '',
+        formula: shownVariantFormula(it) || '',
         material: it.material || componentClass(it.desc),
         optional: false
       }))
