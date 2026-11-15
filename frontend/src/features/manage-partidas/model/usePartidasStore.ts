@@ -109,11 +109,13 @@ export const usePartidasStore = createStore<PartidasStore>((set, get) => ({
   },
 
   deletePartida: async (id: string) => {
+    const target = get().partidas.find(p => p.id === id);
     const next = get().partidas.filter(p => p.id !== id);
     saveStoredPartidas(next);
     set({ partidas: next });
 
-    const cloud = await deletePartidaFromSupabase(id);
+    const meta = target ? { wbs: target.wbs || target.area || '', partidaSicme: target.partidaSicme || target.item || '' } : undefined;
+    const cloud = await deletePartidaFromSupabase(id, meta);
     if (!cloud.success) {
       throw new Error(cloud.error || 'Error al eliminar la partida en Supabase');
     }

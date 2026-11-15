@@ -124,6 +124,13 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
           .select('*')
           .in('rule_id', ruleIds);
 
+        // Fetch cable tray matrix
+        const { data: matrixData } = await supabase
+          .from('cable_tray_matrix')
+          .select('*')
+          .in('rule_id', ruleIds)
+          .order('order_index');
+
         const fullRules: TakeoffRule[] = rulesData.map(r => {
           // If subitems table populated, use it, else fallback to JSONB column
           let subitems: RuleSubitem[] = [];
@@ -155,6 +162,19 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
               multiplierMap: p.multiplier_map || {}
             }));
 
+          const ruleMatrix = (matrixData || [])
+            .filter(m => m.rule_id === r.id)
+            .map(m => ({
+              id: m.id,
+              desc: m.descripcion,
+              unit: m.unit,
+              material: m.material,
+              w900: m.w900,
+              w600: m.w600,
+              w450: m.w450,
+              w300: m.w300
+            }));
+
           return {
             id: r.id,
             section: r.section,
@@ -170,7 +190,7 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
             orderIndex: r.order_index,
             subitems,
             parameterOptions,
-            cableTrayMatrix: r.cable_tray_matrix
+            cableTrayMatrix: ruleMatrix.length > 0 ? ruleMatrix : (r.cable_tray_matrix || undefined)
           };
         });
 
@@ -204,7 +224,7 @@ export async function saveUnifiedRule(
 
   try {
     // 1. Upsert Rule Header
-    const ruleHeader = {
+    const ruleHeader: Record<string, any> = {
       id: rule.id,
       section,
       trigger: rule.trigger,
@@ -221,10 +241,27 @@ export async function saveUnifiedRule(
       updated_at: new Date().toISOString()
     };
 
-    const { error: headerErr } = await supabase.from('takeoff_rules').upsert(ruleHeader);
+    let { error: headerErr } = await supabase.from('takeoff_rules').upsert(ruleHeader);
     if (headerErr) {
-      console.error('[Supabase] Error saving rule header:', headerErr);
-      throw new Error(headerErr.message);
+      console.warn('[Supabase] Initial rule header upsert failed, retrying with schema-safe fallback:', headerErr.message);
+      // Fallback if certain columns (allowed_areas, area_detalles, subitems) do not exist in the database table
+      const safeHeader: Record<string, any> = {
+        id: rule.id,
+        section,
+        trigger: rule.trigger,
+        detalle: rule.defaultDetalle || rule.detalle || null,
+        tag_prefix: rule.tagPrefix || 'M',
+        order_index: orderIndex,
+        updated_at: new Date().toISOString()
+      };
+      if (rule.areas && rule.areas.length) {
+        safeHeader.areas = rule.areas;
+      }
+      const retry = await supabase.from('takeoff_rules').upsert(safeHeader);
+      if (retry.error) {
+        console.error('[Supabase] Error saving rule header on fallback retry:', retry.error);
+        throw new Error(retry.error.message);
+      }
     }
 
     // 2. Upsert Rule Subitems

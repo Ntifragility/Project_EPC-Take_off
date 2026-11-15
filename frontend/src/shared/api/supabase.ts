@@ -503,17 +503,34 @@ export function isSupabasePartidaId(id?: string): boolean {
 export async function updatePartidaInSupabase(
   partida: PartidaRecord
 ): Promise<{ success: boolean; error?: string }> {
-  if (!supabase || !isSupabasePartidaId(partida.id)) {
-    return { success: true };
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado' };
   }
 
   try {
+    const payload = partidaToSupabasePayload(partida);
+
+    if (isSupabasePartidaId(partida.id)) {
+      const { error } = await supabase
+        .from('partidas_table')
+        .update(payload)
+        .eq('id', partida.id);
+      if (error) {
+        console.error('Supabase partida update error:', error);
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    }
+
+    // Fallback if not a UUID: match by business key (wbs + partida_sicme)
     const { error } = await supabase
       .from('partidas_table')
-      .update(partidaToSupabasePayload(partida))
-      .eq('id', partida.id);
+      .update(payload)
+      .eq('wbs', payload.wbs)
+      .eq('partida_sicme', payload.partida_sicme);
+
     if (error) {
-      console.error('Supabase partida update error:', error);
+      console.error('Supabase partida update by key error:', error);
       return { success: false, error: error.message };
     }
     return { success: true };
@@ -525,18 +542,36 @@ export async function updatePartidaInSupabase(
 }
 
 export async function deletePartidaFromSupabase(
-  id: string
+  id: string,
+  meta?: { wbs: string; partidaSicme: string }
 ): Promise<{ success: boolean; error?: string }> {
-  if (!supabase || !isSupabasePartidaId(id)) {
-    return { success: true };
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado' };
   }
 
   try {
-    const { error } = await supabase.from('partidas_table').delete().eq('id', id);
-    if (error) {
-      console.error('Supabase partida delete error:', error);
-      return { success: false, error: error.message };
+    if (isSupabasePartidaId(id)) {
+      const { error } = await supabase.from('partidas_table').delete().eq('id', id);
+      if (error) {
+        console.error('Supabase partida delete error:', error);
+        return { success: false, error: error.message };
+      }
+      return { success: true };
     }
+
+    if (meta) {
+      const { error } = await supabase
+        .from('partidas_table')
+        .delete()
+        .eq('wbs', meta.wbs)
+        .eq('partida_sicme', meta.partidaSicme);
+      if (error) {
+        console.error('Supabase partida delete by key error:', error);
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    }
+
     return { success: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al eliminar partida en Supabase';
