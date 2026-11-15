@@ -14,6 +14,8 @@ import {
 } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { uid } from '../../../shared/lib/uid';
 import { ModalShell } from '../../../shared/ui/ModalShell';
+import { siteConfirm } from '../../../shared/ui/askSite';
+import { ErpDropdown, ErpDropdownOption } from '../../../shared/ui/ErpDropdown';
 
 export interface RuleEditorModalProps {
   isOpen: boolean;
@@ -189,6 +191,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       setAllowDetalleEdit(true);
       const defaultDet = getRuleDetallesForArea('', currentArea)[0] || (currentArea === 'AREA HUMEDA' ? '008/3A' : '151');
       setDetalle(defaultDet);
+      setSelectedVariantCode(defaultDet);
       setSubitems([{ id: uid(), desc: '', qty: 1, unit: 'UND', formula: '', material: 'C', optional: false }]);
       return;
     }
@@ -231,6 +234,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       baseRule.detalle ||
       defaultDet;
     setDetalle(resolvedDetalle);
+    setSelectedVariantCode(resolvedDetalle);
 
     const copy: RuleSubitem[] = JSON.parse(JSON.stringify(baseRule.subitems || []));
     setSubitems(
@@ -243,6 +247,187 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       }))
     );
   };
+
+  const handleSelectAnyDetalleOption = (code: string) => {
+    setSelectedVariantCode(code);
+    if (!code) return;
+    setDetalle(code);
+
+    if (isCable20Selected) {
+      handleSelectCable20Option(code);
+      return;
+    }
+    if (isBarraPotSelected || isBarraInstSelected) {
+      handleSelectBarraOption(code);
+      return;
+    }
+
+    // When starting from a blank rule (or matching a known Cable 2/0 / Barra constructivo detail),
+    // preload its materials if available so picking a constructivo detail accelerates setup.
+    if (!selectedTemplateId) {
+      const areaVariant = getDetallesForArea(currentArea).find(([c]) => c === code);
+      const barraPotVariant = DYNAMIC_BARRA_POT_VARIANTS[code];
+      const barraInstVariant = DYNAMIC_BARRA_INST_VARIANTS[code];
+      const matchedItems: any[] | undefined = areaVariant?.[1] || barraPotVariant || barraInstVariant;
+
+      if (matchedItems && matchedItems.length > 0) {
+        setSubitems(
+          matchedItems.map((it: any) => ({
+            id: uid(),
+            desc: it.desc,
+            qty: it.qty !== undefined && it.qty !== '' ? it.qty : (it.ot !== undefined && it.ot !== '' ? it.ot : 1),
+            unit: it.unit || 'und',
+            formula: shownVariantFormula(it) || (it.otDynamic === '1c/3m' ? 'ceil(length/3)' : ''),
+            material: it.material || componentClass(it.desc),
+            optional: false
+          }))
+        );
+      }
+    }
+  };
+
+  const filteredDetalleOptions = useMemo(
+    () => detalleOptions.filter(d => d.area === currentArea || d.area === 'GENERAL'),
+    [detalleOptions, currentArea]
+  );
+
+  const templateDropdownOptions: ErpDropdownOption[] = useMemo(() => {
+    const list: ErpDropdownOption[] = [
+      {
+        value: '',
+        code: 'NUEVA',
+        label: 'Regla en blanco (desde cero)',
+        description: 'Comienza con una lista vacía de materiales'
+      }
+    ];
+    for (const r of availableRules) {
+      const code = r.areaDetalles?.[currentArea] || r.defaultDetalle || r.detalle || r.tagPrefix || 'M';
+      const preview = (r.subitems || []).map(s => s.desc).filter(Boolean).slice(0, 2).join(', ');
+      list.push({
+        value: r.id,
+        code,
+        label: r.trigger,
+        description: preview || undefined,
+        meta: `${r.subitems?.length || 0} insumos`
+      });
+    }
+    return list;
+  }, [availableRules, currentArea]);
+
+  const detalleSubmenuOptions: ErpDropdownOption[] = useMemo(() => {
+    if (isCable20Selected && cable20DetalleList.length > 0) {
+      return cable20DetalleList.map(([code, items]) => ({
+        value: code,
+        code,
+        label: `Detalle ${code}`,
+        description: `${items.map(it => it.desc).slice(0, 2).join(', ')}${items.length > 2 ? '...' : ''}`,
+        meta: `${items.length} insumos`,
+        group: 'Variantes Cable Desnudo 2/0 AWG'
+      }));
+    }
+
+    if ((isBarraPotSelected || isBarraInstSelected) && barraDetalleList.length > 0) {
+      return barraDetalleList.map(([code, items]) => ({
+        value: code,
+        code,
+        label: `Detalle ${code}`,
+        description: `${items.map((it: any) => it.desc).slice(0, 2).join(', ')}${items.length > 2 ? '...' : ''}`,
+        meta: `${items.length} insumos`,
+        group: isBarraPotSelected ? 'Variantes Barra de Potencial' : 'Variantes Barra de Instrumentación'
+      }));
+    }
+
+    const seen = new Set<string>();
+    const options: ErpDropdownOption[] = [];
+    const selectedRule = selectedTemplateId ? availableRules.find(r => r.id === selectedTemplateId) : null;
+
+    if (selectedRule) {
+      const ruleCodes = Array.from(
+        new Set([
+          selectedRule.areaDetalles?.[currentArea] || '',
+          selectedRule.defaultDetalle || '',
+          selectedRule.detalle || '',
+          ...getRuleDetallesForArea(selectedRule.trigger, currentArea)
+        ].filter(Boolean))
+      );
+
+      for (const code of ruleCodes) {
+        seen.add(code);
+        const catMatch = filteredDetalleOptions.find(d => d.code === code);
+        options.push({
+          value: code,
+          code,
+          label: `Detalle ${code}`,
+          description: catMatch?.description || `Detalle asignado a ${selectedRule.trigger}`,
+          meta: 'De esta regla',
+          group: 'Detalles de esta regla'
+        });
+      }
+    }
+
+    for (const d of filteredDetalleOptions) {
+      if (seen.has(d.code)) continue;
+      seen.add(d.code);
+      options.push({
+        value: d.code,
+        code: d.code,
+        label: `Detalle ${d.code}`,
+        description: d.description || d.area,
+        group: 'Catálogo de detalles constructivos'
+      });
+    }
+
+    for (const [code, items] of getDetallesForArea(currentArea)) {
+      if (seen.has(code)) continue;
+      seen.add(code);
+      options.push({
+        value: code,
+        code,
+        label: `Detalle ${code}`,
+        description: `${items.map(it => it.desc).slice(0, 2).join(', ')}${items.length > 2 ? '...' : ''}`,
+        meta: `${items.length} insumos`,
+        group: 'Variantes Cable 2/0 AWG'
+      });
+    }
+
+    for (const [code, items] of Object.entries(DYNAMIC_BARRA_POT_VARIANTS)) {
+      if (seen.has(code)) continue;
+      seen.add(code);
+      options.push({
+        value: code,
+        code,
+        label: `Detalle ${code}`,
+        description: `${items.map((it: any) => it.desc).slice(0, 2).join(', ')}`,
+        meta: `${items.length} insumos`,
+        group: 'Variantes Barra'
+      });
+    }
+
+    for (const [code, items] of Object.entries(DYNAMIC_BARRA_INST_VARIANTS)) {
+      if (seen.has(code)) continue;
+      seen.add(code);
+      options.push({
+        value: code,
+        code,
+        label: `Detalle ${code}`,
+        description: `${items.map((it: any) => it.desc).slice(0, 2).join(', ')}`,
+        meta: `${items.length} insumos`,
+        group: 'Variantes Barra'
+      });
+    }
+
+    return options;
+  }, [
+    isCable20Selected,
+    cable20DetalleList,
+    isBarraPotSelected,
+    isBarraInstSelected,
+    barraDetalleList,
+    selectedTemplateId,
+    availableRules,
+    currentArea,
+    filteredDetalleOptions
+  ]);
 
   if (!isOpen) return null;
 
@@ -311,9 +496,13 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
     onClose();
   };
 
-  const filteredDetalleOptions = detalleOptions.filter(
-    d => d.area === currentArea || d.area === 'GENERAL'
-  );
+  const detalleSubmenuLabel = isCable20Selected
+    ? 'Detalle constructivo (Cable 2/0):'
+    : isBarraPotSelected
+      ? 'Detalle constructivo (Barra Potencial):'
+      : isBarraInstSelected
+        ? 'Detalle constructivo (Barra Instrumentación):'
+        : 'Detalle constructivo (catálogo / variante):';
 
   return (
     <ModalShell
@@ -323,14 +512,14 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       maxWidth="1050px"
     >
       <div className="modal-body prompt">
-        {/* TEMPLATE PICKER IF CREATING NEW RULE */}
-        {isNew && availableRules && availableRules.length > 0 && (
+        {/* TEMPLATE & CONSTRUCTIVE DETAIL PICKER WHEN CREATING NEW RULE */}
+        {isNew && (
           <div
             style={{
               marginBottom: '1.2rem',
               padding: '12px 14px',
               background: 'var(--s1)',
-              borderRadius: '4px',
+              borderRadius: '3px',
               border: '1px solid var(--b1)'
             }}
           >
@@ -340,105 +529,49 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
-                color: 'var(--tx2)',
-                marginBottom: '8px'
+                color: 'var(--mu)',
+                marginBottom: '10px'
               }}
             >
-              Plantilla base (opcional)
+              Plantilla base y detalle constructivo (opcional)
             </div>
 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns:
-                  (isCable20Selected && cable20DetalleList.length > 0) ||
-                  ((isBarraPotSelected || isBarraInstSelected) && barraDetalleList.length > 0)
-                    ? '1fr 1fr'
-                    : '1fr',
+                gridTemplateColumns: '1fr 1fr',
                 gap: '1rem',
                 alignItems: 'end'
               }}
             >
-              <label style={{ margin: 0, fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>
-                Regla base:
-                <select
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>
+                  Regla base:
+                </span>
+                <ErpDropdown
+                  ariaLabel="Regla base"
                   value={selectedTemplateId}
-                  onChange={e => handleSelectTemplate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    marginTop: '4px',
-                    padding: '6px 8px',
-                    fontSize: '12px',
-                    borderRadius: '2px',
-                    border: '1px solid var(--b1)',
-                    background: 'var(--bg)',
-                    color: 'var(--tx)'
-                  }}
-                >
-                  <option value="">Regla en blanco (desde cero)</option>
-                  {availableRules.map(r => (
-                    <option key={r.id} value={r.id}>
-                      {r.trigger} ({r.subitems?.length || 0} materiales)
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  options={templateDropdownOptions}
+                  placeholder="Regla en blanco (desde cero)"
+                  searchPlaceholder="Buscar regla base o código..."
+                  onChange={handleSelectTemplate}
+                />
+              </div>
 
-              {isCable20Selected && cable20DetalleList.length > 0 && (
-                <label style={{ margin: 0, fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>
-                  Detalle constructivo (Cable 2/0):
-                  <select
-                    value={selectedVariantCode}
-                    onChange={e => handleSelectCable20Option(e.target.value)}
-                    style={{
-                      width: '100%',
-                      marginTop: '4px',
-                      padding: '6px 8px',
-                      fontSize: '12px',
-                      borderRadius: '2px',
-                      border: '1px solid #107c41',
-                      background: 'var(--bg)',
-                      color: 'var(--tx)',
-                      fontWeight: 600
-                    }}
-                  >
-                    <option value="">Seleccionar variante de detalle...</option>
-                    {cable20DetalleList.map(([code, items]) => (
-                      <option key={code} value={code}>
-                        Detalle {code} ({items.length} insumos: {items.map(it => it.desc).slice(0, 2).join(', ')}{items.length > 2 ? '...' : ''})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              {(isBarraPotSelected || isBarraInstSelected) && barraDetalleList.length > 0 && (
-                <label style={{ margin: 0, fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>
-                  Detalle constructivo ({isBarraPotSelected ? 'Barra Potencial' : 'Barra Instrumentación'}):
-                  <select
-                    value={selectedVariantCode}
-                    onChange={e => handleSelectBarraOption(e.target.value)}
-                    style={{
-                      width: '100%',
-                      marginTop: '4px',
-                      padding: '6px 8px',
-                      fontSize: '12px',
-                      borderRadius: '2px',
-                      border: '1px solid #107c41',
-                      background: 'var(--bg)',
-                      color: 'var(--tx)',
-                      fontWeight: 600
-                    }}
-                  >
-                    <option value="">Seleccionar variante de detalle...</option>
-                    {barraDetalleList.map(([code, items]) => (
-                      <option key={code} value={code}>
-                        Detalle {code} ({items.length} insumos: {items.map((it: any) => it.desc).slice(0, 2).join(', ')}{items.length > 2 ? '...' : ''})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tx)' }}>
+                  {detalleSubmenuLabel}
+                </span>
+                <ErpDropdown
+                  ariaLabel="Detalle constructivo"
+                  value={selectedVariantCode || detalle}
+                  options={detalleSubmenuOptions}
+                  placeholder="Seleccionar detalle constructivo..."
+                  searchPlaceholder="Filtrar por código o material..."
+                  accent={true}
+                  onChange={handleSelectAnyDetalleOption}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -451,27 +584,23 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
               id="modal-trigger"
               type="text"
               value={trigger}
-              placeholder="e.g. CABLE DESNUDO 4/0 AWG"
+              placeholder="Ej. CABLE DESNUDO 4/0 AWG"
               onChange={e => handleTriggerChange(e.target.value.toUpperCase())}
             />
           </label>
 
           <label style={{ margin: 0 }}>
-            DETALLE Constructivo:
+            Código DETALLE Constructivo:
             <input
               type="text"
               value={detalle}
-              list="catalog-detalles-list"
-              placeholder="e.g. 167/G1, 008/3A"
-              onChange={e => setDetalle(e.target.value.toUpperCase())}
+              placeholder="Ej. 167/G1, 008/3A"
+              onChange={e => {
+                const val = e.target.value.toUpperCase();
+                setDetalle(val);
+                setSelectedVariantCode(val);
+              }}
             />
-            <datalist id="catalog-detalles-list">
-              {filteredDetalleOptions.map(d => (
-                <option key={d.code} value={d.code}>
-                  {d.code} - {d.description || d.area}
-                </option>
-              ))}
-            </datalist>
           </label>
 
           <label style={{ margin: 0 }}>
@@ -479,7 +608,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
             <input
               type="text"
               value={tagPrefix}
-              placeholder="e.g. C"
+              placeholder="Ej. C"
               onChange={e => setTagPrefix(e.target.value.toUpperCase())}
             />
           </label>
@@ -613,8 +742,9 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
               <button
                 type="button"
                 className="btn-danger"
-                onClick={() => {
-                  if (confirm(`¿Eliminar la regla "${trigger}"?`)) {
+                onClick={async () => {
+                  const ok = await siteConfirm(`¿Eliminar la regla "${trigger}"?`);
+                  if (ok) {
                     onDelete(initialRule?.id || '');
                     onClose();
                   }

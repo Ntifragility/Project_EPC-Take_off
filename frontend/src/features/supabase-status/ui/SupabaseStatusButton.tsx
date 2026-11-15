@@ -25,11 +25,18 @@ export const SupabaseStatusButton: React.FC = () => {
     };
   }, []);
 
+  const isLoading = report === null;
   const isOnline = report?.status === 'connected';
   const isBlocked = report?.status === 'network_blocked';
 
-  const dotColor = isOnline ? '#22c55e' : isBlocked ? '#f59e0b' : '#ef4444';
-  const labelText = isOnline ? 'Online' : isBlocked ? 'Red Bloqueada' : 'Offline';
+  const dotColor = isLoading ? '#9ca3af' : isOnline ? '#22c55e' : isBlocked ? '#f59e0b' : '#ef4444';
+  const labelText = isLoading
+    ? 'Verificando...'
+    : isOnline
+      ? 'Online'
+      : isBlocked
+        ? 'Red Bloqueada'
+        : 'Con Restricción';
 
   return (
     <>

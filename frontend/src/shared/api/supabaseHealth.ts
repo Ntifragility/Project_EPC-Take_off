@@ -6,6 +6,7 @@ export interface TableCheckResult {
   count?: number;
   writable?: boolean;
   error?: string;
+  writeError?: string;
 }
 
 export interface SupabaseHealthReport {
@@ -30,9 +31,44 @@ const SUPABASE_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuam52dGJ3Zmhta3J5b2dlYmFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMTU2ODEsImV4cCI6MjA5NTU5MTY4MX0.3f6gNxExATIHy-UnFCQN0LAcIXJLDQNxQmKkHNBoBVI';
 
+interface TableProbeSpec {
+  tableName: string;
+  writePayload: Record<string, string>;
+  nonexistentId: string;
+}
+
+const TABLE_PROBES: TableProbeSpec[] = [
+  {
+    tableName: 'takeoff_rules',
+    writePayload: { trigger: '__probe__' },
+    nonexistentId: '__health_check_nonexistent__'
+  },
+  {
+    tableName: 'detalle_variants',
+    writePayload: { area: '__probe__' },
+    nonexistentId: '__health_check_nonexistent__'
+  },
+  {
+    tableName: 'main_PAT_table',
+    writePayload: { partida: '__probe__' },
+    nonexistentId: '00000000-0000-0000-0000-000000000000'
+  }
+];
+
+function isNetworkBlockError(msg: string): boolean {
+  return (
+    msg.includes('Failed to fetch') ||
+    msg.includes('NetworkError') ||
+    msg.includes('abort') ||
+    msg.includes('SSL') ||
+    msg.includes('CERT') ||
+    msg.includes('Timeout')
+  );
+}
+
 /**
  * Executes a live health and diagnostic check against Supabase.
- * Checks reachability, SSL/Firewall interception, and table read permissions.
+ * Checks reachability, SSL/Firewall interception, table read access, and non-destructive update permissions.
  * Never throws; always returns a structured SupabaseHealthReport.
  */
 export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
@@ -57,12 +93,12 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
   let isFirewallBlocked = false;
   let httpError: string | null = null;
 
-  // 1. Direct fetch test to REST root with timeout
+  // 1. Direct REST ping against an exposed table (avoids false 401 on PostgREST schema root)
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4500);
 
-    const pingRes = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+    const pingRes = await fetch(`${SUPABASE_URL}/rest/v1/takeoff_rules?select=id&limit=1`, {
       method: 'GET',
       headers: {
         apikey: SUPABASE_KEY,
@@ -74,19 +110,12 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
     clearTimeout(timeoutId);
     latencyMs = Math.round(performance.now() - startTime);
 
-    if (!pingRes.ok && pingRes.status !== 404) {
-      httpError = `HTTP ${pingRes.status}: ${pingRes.statusText}`;
+    if (!pingRes.ok) {
+      httpError = `HTTP ${pingRes.status}${pingRes.statusText ? `: ${pingRes.statusText}` : ''}`;
     }
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    // Typical corporate proxy / firewall SSL handshake intercept signs:
-    if (
-      errorMsg.includes('Failed to fetch') ||
-      errorMsg.includes('NetworkError') ||
-      errorMsg.includes('abort') ||
-      errorMsg.includes('SSL') ||
-      errorMsg.includes('CERT')
-    ) {
+    if (isNetworkBlockError(errorMsg)) {
       isFirewallBlocked = true;
       httpError = 'Bloqueo de red corporativa / Cortafuegos (SSL Handshake / Conexión abortada)';
     } else {
@@ -94,53 +123,79 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
     }
   }
 
-  // 2. Query each critical table
+  // 2. Query read + non-destructive update permissions for each critical table
   const tableChecks: TableCheckResult[] = [];
-  const tablesToTest = ['takeoff_rules', 'detalle_variants', 'main_PAT_table'];
 
   if (!isFirewallBlocked && supabase) {
-    for (const tbl of tablesToTest) {
+    for (const spec of TABLE_PROBES) {
+      const { tableName, writePayload, nonexistentId } = spec;
+      let readable = false;
+      let count: number | undefined;
+      let readError: string | undefined;
+      let writable: boolean | undefined;
+      let writeError: string | undefined;
+
       try {
-        const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) =>
+        const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Timeout de consulta (3s)')), 3000)
         );
-
         const queryPromise = supabase
-          .from(tbl)
+          .from(tableName)
           .select('id', { count: 'exact', head: true });
 
         const result: any = await Promise.race([queryPromise, timeoutPromise]);
-
         if (result.error) {
-          tableChecks.push({
-            tableName: tbl,
-            readable: false,
-            error: result.error.message || 'Error en consulta PostgREST'
-          });
+          readError = result.error.message || 'Error en consulta PostgREST';
         } else {
-          tableChecks.push({
-            tableName: tbl,
-            readable: true,
-            count: result.count ?? undefined
-          });
+          readable = true;
+          count = result.count ?? undefined;
         }
       } catch (tableErr: unknown) {
         const msg = tableErr instanceof Error ? tableErr.message : String(tableErr);
-        if (msg.includes('Timeout') || msg.includes('Failed to fetch')) {
-          isFirewallBlocked = true;
-        }
-        tableChecks.push({
-          tableName: tbl,
-          readable: false,
-          error: msg
-        });
+        if (isNetworkBlockError(msg)) isFirewallBlocked = true;
+        readError = msg;
       }
+
+      if (readable && !isFirewallBlocked) {
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout de escritura (3s)')), 3000)
+          );
+          const updatePromise = supabase
+            .from(tableName)
+            .update(writePayload)
+            .eq('id', nonexistentId);
+
+          const writeRes: any = await Promise.race([updatePromise, timeoutPromise]);
+          if (writeRes.error) {
+            writable = false;
+            writeError = writeRes.error.message || 'Actualización rechazada por RLS o permisos';
+          } else {
+            writable = true;
+          }
+        } catch (wErr: unknown) {
+          const msg = wErr instanceof Error ? wErr.message : String(wErr);
+          if (isNetworkBlockError(msg)) isFirewallBlocked = true;
+          writable = false;
+          writeError = msg;
+        }
+      }
+
+      tableChecks.push({
+        tableName,
+        readable,
+        count,
+        writable,
+        error: readError,
+        writeError
+      });
     }
   } else {
-    for (const tbl of tablesToTest) {
+    for (const spec of TABLE_PROBES) {
       tableChecks.push({
-        tableName: tbl,
+        tableName: spec.tableName,
         readable: false,
+        writable: false,
         error: isFirewallBlocked
           ? 'No accesible debido al bloqueo de red corporativo'
           : httpError || 'No probado'
@@ -157,14 +212,18 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
       errorMessage: httpError || 'Bloqueo de red detectado',
       diagnosticTitle: 'Bloqueado por Red Corporativa / Firewall',
       diagnosticDetail:
-        'La red o proxy corporativo está bloqueando las conexiones SSL salientes hacia *.supabase.co (error TLS alert 40 o conexión interceptada). El sistema opera de manera 100% autónoma en modo Offline (LocalStorage) garantizando que tus reglas y metrados se guarden localmente sin pérdidas.',
+        'La red o proxy corporativo está bloqueando las conexiones SSL salientes hacia *.supabase.co. El sistema opera en modo Offline-First (LocalStorage) garantizando que tus reglas y metrados se guarden localmente sin pérdidas.',
       isFirewallBlocked: true,
       tables: tableChecks,
       checkedAt: timestamp
     };
   }
 
-  if (httpError) {
+  const allReadable = tableChecks.every(t => t.readable);
+  const anyReadable = tableChecks.some(t => t.readable);
+  const allWritable = tableChecks.every(t => t.writable !== false);
+
+  if (httpError && !anyReadable) {
     return {
       isConfigured: true,
       endpointUrl: SUPABASE_URL,
@@ -179,17 +238,33 @@ export async function testSupabaseHealth(): Promise<SupabaseHealthReport> {
     };
   }
 
-  const allReadable = tableChecks.every(t => t.readable);
+  if (allReadable && allWritable) {
+    return {
+      isConfigured: true,
+      endpointUrl: SUPABASE_URL,
+      status: 'connected',
+      latencyMs,
+      diagnosticTitle: 'Supabase Conectado y Operativo',
+      diagnosticDetail:
+        'La conexión HTTPS con Supabase es estable y todas las tablas críticas admiten lectura y actualización sin restricciones.',
+      isFirewallBlocked: false,
+      tables: tableChecks,
+      checkedAt: timestamp
+    };
+  }
 
   return {
     isConfigured: true,
     endpointUrl: SUPABASE_URL,
-    status: allReadable ? 'connected' : 'error',
+    status: 'error',
     latencyMs,
-    diagnosticTitle: allReadable ? 'Supabase Conectado y Operativo' : 'Conexión Parcial',
+    errorMessage: !allWritable
+      ? 'Una o más tablas rechazan actualizaciones (RLS / permisos)'
+      : 'Una o más tablas no están accesibles',
+    diagnosticTitle: allReadable ? 'Lectura OK · Actualización Restringida' : 'Conexión Parcial',
     diagnosticDetail: allReadable
-      ? 'La conexión con Supabase es estable y todas las tablas críticas están accesibles.'
-      : 'Supabase es alcanzable pero una o más tablas devolvieron errores de lectura o permisos.',
+      ? 'Las tablas permiten lectura, pero Supabase está rechazando escrituras o actualizaciones en al menos una tabla.'
+      : 'Supabase es alcanzable, pero una o más tablas devolvieron errores de acceso.',
     isFirewallBlocked: false,
     tables: tableChecks,
     checkedAt: timestamp

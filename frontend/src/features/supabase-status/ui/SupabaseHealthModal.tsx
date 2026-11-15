@@ -35,192 +35,265 @@ export const SupabaseHealthModal: React.FC<SupabaseHealthModalProps> = ({
   const isConnected = report?.status === 'connected';
   const isBlocked = report?.status === 'network_blocked';
 
-  const badgeBg = isConnected ? '#e6f4ea' : isBlocked ? '#fef7e0' : '#fce8e6';
-  const badgeBorder = isConnected ? '#a8dab5' : isBlocked ? '#f6c344' : '#fad2cf';
-  const badgeText = isConnected ? '#137333' : isBlocked ? '#b06000' : '#c5221f';
+  const statusColors = isTesting
+    ? { bg: 'var(--s1)', border: 'var(--b1)', text: 'var(--tx)' }
+    : isConnected
+      ? { bg: 'rgba(16, 124, 65, 0.08)', border: 'rgba(16, 124, 65, 0.35)', text: '#107c41' }
+      : isBlocked
+        ? { bg: '#fef7e0', border: '#f6c344', text: '#9a5b00' }
+        : { bg: '#fce8e6', border: '#f2b8b5', text: '#b3261e' };
 
   return (
     <ModalShell
       title="Estado de Conexión con Supabase"
-      subtitle="Diagnóstico de conectividad en tiempo real y verificación de permisos"
+      subtitle="Diagnóstico de conectividad, permisos de lectura y validación de actualizaciones"
       onClose={onClose}
       maxWidth="780px"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px', color: 'var(--t1)' }}>
-        {/* Status Banner */}
+      <div className="modal-body prompt" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Status Summary Banner */}
         <div
           style={{
-            background: badgeBg,
-            border: `1px solid ${badgeBorder}`,
-            borderRadius: '4px',
-            padding: '14px 16px',
+            background: statusColors.bg,
+            border: `1px solid ${statusColors.border}`,
+            borderRadius: '3px',
+            padding: '12px 16px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px'
+            gap: '4px'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700, fontSize: '14px', color: badgeText, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <span
+              style={{
+                fontWeight: 700,
+                fontSize: '12px',
+                color: statusColors.text,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}
+            >
               {isTesting
-                ? 'Comprobando conectividad...'
-                : report?.diagnosticTitle || 'Comprobando...'}
+                ? 'Verificando conectividad y permisos...'
+                : report?.diagnosticTitle || 'Verificando...'}
             </span>
-            {report?.latencyMs !== null && report?.latencyMs !== undefined && (
-              <span style={{ fontSize: '12px', color: badgeText, fontWeight: 600 }}>
+            {!isTesting && report?.latencyMs !== null && report?.latencyMs !== undefined && (
+              <span
+                style={{
+                  fontFamily: 'var(--mo)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: statusColors.text,
+                  background: 'rgba(255, 255, 255, 0.65)',
+                  border: `1px solid ${statusColors.border}`,
+                  padding: '2px 8px',
+                  borderRadius: '2px'
+                }}
+              >
                 {report.latencyMs} ms
               </span>
             )}
           </div>
-          <p style={{ margin: 0, fontSize: '12px', color: 'var(--t2)', lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--tx2, #4b5563)', lineHeight: 1.5 }}>
             {isTesting
-              ? 'Enviando paquetes de sondeo al servidor Supabase...'
+              ? 'Probando consultas de lectura y permisos de actualización contra el endpoint de Supabase...'
               : report?.diagnosticDetail}
           </p>
         </div>
 
-        {/* Technical Details Grid */}
+        {/* Technical Metadata Grid */}
         <div
           style={{
             background: 'var(--s1)',
             border: '1px solid var(--b1)',
-            borderRadius: '4px',
-            padding: '14px',
+            borderRadius: '3px',
+            padding: '12px 16px',
             display: 'grid',
-            gridTemplateColumns: '140px 1fr',
-            rowGap: '10px',
+            gridTemplateColumns: '160px 1fr',
+            rowGap: '8px',
             columnGap: '12px',
-            fontSize: '12px'
+            fontSize: '12px',
+            alignItems: 'center'
           }}
         >
-          <span style={{ color: 'var(--t3)', fontWeight: 600 }}>Endpoint URL:</span>
-          <span style={{ fontFamily: 'var(--mo)', color: 'var(--t1)', wordBreak: 'break-all' }}>
+          <span style={{ color: 'var(--mu)', fontWeight: 600 }}>Endpoint URL:</span>
+          <span style={{ fontFamily: 'var(--mo)', color: 'var(--tx)', wordBreak: 'break-all' }}>
             {report?.endpointUrl || 'https://bnjnvtbwfhmkryogebak.supabase.co'}
           </span>
 
-          <span style={{ color: 'var(--t3)', fontWeight: 600 }}>Estado REST:</span>
-          <span style={{ fontWeight: 600, color: isConnected ? '#137333' : '#b06000' }}>
+          <span style={{ color: 'var(--mu)', fontWeight: 600 }}>Estado REST / TLS:</span>
+          <span
+            style={{
+              fontWeight: 600,
+              color: isTesting
+                ? 'var(--mu)'
+                : isConnected
+                  ? '#107c41'
+                  : isBlocked
+                    ? '#9a5b00'
+                    : '#b3261e'
+            }}
+          >
             {isTesting
-              ? 'Verificando...'
+              ? 'Comprobando...'
               : isConnected
-              ? 'Conexión HTTPS activa (200 OK)'
-              : isBlocked
-              ? 'Bloqueado por firewall o proxy corporativo'
-              : report?.errorMessage || 'Desconectado'}
+                ? 'Conexión HTTPS activa (Lectura y Escritura OK)'
+                : isBlocked
+                  ? 'Bloqueado por firewall o proxy corporativo'
+                  : report?.errorMessage || 'Revisar permisos por tabla'}
           </span>
 
-          <span style={{ color: 'var(--t3)', fontWeight: 600 }}>Última comprobación:</span>
-          <span style={{ color: 'var(--t2)' }}>
+          <span style={{ color: 'var(--mu)', fontWeight: 600 }}>Última comprobación:</span>
+          <span style={{ fontFamily: 'var(--mo)', fontSize: '11px', color: 'var(--tx2, #4b5563)' }}>
             {report?.checkedAt || 'En progreso'}
           </span>
         </div>
 
-        {/* Table Accessibility Status */}
+        {/* Table Accessibility & Update Permissions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-            Acceso a Tablas de la Base de Datos
-          </div>
-
-          <table
+          <div
             style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '12px',
-              border: '1px solid var(--b1)',
-              background: 'var(--s1)'
+              fontSize: '11px',
+              fontWeight: 700,
+              color: 'var(--mu)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em'
             }}
           >
-            <thead>
-              <tr style={{ background: 'var(--s2)', borderBottom: '1px solid var(--b1)', textAlign: 'left' }}>
-                <th style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--t2)' }}>Tabla</th>
-                <th style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--t2)', width: '130px' }}>Lectura</th>
-                <th style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--t2)' }}>Observaciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report?.tables && report.tables.length > 0 ? (
-                report.tables.map(t => (
-                  <tr key={t.tableName} style={{ borderBottom: '1px solid var(--b1)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'var(--mo)', fontWeight: 600 }}>
-                      {t.tableName}
-                    </td>
-                    <td style={{ padding: '8px 12px' }}>
-                      <span
+            Permisos y Acceso por Tabla
+          </div>
+
+          <div style={{ border: '1px solid var(--b1)', borderRadius: '3px', overflow: 'hidden', background: 'var(--bg)' }}>
+            <table className="prompt-table" style={{ width: '100%', margin: 0, borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ background: 'var(--s1)' }}>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid var(--b1)' }}>Tabla</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'center', width: '115px', borderBottom: '1px solid var(--b1)' }}>Lectura</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'center', width: '125px', borderBottom: '1px solid var(--b1)' }}>Actualización</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid var(--b1)' }}>Observaciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report?.tables && report.tables.length > 0 ? (
+                  report.tables.map((t, idx) => {
+                    const hasWriteCheck = t.writable !== undefined;
+                    const note = t.error
+                      ? t.error
+                      : t.writeError
+                        ? `Rechazo al actualizar: ${t.writeError}`
+                        : t.count !== undefined
+                          ? `${t.count} filas indexadas`
+                          : 'Consulta verificada';
+
+                    return (
+                      <tr
+                        key={t.tableName}
                         style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          borderRadius: '2px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          background: t.readable ? '#e6f4ea' : '#fce8e6',
-                          color: t.readable ? '#137333' : '#c5221f'
+                          borderBottom: idx === report.tables.length - 1 ? 'none' : '1px solid var(--b2, #e5e7eb)'
                         }}
                       >
-                        {t.readable ? 'DISPONIBLE' : 'NO DISPONIBLE'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '8px 12px', color: 'var(--t3)', fontSize: '11px' }}>
-                      {t.readable
-                        ? t.count !== undefined
-                          ? `${t.count} filas indexadas`
-                          : 'Consulta verificada'
-                        : t.error || 'No accesible'}
+                        <td style={{ padding: '9px 12px', fontFamily: 'var(--mo)', fontWeight: 600, color: 'var(--tx)' }}>
+                          {t.tableName}
+                        </td>
+                        <td style={{ padding: '9px 12px', textAlign: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: '2px',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              letterSpacing: '0.03em',
+                              background: t.readable ? 'rgba(16, 124, 65, 0.1)' : '#fce8e6',
+                              color: t.readable ? '#107c41' : '#b3261e',
+                              border: `1px solid ${t.readable ? 'rgba(16, 124, 65, 0.25)' : '#f2b8b5'}`
+                            }}
+                          >
+                            {t.readable ? 'OK' : 'BLOQUEADA'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '9px 12px', textAlign: 'center' }}>
+                          {hasWriteCheck ? (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '2px 8px',
+                                borderRadius: '2px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                letterSpacing: '0.03em',
+                                background: t.writable ? 'rgba(16, 124, 65, 0.1)' : '#fce8e6',
+                                color: t.writable ? '#107c41' : '#b3261e',
+                                border: `1px solid ${t.writable ? 'rgba(16, 124, 65, 0.25)' : '#f2b8b5'}`
+                              }}
+                            >
+                              {t.writable ? 'PERMITIDA' : 'RECHAZADA'}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--mu)' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '9px 12px', color: 'var(--mu)', fontSize: '11px' }}>
+                          {note}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '14px', textAlign: 'center', color: 'var(--mu)' }}>
+                      {isTesting ? 'Evaluando tablas y permisos RLS...' : 'No se pudo obtener información de tablas.'}
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={3} style={{ padding: '12px', textAlign: 'center', color: 'var(--t3)' }}>
-                    {isTesting ? 'Evaluando tablas...' : 'No se pudo obtener información de tablas.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Offline-First Information Box */}
         <div
           style={{
             background: 'rgba(16, 124, 65, 0.05)',
+            border: '1px solid rgba(16, 124, 65, 0.2)',
             borderLeft: '3px solid #107c41',
             padding: '10px 14px',
-            borderRadius: '0 4px 4px 0',
+            borderRadius: '2px',
             fontSize: '12px',
             lineHeight: 1.5,
-            color: 'var(--t2)'
+            color: 'var(--tx2, #374151)'
           }}
         >
-          <strong style={{ color: '#107c41', display: 'block', marginBottom: '2px' }}>
-            Garantía de Funcionamiento Offline-First:
+          <strong style={{ color: '#107c41', display: 'block', marginBottom: '2px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+            Garantía de Funcionamiento Offline-First
           </strong>
-          Si su red corporativa bloquea las conexiones a Supabase, la aplicación sigue funcionando de manera continua y sin interrupciones. Todos los metrados, partidas, reglas personalizadas y variantes de detalle se conservan íntegramente en el almacenamiento local (LocalStorage) de su navegador.
+          Si la red de la empresa bloquea Supabase o una actualización remota falla, sus cambios se guardan inmediatamente en almacenamiento local (LocalStorage) para continuar trabajando sin interrupciones.
         </div>
 
-        {/* Footer Actions */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+        {/* Footer Actions matching ModalShell / RuleEditorModal styling */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '10px',
+            marginTop: '4px',
+            paddingTop: '14px',
+            borderTop: '1px solid var(--b1)'
+          }}
+        >
           <button
             type="button"
-            className="btn-modal-secondary"
+            className="btn-ghost"
             onClick={runTest}
             disabled={isTesting}
-            style={{
-              padding: '6px 14px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: isTesting ? 'wait' : 'pointer'
-            }}
           >
             {isTesting ? 'Comprobando...' : 'Probar conexión ahora'}
           </button>
           <button
             type="button"
-            className="btn-modal-primary"
+            className="btn-primary"
             onClick={onClose}
-            style={{
-              padding: '6px 16px',
-              fontSize: '12px',
-              fontWeight: 600
-            }}
           >
             Cerrar
           </button>
