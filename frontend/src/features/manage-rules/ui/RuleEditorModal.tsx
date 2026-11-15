@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TakeoffRule, RuleSubitem, DetalleDefinition } from '../../../entities/takeoff-rule/model/types';
 import { AreaType } from '../../../shared/types/common';
 import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
 import { formulaHint, shownFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { fetchDetalleCatalog } from '../../../entities/takeoff-rule/api/ruleRepository';
 import { getRuleDetallesForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
+import {
+  getDetallesForArea,
+  shouldAutoManageTuberia,
+  DYNAMIC_BARRA_POT_VARIANTS,
+  DYNAMIC_BARRA_INST_VARIANTS,
+  DetalleVariantItem
+} from '../../../entities/takeoff-rule/model/detalleVariants';
 import { uid } from '../../../shared/lib/uid';
 import { ModalShell } from '../../../shared/ui/ModalShell';
 
@@ -37,6 +44,40 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   const [subitems, setSubitems] = useState<RuleSubitem[]>([]);
   const [detalleOptions, setDetalleOptions] = useState<DetalleDefinition[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [selectedVariantCode, setSelectedVariantCode] = useState<string>('');
+
+  const isCable20Selected = useMemo(() => {
+    if (!selectedTemplateId) return false;
+    const rule = availableRules.find(r => r.id === selectedTemplateId);
+    return rule ? (rule.id === 'r2' || rule.trigger.toUpperCase().includes('2/0')) : false;
+  }, [selectedTemplateId, availableRules]);
+
+  const isBarraPotSelected = useMemo(() => {
+    if (!selectedTemplateId) return false;
+    const rule = availableRules.find(r => r.id === selectedTemplateId);
+    return rule ? (rule.id === 'r8' || rule.trigger.toUpperCase().includes('BARRA POT')) : false;
+  }, [selectedTemplateId, availableRules]);
+
+  const isBarraInstSelected = useMemo(() => {
+    if (!selectedTemplateId) return false;
+    const rule = availableRules.find(r => r.id === selectedTemplateId);
+    return rule ? (rule.id === 'r9' || rule.trigger.toUpperCase().includes('BARRA INST')) : false;
+  }, [selectedTemplateId, availableRules]);
+
+  const cable20DetalleList = useMemo(() => {
+    if (!isCable20Selected) return [];
+    return getDetallesForArea(currentArea);
+  }, [isCable20Selected, currentArea]);
+
+  const barraDetalleList = useMemo(() => {
+    if (isBarraPotSelected) {
+      return Object.entries(DYNAMIC_BARRA_POT_VARIANTS);
+    }
+    if (isBarraInstSelected) {
+      return Object.entries(DYNAMIC_BARRA_INST_VARIANTS);
+    }
+    return [];
+  }, [isBarraPotSelected, isBarraInstSelected]);
 
   useEffect(() => {
     if (isOpen) {
@@ -69,6 +110,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
         optional: Boolean(item.optional)
       })));
       setSelectedTemplateId(initialRule.id || '');
+      setSelectedVariantCode(resolvedDetalle || '');
     } else {
       setTrigger('');
       setTagPrefix('M');
@@ -77,13 +119,70 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       setDetalle(defaultDet);
       setSubitems([{ id: uid(), desc: '', qty: 1, unit: 'UND', formula: '', material: 'C', optional: false }]);
       setSelectedTemplateId('');
+      setSelectedVariantCode('');
     }
   }, [initialRule, isOpen, currentArea, isNew]);
 
-  if (!isOpen) return null;
+  const handleSelectCable20Option = (code: string) => {
+    setSelectedVariantCode(code);
+    if (!code) return;
+
+    const found = cable20DetalleList.find(([c]) => c === code);
+    if (!found) return;
+
+    const [, itemsList] = found;
+    const tuberiaDesc = code.startsWith('020')
+      ? 'TUBERIA RIGIDA DE ACERO GALVANIZADO EN CALIENTE DE WHEATLAND"'
+      : 'TUBERIA PVC SCH 80 Ø3/4"';
+
+    const itemsWithTuberia =
+      currentArea === 'AREA SECA' &&
+      shouldAutoManageTuberia(code) &&
+      code !== '153' &&
+      code !== 'NA'
+        ? [...itemsList, { desc: tuberiaDesc, qty: 1, unit: 'm', ot: 'Var.' }]
+        : [...itemsList];
+
+    setTrigger(`CABLE DESNUDO 2/0 AWG - DET. ${code} (COPIA)`);
+    setDetalle(code);
+    setSubitems(
+      itemsWithTuberia.map((it: any) => ({
+        id: uid(),
+        desc: it.desc,
+        qty: typeof it.qty === 'number' ? it.qty : 1,
+        unit: it.unit || 'und',
+        formula: it.formula || (it.otDynamic === '1c/3m' ? 'ceil(length/3)' : ''),
+        material: it.material || componentClass(it.desc),
+        optional: false
+      }))
+    );
+  };
+
+  const handleSelectBarraOption = (code: string) => {
+    setSelectedVariantCode(code);
+    if (!code) return;
+    const found = barraDetalleList.find(([c]) => c === code);
+    if (!found) return;
+    const [, itemsList] = found;
+    const prefix = isBarraPotSelected ? 'BARRA DE POTENCIAL' : 'BARRA DE INSTRUMENTACIÓN';
+    setTrigger(`${prefix} - DET. ${code} (COPIA)`);
+    setDetalle(code);
+    setSubitems(
+      itemsList.map((it: any) => ({
+        id: uid(),
+        desc: it.desc,
+        qty: typeof it.qty === 'number' ? it.qty : 1,
+        unit: it.unit || 'und',
+        formula: it.formula || '',
+        material: it.material || componentClass(it.desc),
+        optional: false
+      }))
+    );
+  };
 
   const handleSelectTemplate = (ruleId: string) => {
     setSelectedTemplateId(ruleId);
+    setSelectedVariantCode('');
     if (!ruleId) {
       setTrigger('');
       setTagPrefix('M');
@@ -95,6 +194,29 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
     }
     const baseRule = availableRules.find(r => r.id === ruleId);
     if (!baseRule) return;
+
+    // Check if Cable 2/0
+    const isC20 = baseRule.id === 'r2' || baseRule.trigger.toUpperCase().includes('2/0');
+    if (isC20) {
+      const variants = getDetallesForArea(currentArea);
+      if (variants.length > 0) {
+        const firstCode = variants[0][0];
+        handleSelectCable20Option(firstCode);
+        return;
+      }
+    }
+
+    // Check if Barra
+    const isBPot = baseRule.id === 'r8' || baseRule.trigger.toUpperCase().includes('BARRA POT');
+    const isBInst = baseRule.id === 'r9' || baseRule.trigger.toUpperCase().includes('BARRA INST');
+    if (isBPot || isBInst) {
+      const bList = isBPot ? Object.entries(DYNAMIC_BARRA_POT_VARIANTS) : Object.entries(DYNAMIC_BARRA_INST_VARIANTS);
+      if (bList.length > 0) {
+        const firstCode = bList[0][0];
+        handleSelectBarraOption(firstCode);
+        return;
+      }
+    }
 
     setTrigger(`${baseRule.trigger} (COPIA)`);
     setTagPrefix(baseRule.tagPrefix || 'M');
@@ -206,41 +328,128 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
           <div
             style={{
               marginBottom: '1.2rem',
-              padding: '10px 14px',
+              padding: '12px 14px',
               background: 'var(--s1)',
               borderRadius: '6px',
               border: '1px solid var(--b1)',
               display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              flexWrap: 'wrap'
+              flexDirection: 'column',
+              gap: '10px'
             }}
           >
-            <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--tx)', whiteSpace: 'nowrap' }}>
-              📋 Basar en regla existente:
-            </span>
-            <select
-              value={selectedTemplateId}
-              onChange={e => handleSelectTemplate(e.target.value)}
-              style={{
-                flex: 1,
-                minWidth: '220px',
-                padding: '6px 10px',
-                borderRadius: '4px',
-                border: '1px solid var(--b1)',
-                background: 'var(--bg)',
-                color: 'var(--tx)',
-                fontSize: '12px',
-                fontFamily: 'inherit'
-              }}
-            >
-              <option value="">-- Comenzar desde cero (regla en blanco) --</option>
-              {availableRules.map(r => (
-                <option key={r.id} value={r.id}>
-                  {r.trigger} ({r.subitems?.length || 0} materiales)
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--tx)', whiteSpace: 'nowrap' }}>
+                📋 Basar en regla existente:
+              </span>
+              <select
+                value={selectedTemplateId}
+                onChange={e => handleSelectTemplate(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: '220px',
+                  padding: '6px 10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--b1)',
+                  background: 'var(--bg)',
+                  color: 'var(--tx)',
+                  fontSize: '12px',
+                  fontFamily: 'inherit'
+                }}
+              >
+                <option value="">-- Comenzar desde cero (regla en blanco) --</option>
+                {availableRules.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.trigger} ({r.subitems?.length || 0} materiales)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* SECONDARY SELECTOR FOR CABLE 2/0 OPTIONS */}
+            {isCable20Selected && cable20DetalleList.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '8px 12px',
+                  background: 'var(--s2)',
+                  borderRadius: '4px',
+                  borderLeft: '3px solid var(--p1)',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--p1)', whiteSpace: 'nowrap' }}>
+                  ⚡ Elegir opción / variante de Detalle (Cable 2/0):
+                </span>
+                <select
+                  value={selectedVariantCode}
+                  onChange={e => handleSelectCable20Option(e.target.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: '240px',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--p1)',
+                    background: 'var(--bg)',
+                    color: 'var(--tx)',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <option value="">-- Seleccionar detalle de Cable 2/0 ({cable20DetalleList.length} disponibles) --</option>
+                  {cable20DetalleList.map(([code, items]) => (
+                    <option key={code} value={code}>
+                      Detalle {code} ({items.length} insumos: {items.map(it => it.desc).slice(0, 2).join(', ')}{items.length > 2 ? '...' : ''})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* SECONDARY SELECTOR FOR BARRA POT / INST OPTIONS */}
+            {(isBarraPotSelected || isBarraInstSelected) && barraDetalleList.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '8px 12px',
+                  background: 'var(--s2)',
+                  borderRadius: '4px',
+                  borderLeft: '3px solid var(--p1)',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--p1)', whiteSpace: 'nowrap' }}>
+                  ⚡ Elegir opción / variante de Detalle ({isBarraPotSelected ? 'Barra Potencial' : 'Barra Inst.'}):
+                </span>
+                <select
+                  value={selectedVariantCode}
+                  onChange={e => handleSelectBarraOption(e.target.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: '240px',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--p1)',
+                    background: 'var(--bg)',
+                    color: 'var(--tx)',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <option value="">-- Seleccionar detalle de Barra ({barraDetalleList.length} disponibles) --</option>
+                  {barraDetalleList.map(([code, items]) => (
+                    <option key={code} value={code}>
+                      Detalle {code} ({items.length} insumos: {items.map((it: any) => it.desc).slice(0, 2).join(', ')}{items.length > 2 ? '...' : ''})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         )}
 

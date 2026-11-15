@@ -20,6 +20,7 @@ interface BarraRuleCardProps {
   onDuplicate?: (rule: TakeoffRule) => void;
   onDelete?: (id: string) => void;
   onEditDetalle?: (code: string, items: DetalleVariantItem[], category: 'BARRA_POT' | 'BARRA_INST') => void;
+  onDuplicateDetalle?: (code: string, items: DetalleVariantItem[], category: 'BARRA_POT' | 'BARRA_INST') => void;
 }
 
 export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
@@ -30,7 +31,8 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   onToggleExpand,
   onDuplicate,
   onDelete,
-  onEditDetalle
+  onEditDetalle,
+  onDuplicateDetalle
 }) => {
   const variantsVersion = useRulesStore(state => state.detalleVariantsVersion);
   const variantMap = category === 'BARRA_POT' ? DYNAMIC_BARRA_POT_VARIANTS : DYNAMIC_BARRA_INST_VARIANTS;
@@ -161,13 +163,22 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
                             >
                               {detCode}
                             </span>
-                            {onEditDetalle && (
-                              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
-                                <IconActionButton
-                                  kind="edit"
-                                  title={`Editar materiales de ${detCode}`}
-                                  onClick={() => onEditDetalle(detCode, vItems as any, category)}
-                                />
+                            {(onEditDetalle || onDuplicateDetalle) && (
+                              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px', gap: '4px' }}>
+                                {onEditDetalle && (
+                                  <IconActionButton
+                                    kind="edit"
+                                    title={`Editar materiales de ${detCode}`}
+                                    onClick={() => onEditDetalle(detCode, vItems as any, category)}
+                                  />
+                                )}
+                                {onDuplicateDetalle && (
+                                  <IconActionButton
+                                    kind="copy"
+                                    title={`Crear nueva regla basada en el detalle ${detCode}`}
+                                    onClick={() => onDuplicateDetalle(detCode, vItems as any, category)}
+                                  />
+                                )}
                               </div>
                             )}
                           </td>

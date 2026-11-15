@@ -10,6 +10,7 @@ interface Cable40RuleCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onEdit?: (rule: TakeoffRule) => void;
+  onDuplicate?: (rule: TakeoffRule) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -18,6 +19,7 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
   isExpanded,
   onToggleExpand,
   onEdit,
+  onDuplicate,
   onDelete
 }) => {
   const lineFor = (desc: string) => {
@@ -70,6 +72,7 @@ export const Cable40RuleCard: React.FC<Cable40RuleCardProps> = ({
       badge="2 detalles"
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
+      onDuplicate={onDuplicate ? () => onDuplicate(rule) : undefined}
       onDelete={onDelete ? () => onDelete(rule.id) : undefined}
     >
             <div style={{ overflowX: 'hidden', border: '1px solid var(--b1)', borderRadius: '4px', background: 'var(--s2)' }}>

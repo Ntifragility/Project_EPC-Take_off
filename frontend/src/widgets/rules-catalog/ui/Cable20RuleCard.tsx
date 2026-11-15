@@ -21,6 +21,7 @@ interface Cable20RuleCardProps {
   onDuplicate?: (rule: TakeoffRule) => void;
   onDelete?: (id: string) => void;
   onEditDetalle?: (code: string, items: DetalleVariantItem[]) => void;
+  onDuplicateDetalle?: (code: string, items: DetalleVariantItem[]) => void;
 }
 
 export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
@@ -31,7 +32,8 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   onToggleExpand,
   onDuplicate,
   onDelete,
-  onEditDetalle
+  onEditDetalle,
+  onDuplicateDetalle
 }) => {
   const variantsVersion = useRulesStore(state => state.detalleVariantsVersion);
   const areaDetalles = useMemo(() => {
@@ -192,13 +194,22 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                               >
                                 {detalleCode}
                               </span>
-                              {onEditDetalle && (
-                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
-                                  <IconActionButton
-                                    kind="edit"
-                                    title={`Editar la lista de ${detalleCode}`}
-                                    onClick={() => onEditDetalle(detalleCode, itemsList)}
-                                  />
+                              {(onEditDetalle || onDuplicateDetalle) && (
+                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px', gap: '4px' }}>
+                                  {onEditDetalle && (
+                                    <IconActionButton
+                                      kind="edit"
+                                      title={`Editar la lista de ${detalleCode}`}
+                                      onClick={() => onEditDetalle(detalleCode, itemsList)}
+                                    />
+                                  )}
+                                  {onDuplicateDetalle && (
+                                    <IconActionButton
+                                      kind="copy"
+                                      title={`Crear nueva regla basada en el detalle ${detalleCode}`}
+                                      onClick={() => onDuplicateDetalle(detalleCode, sortedItems)}
+                                    />
+                                  )}
                                 </div>
                               )}
                             </td>

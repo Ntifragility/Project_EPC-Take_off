@@ -18,6 +18,7 @@ import { BarraRuleCard } from './BarraRuleCard';
 import { CableTrayRuleCard } from './CableTrayRuleCard';
 import { GenericRuleCard } from './GenericRuleCard';
 import { detalleBelongsToArea, getCatalogForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
+import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
 import { useAuthStore } from '../../../features/auth/model/useAuthStore';
 import { getRoleLevel } from '../../../features/auth/model/authTypes';
 import { useUIStore } from '../../../features/filter-takeoff/model/useUIStore';
@@ -146,6 +147,69 @@ export const RulesView: React.FC = () => {
       id: uid(),
       trigger: `${rule.trigger} (COPIA)`,
       subitems: rule.subitems ? rule.subitems.map(s => ({ ...s, id: uid() })) : []
+    };
+    setEditingRule(clonedRule);
+    setIsNew(true);
+    setModalOpen(true);
+  };
+
+  const handleOpenDuplicateCable20Detalle = (detalleCode: string, itemsList: DetalleVariantItem[]) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden crear o duplicar reglas', 'warn');
+      return;
+    }
+    const clonedRule: TakeoffRule = {
+      id: uid(),
+      trigger: `CABLE DESNUDO 2/0 AWG - DET. ${detalleCode} (COPIA)`,
+      detalle: detalleCode,
+      defaultDetalle: detalleCode,
+      tagPrefix: 'M',
+      allowDetalleEdit: true,
+      areas: [activeArea],
+      areaDetalles: { [activeArea]: detalleCode },
+      subitems: itemsList.map(it => ({
+        id: uid(),
+        desc: it.desc,
+        qty: typeof it.qty === 'number' ? it.qty : 1,
+        unit: it.unit || 'und',
+        formula: it.formula || (it.otDynamic === '1c/3m' ? 'ceil(length/3)' : ''),
+        material: it.material || componentClass(it.desc),
+        optional: false
+      }))
+    };
+    setEditingRule(clonedRule);
+    setIsNew(true);
+    setModalOpen(true);
+  };
+
+  const handleOpenDuplicateBarraDetalle = (
+    detCode: string,
+    vItems: DetalleVariantItem[],
+    category: 'BARRA_POT' | 'BARRA_INST'
+  ) => {
+    if (!canEdit) {
+      showToast('Solo usuarios con nivel Level 2 o Level 3 pueden crear o duplicar reglas', 'warn');
+      return;
+    }
+    const prefix = category === 'BARRA_POT' ? 'BARRA DE POTENCIAL' : 'BARRA DE INSTRUMENTACIÓN';
+    const clonedRule: TakeoffRule = {
+      id: uid(),
+      trigger: `${prefix} - DET. ${detCode} (COPIA)`,
+      detalle: detCode,
+      defaultDetalle: detCode,
+      tagPrefix: 'M',
+      allowDetalleEdit: true,
+      areas: [activeArea],
+      areaDetalles: { [activeArea]: detCode },
+      subitems: vItems.map(it => ({
+        id: uid(),
+        desc: it.desc,
+        qty: typeof it.qty === 'number' ? it.qty : 1,
+        unit: it.unit || 'und',
+        formula: it.formula || '',
+        material: it.material || componentClass(it.desc),
+        optional: false
+      }))
     };
     setEditingRule(clonedRule);
     setIsNew(true);
@@ -304,6 +368,7 @@ export const RulesView: React.FC = () => {
                 isExpanded={isExpanded}
                 onToggleExpand={() => toggleRuleExpand(r.id)}
                 onEdit={canEdit ? handleOpenEdit : undefined}
+                onDuplicate={canEdit ? handleOpenDuplicate : undefined}
                 onDelete={canEdit ? handleDeleteRule : undefined}
               />
             );
@@ -322,6 +387,7 @@ export const RulesView: React.FC = () => {
                 onDuplicate={canEdit ? handleOpenDuplicate : undefined}
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? (code, items) => handleOpenDetalleEdit(code, items, 'CABLE_2_0') : undefined}
+                onDuplicateDetalle={canEdit ? handleOpenDuplicateCable20Detalle : undefined}
               />
             );
           }
@@ -339,6 +405,7 @@ export const RulesView: React.FC = () => {
                 onDuplicate={canEdit ? handleOpenDuplicate : undefined}
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? handleOpenDetalleEdit : undefined}
+                onDuplicateDetalle={canEdit ? handleOpenDuplicateBarraDetalle : undefined}
               />
             );
           }
@@ -356,6 +423,7 @@ export const RulesView: React.FC = () => {
                 onDuplicate={canEdit ? handleOpenDuplicate : undefined}
                 onDelete={canEdit ? handleDeleteRule : undefined}
                 onEditDetalle={canEdit ? handleOpenDetalleEdit : undefined}
+                onDuplicateDetalle={canEdit ? handleOpenDuplicateBarraDetalle : undefined}
               />
             );
           }
