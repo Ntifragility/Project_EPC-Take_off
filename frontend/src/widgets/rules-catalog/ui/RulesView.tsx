@@ -91,7 +91,6 @@ export const RulesView: React.FC = () => {
 
   const effectiveSubArea = activeArea === 'AREA HUMEDA' ? subAreaHumeda : 'NO_CORROSIVO';
   const areaDetalles = getDetallesForArea(activeArea, effectiveSubArea);
-  const currentAreaCodes: string[] = areaDetalles.map(([c]) => c);
   const catalogRules = getCatalogForArea(rules, activeArea);
 
   const isCable20Trigger = (trigger: string) => {
@@ -112,6 +111,17 @@ export const RulesView: React.FC = () => {
   const cable20CustomRules = useMemo(() => {
     return catalogRules.filter(r => isCable20Trigger(r.trigger) && r.id !== 'r2');
   }, [catalogRules]);
+
+  const currentAreaCodes: string[] = useMemo(() => {
+    const set = new Set<string>(areaDetalles.map(([c]) => c));
+    cable20CustomRules.forEach(r => {
+      const c = r.detalle || r.defaultDetalle;
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [areaDetalles, cable20CustomRules]);
 
   const barraPotCustomRules = useMemo(() => {
     return catalogRules.filter(r => isBarraPotTrigger(r.trigger) && r.id !== 'r8');

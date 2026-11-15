@@ -47,6 +47,33 @@ export type RulesStore = RulesState & RulesActions;
 const initialSection = (localStorage.getItem('epc-active-section') as SectionType) || 'pat';
 const initialRules = loadStoredRules(initialSection);
 
+function syncRulesToDynamicVariants(rules: TakeoffRule[]) {
+  for (const r of rules) {
+    const upTrigger = (r.trigger || '').trim().toUpperCase();
+    const detCode = r.detalle || r.defaultDetalle;
+    if (detCode && (upTrigger.includes('2/0') || upTrigger.includes('BARRA'))) {
+      const cat = upTrigger.includes('BARRA INST')
+        ? 'BARRA_INST'
+        : upTrigger.includes('BARRA')
+        ? 'BARRA_POT'
+        : 'CABLE_2_0';
+      const area = r.areas?.[0] || 'AREA HUMEDA';
+      const variantItems: DetalleVariantItem[] = r.subitems.map(s => {
+        const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
+        return {
+          desc: s.desc,
+          qty: s.qty,
+          unit: s.unit,
+          formula: s.formula,
+          material: s.material,
+          ot: rawOt
+        };
+      });
+      updateSingleDynamicVariant(area, detCode, variantItems, cat);
+    }
+  }
+}
+
 export const useRulesStore = createStore<RulesStore>((set, get) => ({
   rules: initialRules,
   collapsedRuleAreas: new Set<string>(['AREA SECA', 'AREA HUEMDA']),
@@ -56,12 +83,16 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     // 1. Instant local state
     const cachedRules = loadStoredRules(section);
     set({ rules: cachedRules });
+    syncRulesToDynamicVariants(cachedRules);
+    set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
 
     // 2. Refresh from Supabase in background
     try {
       const remoteRules = await fetchUnifiedRules(section);
       if (remoteRules && remoteRules.length > 0) {
         set({ rules: remoteRules });
+        syncRulesToDynamicVariants(remoteRules);
+        set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
       }
 
       // Also hydrate detalle variants from Supabase as single source of truth
@@ -118,13 +149,17 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
           ? 'BARRA_POT'
           : 'CABLE_2_0';
         const area = rule.areas?.[0] || 'AREA HUMEDA';
-        const variantItems: DetalleVariantItem[] = rule.subitems.map(s => ({
-          desc: s.desc,
-          qty: s.qty,
-          unit: s.unit,
-          formula: s.formula,
-          material: s.material
-        }));
+        const variantItems: DetalleVariantItem[] = rule.subitems.map(s => {
+          const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
+          return {
+            desc: s.desc,
+            qty: s.qty,
+            unit: s.unit,
+            formula: s.formula,
+            material: s.material,
+            ot: rawOt
+          };
+        });
         await get().saveDetalleVariant(area, detCode, variantItems, cat);
       }
 

@@ -53,13 +53,17 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
         const detCode = cr.detalle || cr.defaultDetalle;
         if (!detCode) continue;
         const existingIdx = list.findIndex(([c]) => c === detCode);
-        const crItems: DetalleVariantItem[] = cr.subitems.map(s => ({
-          desc: s.desc,
-          qty: s.qty,
-          unit: s.unit,
-          formula: s.formula,
-          material: s.material
-        }));
+        const crItems: DetalleVariantItem[] = cr.subitems.map(s => {
+          const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
+          return {
+            desc: s.desc,
+            qty: s.qty,
+            unit: s.unit,
+            formula: s.formula,
+            material: s.material,
+            ot: rawOt
+          };
+        });
         if (existingIdx >= 0) {
           list[existingIdx] = [detCode, crItems, cr];
         } else {
@@ -291,7 +295,11 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
                             ) : item.otDynamic === 'empty' ? (
                               <span style={{ color: 'var(--mu)', fontStyle: 'italic' }}>—</span>
                             ) : (
-                              item.ot
+                              (item.ot !== undefined && item.ot !== '')
+                                ? item.ot
+                                : (item.qty !== undefined && item.qty !== '')
+                                ? item.qty
+                                : (item as any).metradoOt || 1
                             )}
                           </td>
                           <td

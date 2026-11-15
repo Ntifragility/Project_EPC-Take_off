@@ -52,13 +52,17 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
         const detCode = cr.detalle || cr.defaultDetalle;
         if (!detCode) continue;
         const existingIdx = list.findIndex(([c]) => c === detCode);
-        const crItems: DetalleVariantItem[] = cr.subitems.map(s => ({
-          desc: s.desc,
-          qty: s.qty,
-          unit: s.unit,
-          formula: s.formula,
-          material: s.material
-        }));
+        const crItems: DetalleVariantItem[] = cr.subitems.map(s => {
+          const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
+          return {
+            desc: s.desc,
+            qty: s.qty,
+            unit: s.unit,
+            formula: s.formula,
+            material: s.material,
+            ot: rawOt
+          };
+        });
         if (existingIdx >= 0) {
           list[existingIdx] = [detCode, crItems, cr];
         } else {
