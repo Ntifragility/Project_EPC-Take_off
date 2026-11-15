@@ -117,8 +117,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       setTrigger('');
       setTagPrefix('M');
       setAllowDetalleEdit(true);
-      const defaultDet = getRuleDetallesForArea('', currentArea)[0] || (currentArea === 'AREA HUMEDA' ? '008/3A' : '151');
-      setDetalle(defaultDet);
+      setDetalle('');
       setSubitems([{ id: uid(), desc: '', qty: 1, unit: 'UND', formula: '', material: 'C', optional: false }]);
       setSelectedTemplateId('');
       setSelectedVariantCode('');
@@ -189,9 +188,8 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       setTrigger('');
       setTagPrefix('M');
       setAllowDetalleEdit(true);
-      const defaultDet = getRuleDetallesForArea('', currentArea)[0] || (currentArea === 'AREA HUMEDA' ? '008/3A' : '151');
-      setDetalle(defaultDet);
-      setSelectedVariantCode(defaultDet);
+      setDetalle('');
+      setSelectedVariantCode('');
       setSubitems([{ id: uid(), desc: '', qty: 1, unit: 'UND', formula: '', material: 'C', optional: false }]);
       return;
     }
@@ -456,10 +454,11 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
 
   const handleTriggerChange = (newTrigger: string) => {
     setTrigger(newTrigger);
-    if (isNew) {
+    if (isNew && !detalle.trim()) {
       const defs = getRuleDetallesForArea(newTrigger, currentArea);
       if (defs.length > 0 && defs[0]) {
         setDetalle(defs[0]);
+        setSelectedVariantCode(defs[0]);
       }
     }
   };
