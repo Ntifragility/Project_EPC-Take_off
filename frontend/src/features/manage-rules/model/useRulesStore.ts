@@ -13,6 +13,7 @@ import { deleteRuleLines, replaceRuleLines } from '../../sync-cloud/model/publis
 import { updateDynamicVariants, updateSingleDynamicVariant, deleteSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { fetchUnifiedRules, saveUnifiedRule } from '../../../entities/takeoff-rule/api/ruleRepository';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
+import { MasterImportPlan } from './rulesMasterTable';
 
 export interface RulesState {
   rules: TakeoffRule[];
@@ -40,6 +41,10 @@ export interface RulesActions {
   ) => Promise<boolean>;
   setRules: (rules: TakeoffRule[], section: SectionType) => void;
   incrementVariantsVersion: () => void;
+  applyMasterImport: (
+    plan: MasterImportPlan,
+    section: SectionType
+  ) => Promise<{ ok: boolean; remoteSynced: boolean }>;
 }
 
 export type RulesStore = RulesState & RulesActions;
@@ -279,5 +284,75 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
   incrementVariantsVersion: () => {
     syncRulesToDynamicVariants(get().rules);
     set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
+  },
+
+  applyMasterImport: async (plan: MasterImportPlan, section: SectionType) => {
+    const updatedMap = new Map<string, TakeoffRule>();
+    plan.updatedRules.forEach(rule => updatedMap.set(rule.id, rule));
+
+    const currentRules = get().rules;
+    const replaced = currentRules.map(r => updatedMap.get(r.id) ?? r);
+    const nextRules =
+      plan.createdRules.length > 0 ? [...replaced, ...plan.createdRules] : replaced;
+
+    if (plan.updatedRules.length > 0 || plan.createdRules.length > 0) {
+      saveStoredRules(section, nextRules);
+      syncRulesToDynamicVariants(nextRules);
+    }
+
+    plan.variants.forEach(variant => {
+      updateSingleDynamicVariant(
+        variant.area,
+        variant.detalleCode,
+        variant.items,
+        variant.category,
+        variant.subArea
+      );
+    });
+
+    set({
+      rules: nextRules,
+      detalleVariantsVersion: get().detalleVariantsVersion + 1
+    });
+
+    let remoteSynced = true;
+
+    for (const rule of [...plan.updatedRules, ...plan.createdRules]) {
+      try {
+        const orderIndex = Math.max(
+          0,
+          nextRules.findIndex(r => r.id === rule.id)
+        );
+        await saveUnifiedRule(rule, section, orderIndex);
+      } catch (err) {
+        remoteSynced = false;
+        console.warn('Master import rule sync notice:', err);
+      }
+    }
+
+    for (const variant of plan.variants) {
+      try {
+        const areaDb = variant.area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
+        const effectiveSubArea =
+          areaDb === 'AREA HUMEDA' ? variant.subArea || 'NO_CORROSIVO' : 'NO_CORROSIVO';
+        const id = `${areaDb}_${effectiveSubArea}_${variant.category}_${variant.detalleCode}`;
+        const res = await saveDetalleVariantToSupabase({
+          id,
+          area: areaDb,
+          sub_area: effectiveSubArea,
+          category: variant.category,
+          detalle_code: variant.detalleCode,
+          items: variant.items
+        });
+        if (!res.success) {
+          remoteSynced = false;
+        }
+      } catch (err) {
+        remoteSynced = false;
+        console.warn('Master import variant sync notice:', err);
+      }
+    }
+
+    return { ok: true, remoteSynced };
   }
 }));

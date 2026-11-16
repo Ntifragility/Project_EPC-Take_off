@@ -6,6 +6,7 @@ import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { RuleEditorModal } from '../../../features/manage-rules/ui/RuleEditorModal';
 import { DetalleEditorModal } from '../../../features/manage-rules/ui/DetalleEditorModal';
 import { CableTrayEditorModal } from '../../../features/manage-rules/ui/CableTrayEditorModal';
+import { RulesMasterTableModal } from '../../../features/manage-rules/ui/RulesMasterTableModal';
 import {
   getDetallesForArea,
   DYNAMIC_BARRA_POT_VARIANTS,
@@ -38,6 +39,8 @@ export const RulesView: React.FC = () => {
   const deleteRule = useRulesStore(state => state.deleteRule);
   const saveDetalleVariant = useRulesStore(state => state.saveDetalleVariant);
   const deleteDetalleVariant = useRulesStore(state => state.deleteDetalleVariant);
+  const detalleVariantsVersion = useRulesStore(state => state.detalleVariantsVersion);
+  const applyMasterImport = useRulesStore(state => state.applyMasterImport);
   const activeArea = useAppStore(state => state.activeArea);
   const subAreaHumeda = useAppStore(state => state.subAreaHumeda);
   const setSubAreaHumeda = useAppStore(state => state.setSubAreaHumeda);
@@ -72,6 +75,7 @@ export const RulesView: React.FC = () => {
   const [isNew, setIsNew] = useState(false);
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
   const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
+  const [masterTableOpen, setMasterTableOpen] = useState(false);
 
   useEffect(() => {
     setActionSlot(document.getElementById('catalog-subnav-actions'));
@@ -324,6 +328,9 @@ export const RulesView: React.FC = () => {
               {allExpanded ? '▲ Colapsar todas' : '▼ Expandir todas'}
             </button>
           )}
+          <button type="button" className="btn-ghost" onClick={() => setMasterTableOpen(true)}>
+            Tabla general
+          </button>
           {canEdit && (
             <button type="button" className="btn-primary" onClick={handleOpenNew}>
               + Nueva regla
@@ -577,6 +584,17 @@ export const RulesView: React.FC = () => {
           onClose={() => setDetalleModalOpen(false)}
           onSave={(area, code, items, cat) => saveDetalleVariant(area, code, items, cat, editingDetalle.subArea)}
           onDelete={(area, code, cat) => deleteDetalleVariant(area, code, cat, editingDetalle.subArea)}
+        />
+      )}
+
+      {masterTableOpen && (
+        <RulesMasterTableModal
+          rules={rules}
+          canEdit={canEdit}
+          section={section}
+          detalleVariantsVersion={detalleVariantsVersion}
+          onApplyImport={applyMasterImport}
+          onClose={() => setMasterTableOpen(false)}
         />
       )}
     </div>
