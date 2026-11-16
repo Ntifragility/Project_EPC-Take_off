@@ -6,6 +6,7 @@ import { SEED_RULES, SEED_CANALIZADO_RULES } from '../../entities/takeoff-rule/m
 import { DEFAULT_CABLE_TRAY_MATRIX } from '../../entities/takeoff-rule/model/cableTrayRules';
 import { renameCable20RielDesc } from '../../entities/takeoff-rule/model/detalleVariants';
 import { attachCatalogAreas } from '../../entities/takeoff-rule/model/areaCatalog';
+import { cleanNumericString } from './cleanNumber';
 
 export function getStorageKey(name: string, section: SectionType): string {
   if (section === 'pat') return `epc-${name}`;
@@ -17,7 +18,11 @@ export function loadStoredItems(section: SectionType): TakeoffItem[] {
   try {
     const raw = localStorage.getItem(getStorageKey('items', section));
     const parsed: TakeoffItem[] = raw ? JSON.parse(raw) : [];
-    return parsed.map(it => ({ ...it, desc: renameCable20RielDesc(it.desc || '') }));
+    return parsed.map(it => ({
+      ...it,
+      desc: renameCable20RielDesc(it.desc || ''),
+      metradoOt: it.metradoOt ? cleanNumericString(String(it.metradoOt)) : it.metradoOt
+    }));
   } catch (err) {
     console.error('Error loading items from localStorage:', err);
     return [];
