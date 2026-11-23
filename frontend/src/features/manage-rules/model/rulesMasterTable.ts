@@ -6,18 +6,24 @@ import {
   TakeoffRule
 } from '../../../entities/takeoff-rule/model/types';
 import {
-  DYNAMIC_BARRA_INST_VARIANTS,
-  DYNAMIC_BARRA_POT_VARIANTS,
+  DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA,
+  DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA,
   DYNAMIC_DETALLE_VARIANTS_BY_AREA,
-  DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA
+  DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA,
+  getBarraVariants
 } from '../../../entities/takeoff-rule/model/detalleVariants';
-import { DEFAULT_CABLE_TRAY_MATRIX } from '../../../entities/takeoff-rule/model/cableTrayRules';
-import { getDefaultDetalleByRule } from '../../../entities/takeoff-rule/model/seedRules';
 import { inferRuleAreas } from '../../../entities/takeoff-rule/model/areaCatalog';
+import {
+  isBarraFamily,
+  isBarraInstFamily,
+  isBarraPotFamily,
+  isCable20Family
+} from '../../../entities/takeoff-rule/model/ruleFamily';
 import { isMetradoExpression, shownFormula, shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
 import { downloadTableXlsx } from '../../../shared/lib/excelTemplates';
 import { foldHeaderCell, readSheetMatrix } from '../../../shared/lib/readSheetMatrix';
+import { rejectionRuleSnapshot } from '../../rejection-rules/model/useRejectionRulesStore';
 import { cleanFloat } from '../../../shared/lib/cleanNumber';
 import { uid } from '../../../shared/lib/uid';
 
@@ -56,18 +62,15 @@ export interface MasterImportPlan {
 }
 
 function isCable20Trigger(trigger: string): boolean {
-  const up = (trigger || '').trim().toUpperCase();
-  return up === 'CABLE DESNUDO 2/0 AWG' || up === 'CABLE DESNUDO 2/0' || up === 'CABLE 2/0 AWG';
+  return isCable20Family(trigger);
 }
 
 function isBarraPotTrigger(trigger: string): boolean {
-  const up = (trigger || '').trim().toUpperCase();
-  return up === 'BARRA POT' || up === 'BARRA DE POTENCIAL' || up === 'BARRA DE POTENCIAL A TIERRA';
+  return isBarraPotFamily(trigger);
 }
 
 function isBarraInstTrigger(trigger: string): boolean {
-  const up = (trigger || '').trim().toUpperCase();
-  return up === 'BARRA INST' || up === 'BARRA DE INSTRUMENTACIÓN' || up === 'BARRA DE INSTRUMENTACION';
+  return isBarraInstFamily(trigger);
 }
 
 function isCableTrayRule(rule: TakeoffRule): boolean {
@@ -101,12 +104,14 @@ function sortDetalleEntries<T>(entries: [string, T][]): [string, T][] {
 export function buildMasterRuleRows(rules: TakeoffRule[]): MasterRuleRow[] {
   const rows: MasterRuleRow[] = [];
 
-  // 1. Standard & Custom Rules (excluding specialized dynamic card anchors handled below, except custom subrules)
+  // 1. Standard & Custom Rules (excluding family anchors/clones: their rows
+  // come from the variant registries below, partitioned by sub-area)
   for (const rule of rules) {
     const areas = inferRuleAreas(rule);
 
     if (isCableTrayRule(rule)) {
-      const matrix = rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0 ? rule.cableTrayMatrix : DEFAULT_CABLE_TRAY_MATRIX;
+      const matrix = rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0 ? rule.cableTrayMatrix : [];
+      if (matrix.length === 0) continue;
       const detalle = (rule.detalle || '001/2B-X1').trim();
       for (const area of areas) {
         matrix.forEach((m, idx) => {
@@ -130,21 +135,31 @@ export function buildMasterRuleRows(rules: TakeoffRule[]): MasterRuleRow[] {
       continue;
     }
 
-    // Dynamic variant anchors (r2, r8, r9) are flattened directly from the live variant registries below
+    // Dynamic variant anchors (r2, r8, r9) AND family clones are flattened
+    // directly from the live Supabase-hydrated variant registries below.
     if (rule.id === 'r2' || rule.id === 'r8' || rule.id === 'r9') {
       continue;
     }
+    if (isCable20Family(rule.trigger) || isBarraFamily(rule.trigger)) {
+      continue;
+    }
+
+    const ruleSubAreas = rule.subAreas && rule.subAreas.length > 0 ? rule.subAreas : (['NO_CORROSIVO', 'CORROSIVO'] as SubAreaHumeda[]);
 
     for (const area of areas) {
       const detalle =
-        (rule.areaDetalles?.[area] || rule.defaultDetalle || rule.detalle || getDefaultDetalleByRule(rule.trigger, area) || '').trim();
+        (rule.areaDetalles?.[area] || rule.defaultDetalle || rule.detalle || '').trim();
+      // AREA HUMEDA rows are emitted per sub-area partition the rule belongs to.
+      const subAreasForRow: Array<SubAreaHumeda | 'TODAS'> =
+        area === 'AREA HUMEDA' ? [...ruleSubAreas] : ['TODAS'];
+      for (const subAreaRow of subAreasForRow) {
       const subitems = rule.subitems || [];
       subitems.forEach((sub, idx) => {
         const formula = shownFormula(sub, rule.trigger) || String(sub.qty ?? '');
         rows.push({
-          id: `rule::${rule.id}::${area}::${idx}`,
+          id: `rule::${rule.id}::${area}::${subAreaRow}::${idx}`,
           area,
-          subArea: 'TODAS',
+          subArea: subAreaRow,
           origen: 'REGLA',
           ruleId: rule.id,
           ruleTrigger: rule.trigger,
@@ -157,6 +172,7 @@ export function buildMasterRuleRows(rules: TakeoffRule[]): MasterRuleRow[] {
           optional: Boolean(sub.optional)
         });
       });
+      }
     }
   }
 
@@ -208,49 +224,65 @@ export function buildMasterRuleRows(rules: TakeoffRule[]): MasterRuleRow[] {
     }
   });
 
-  // 4. BARRA POT variants (AREA HUMEDA)
-  for (const [code, items] of sortDetalleEntries(Object.entries(DYNAMIC_BARRA_POT_VARIANTS))) {
+  // 4. BARRA POT variants — partitioned by sub-area (Supabase SSOT).
+  // SECA pins the canonical NO_CORROSIVO partition; HUMEDA emits per partition.
+  for (const [code, items] of sortDetalleEntries(Object.entries(getBarraVariants('BARRA_POT', 'NO_CORROSIVO')))) {
+    const inHumeda = Object.keys(DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['CORROSIVO'] || {}).includes(code) ||
+      Object.keys(DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO'] || {}).includes(code);
+    void inHumeda;
     (items || []).forEach((it, idx) => {
-      rows.push({
-        id: `bpot::${code}::${idx}`,
-        area: 'AREA HUMEDA',
-        subArea: 'TODAS',
-        origen: 'BARRA_POT',
-        ruleId: 'r8',
-        ruleTrigger: 'BARRA POT',
-        tagPrefix: 'BP',
-        detalle: code,
-        material: componentClass(it.desc, it.material),
-        desc: it.desc,
-        formulaMetrado: it.formula || String(it.metradoOt ?? it.qty ?? ''),
-        unit: it.unit || 'und',
-        optional: false
-      });
+      pushBarraRow(rows, 'BARRA_POT', 'r8', 'BARRA POT', 'BP', code, it, idx, 'NO_CORROSIVO');
+    });
+  }
+  for (const [code, items] of sortDetalleEntries(Object.entries(getBarraVariants('BARRA_POT', 'CORROSIVO')))) {
+    if (getBarraVariants('BARRA_POT', 'NO_CORROSIVO')[code] === items) continue;
+    (items || []).forEach((it, idx) => {
+      pushBarraRow(rows, 'BARRA_POT', 'r8', 'BARRA POT', 'BP', code, it, idx, 'CORROSIVO');
     });
   }
 
-  // 5. BARRA INST variants (AREA HUMEDA)
-  for (const [code, items] of sortDetalleEntries(Object.entries(DYNAMIC_BARRA_INST_VARIANTS))) {
+  // 5. BARRA INST variants — partitioned by sub-area (Supabase SSOT).
+  for (const [code, items] of sortDetalleEntries(Object.entries(getBarraVariants('BARRA_INST', 'NO_CORROSIVO')))) {
     (items || []).forEach((it, idx) => {
-      rows.push({
-        id: `binst::${code}::${idx}`,
-        area: 'AREA HUMEDA',
-        subArea: 'TODAS',
-        origen: 'BARRA_INST',
-        ruleId: 'r9',
-        ruleTrigger: 'BARRA INST',
-        tagPrefix: 'BI',
-        detalle: code,
-        material: componentClass(it.desc, it.material),
-        desc: it.desc,
-        formulaMetrado: it.formula || String(it.metradoOt ?? it.qty ?? ''),
-        unit: it.unit || 'und',
-        optional: false
-      });
+      pushBarraRow(rows, 'BARRA_INST', 'r9', 'BARRA INST', 'BI', code, it, idx, 'NO_CORROSIVO');
+    });
+  }
+  for (const [code, items] of sortDetalleEntries(Object.entries(getBarraVariants('BARRA_INST', 'CORROSIVO')))) {
+    if (getBarraVariants('BARRA_INST', 'NO_CORROSIVO')[code] === items) continue;
+    (items || []).forEach((it, idx) => {
+      pushBarraRow(rows, 'BARRA_INST', 'r9', 'BARRA INST', 'BI', code, it, idx, 'CORROSIVO');
     });
   }
 
   return rows;
+}
+
+function pushBarraRow(
+  rows: MasterRuleRow[],
+  origen: 'BARRA_POT' | 'BARRA_INST',
+  ruleId: string,
+  ruleTrigger: string,
+  tagPrefix: string,
+  detalle: string,
+  it: any,
+  idx: number,
+  subArea: SubAreaHumeda
+): void {
+  rows.push({
+    id: `b${origen === 'BARRA_POT' ? 'pot' : 'inst'}::HUMEDA::${subArea}::${detalle}::${idx}`,
+    area: 'AREA HUMEDA',
+    subArea,
+    origen,
+    ruleId,
+    ruleTrigger,
+    tagPrefix,
+    detalle,
+    material: componentClass(it.desc, it.material),
+    desc: it.desc,
+    formulaMetrado: it.formula || String(it.metradoOt ?? it.qty ?? ''),
+    unit: it.unit || 'und',
+    optional: false
+  });
 }
 
 export async function exportMasterRulesExcel(rows: MasterRuleRow[]): Promise<void> {
@@ -366,13 +398,16 @@ export async function parseMasterRulesExcel(
 ): Promise<MasterImportPlan> {
   const matrix = await readSheetMatrix(file);
   const rejectedRows: { rowNumber: number; reason: string }[] = [];
+  const rej = rejectionRuleSnapshot();
 
   if (matrix.length < 2) {
     return {
       variants: [],
       updatedRules: [],
       createdRules: [],
-      rejectedRows: [{ rowNumber: 1, reason: 'La hoja está vacía o no contiene filas de datos' }],
+      rejectedRows: rej.isEnabled('reglas_maestro.empty_sheet')
+        ? [{ rowNumber: 1, reason: rej.message('reglas_maestro.empty_sheet') }]
+        : [],
       totalRowsRead: 0
     };
   }
@@ -427,7 +462,9 @@ export async function parseMasterRulesExcel(
       variants: [],
       updatedRules: [],
       createdRules: [],
-      rejectedRows: [{ rowNumber: 1, reason: 'No se encontraron las columnas obligatorias REGLA y DESCRIPCION' }],
+      rejectedRows: rej.isEnabled('reglas_maestro.required_columns')
+        ? [{ rowNumber: 1, reason: rej.message('reglas_maestro.required_columns') }]
+        : [],
       totalRowsRead: 0
     };
   }
@@ -438,6 +475,7 @@ export async function parseMasterRulesExcel(
     {
       trigger: string;
       area: AreaType;
+      subArea?: SubAreaHumeda;
       origen: 'REGLA' | 'MATRIZ_BANDEJA';
       tagPrefix: string;
       detalle: string;
@@ -456,7 +494,10 @@ export async function parseMasterRulesExcel(
     const get = (idx: number) => (idx !== -1 && raw[idx] !== undefined ? String(raw[idx]).trim() : '');
 
     const area = normalizeImportedArea(get(colIdx.area) || 'AREA SECA');
-    const subArea = normalizeImportedSubArea(get(colIdx.subArea), area);
+    // SUBAREA column defaults: NO_CORROSIVO canonical partition. 'TODAS' rows
+    // fan out to both partitions on apply (see applyMasterImport).
+    const subAreaRaw = get(colIdx.subArea);
+    const subArea = normalizeImportedSubArea(subAreaRaw, area) || (area === 'AREA HUMEDA' ? 'NO_CORROSIVO' : undefined);
     const trigger = get(colIdx.regla);
     const desc = get(colIdx.desc);
     const detalle = get(colIdx.detalle).toUpperCase();
@@ -468,11 +509,15 @@ export async function parseMasterRulesExcel(
     const optional = /^(SI|S|YES|TRUE|1)$/i.test(get(colIdx.optional));
 
     if (!trigger) {
-      rejectedRows.push({ rowNumber: r + 1, reason: 'Columna REGLA vacía' });
+      if (rej.isEnabled('reglas_maestro.regla_required')) {
+        rejectedRows.push({ rowNumber: r + 1, reason: rej.message('reglas_maestro.regla_required') });
+      }
       continue;
     }
     if (!desc) {
-      rejectedRows.push({ rowNumber: r + 1, reason: `Falta DESCRIPCION en regla "${trigger}"` });
+      if (rej.isEnabled('reglas_maestro.desc_required')) {
+        rejectedRows.push({ rowNumber: r + 1, reason: rej.message('reglas_maestro.desc_required', { rule: trigger }) });
+      }
       continue;
     }
 
@@ -480,7 +525,9 @@ export async function parseMasterRulesExcel(
 
     if (origen === 'CABLE_2_0' || origen === 'BARRA_POT' || origen === 'BARRA_INST') {
       if (!detalle) {
-        rejectedRows.push({ rowNumber: r + 1, reason: `Variante ${origen} requiere código DETALLE` });
+        if (rej.isEnabled('reglas_maestro.variant_detalle_required')) {
+          rejectedRows.push({ rowNumber: r + 1, reason: rej.message('reglas_maestro.variant_detalle_required', { origen }) });
+        }
         continue;
       }
       const key = `${area}::${subArea || 'ALL'}::${origen}::${detalle}`;
@@ -505,10 +552,11 @@ export async function parseMasterRulesExcel(
       continue;
     }
 
-    const ruleKey = `${trigger.trim().toUpperCase()}::${origen}`;
+    const ruleKey = `${trigger.trim().toUpperCase()}::${origen}::${area}::${subArea || 'TODAS'}`;
     const existingRuleGroup = ruleGroups.get(ruleKey) || {
       trigger: trigger.trim(),
       area,
+      subArea,
       origen: origen === 'MATRIZ_BANDEJA' ? 'MATRIZ_BANDEJA' : 'REGLA',
       tagPrefix,
       detalle,
@@ -586,6 +634,7 @@ export async function parseMasterRulesExcel(
         defaultDetalle: grp.detalle || '',
         allowDetalleEdit: true,
         areas: [grp.area],
+        subAreas: grp.area === 'AREA HUMEDA' && grp.subArea ? [grp.subArea] : undefined,
         areaDetalles: grp.detalle ? { [grp.area]: grp.detalle } : {},
         subitems: derivedSubitems,
         cableTrayMatrix: grp.origen === 'MATRIZ_BANDEJA' ? grp.trayItems : undefined

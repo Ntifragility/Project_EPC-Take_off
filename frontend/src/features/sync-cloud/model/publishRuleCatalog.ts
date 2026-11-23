@@ -1,10 +1,6 @@
 import {
   CableTrayRecord,
-  catalogRules,
-  detalleVariantRows,
   hydrateRules,
-  RuleHeaderRecord,
-  ruleHeader,
   RuleItemRecord,
   ruleItemRows,
   cableTrayRows
@@ -48,59 +44,30 @@ export async function fetchRuleLines(): Promise<{ items: RuleItemRecord[]; matri
 }
 
 async function fillMissingVariants(): Promise<void> {
+  // Supabase-first: NEVER re-seed hardcoded variants. This only logs an empty
+  // table so the operator knows the backfill migration hasn't been applied.
   if (!supabase) return;
-  const existing = await supabase.from('detalle_variants').select('id');
+  const existing = await supabase.from('detalle_variants').select('id', { count: 'exact', head: true });
   if (existing.error) {
     if (!missingRelation(existing.error)) console.warn('[Rules] detalle_variants:', existing.error.message);
     return;
   }
-  // Only bootstrap if the table is completely empty (first time run on new database)
-  // Never re-seed missing rows if the user deliberately deleted them
-  if ((existing.data || []).length > 0) {
-    return;
+  if ((existing.count ?? 0) === 0) {
+    console.warn('[Rules] detalle_variants is empty — run the Supabase backfill migration to populate variant rows.');
   }
-  const missing = detalleVariantRows();
-  const error = await upsertChunked('detalle_variants', missing);
-  if (error) console.warn('[Rules] No se pudieron inicializar los detalles:', error);
 }
 
 export async function ensureRuleCatalog(): Promise<{ published: boolean; unavailable: boolean; rules: number }> {
+  // Supabase-first: the database is the catalog. Bootstrapping hardcoded
+  // seeds was removed — an empty DB stays empty and surfaces as such in UI.
   if (!supabase) return { published: false, unavailable: true, rules: 0 };
-  const probe = await supabase.from('rule_items').select('id').limit(1);
+  const probe = await supabase.from('takeoff_rules').select('id', { count: 'exact', head: true });
   if (probe.error) {
-    if (!missingRelation(probe.error)) console.warn('[Rules] rule_items:', probe.error.message);
+    if (!missingRelation(probe.error)) console.warn('[Rules] takeoff_rules:', probe.error.message);
     return { published: false, unavailable: missingRelation(probe.error), rules: 0 };
   }
-  if ((probe.data || []).length > 0) {
-    await fillMissingVariants();
-    return { published: false, unavailable: false, rules: 0 };
-  }
-
-  const headers: RuleHeaderRecord[] = [];
-  const items: RuleItemRecord[] = [];
-  const matrix: CableTrayRecord[] = [];
-  catalogRules().forEach(group => {
-    group.rules.forEach((rule, index) => {
-      headers.push(ruleHeader(rule, group.section, index));
-      items.push(...ruleItemRows(rule));
-      matrix.push(...cableTrayRows(rule));
-    });
-  });
-  const headerError = await upsertChunked('takeoff_rules', headers);
-  if (headerError) {
-    console.warn('[Rules] No se publicó takeoff_rules:', headerError);
-    return { published: false, unavailable: false, rules: 0 };
-  }
-  const itemError = await upsertChunked('rule_items', items);
-  if (itemError) {
-    console.warn('[Rules] No se publicó rule_items:', itemError);
-    return { published: false, unavailable: false, rules: 0 };
-  }
-  const matrixError = await upsertChunked('cable_tray_matrix', matrix);
-  if (matrixError) console.warn('[Rules] No se publicó cable_tray_matrix:', matrixError);
   await fillMissingVariants();
-  console.info(`[Rules] Catálogo publicado: ${headers.length} reglas, ${items.length} materiales, ${matrix.length} filas de bandeja.`);
-  return { published: true, unavailable: false, rules: headers.length };
+  return { published: false, unavailable: false, rules: probe.count ?? 0 };
 }
 
 export async function replaceRuleLines(rule: TakeoffRule): Promise<void> {

@@ -2,10 +2,10 @@ import React, { useMemo } from 'react';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { useRulesStore } from '../../../features/manage-rules/model/useRulesStore';
 import {
-  DYNAMIC_BARRA_POT_VARIANTS,
-  DYNAMIC_BARRA_INST_VARIANTS,
+  getBarraVariants,
   DetalleVariantItem
 } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { SubAreaHumeda } from '../../../shared/types/common';
 import { detalleBelongsToArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
 import { MatCell, MatHeader } from './MatCell';
@@ -16,6 +16,7 @@ interface BarraRuleCardProps {
   customRules?: TakeoffRule[];
   category: 'BARRA_POT' | 'BARRA_INST';
   activeArea: 'AREA SECA' | 'AREA HUMEDA';
+  subArea?: SubAreaHumeda;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onDuplicate?: (rule: TakeoffRule) => void;
@@ -31,6 +32,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   customRules = [],
   category,
   activeArea,
+  subArea = 'NO_CORROSIVO',
   isExpanded,
   onToggleExpand,
   onDuplicate,
@@ -41,7 +43,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
   onDeleteCustomRule
 }) => {
   const variantsVersion = useRulesStore(state => state.detalleVariantsVersion);
-  const variantMap = category === 'BARRA_POT' ? DYNAMIC_BARRA_POT_VARIANTS : DYNAMIC_BARRA_INST_VARIANTS;
+  const variantMap = getBarraVariants(category, activeArea === 'AREA HUMEDA' ? subArea : 'NO_CORROSIVO');
   const entries: [string, DetalleVariantItem[], TakeoffRule?][] = useMemo(() => {
     const list: [string, DetalleVariantItem[], TakeoffRule?][] = Object.entries(variantMap)
       .filter(([code]) => detalleBelongsToArea(code, activeArea))
@@ -51,7 +53,8 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
       for (const cr of customRules) {
         const detCode = cr.detalle || cr.defaultDetalle;
         if (!detCode) continue;
-        const existingIdx = list.findIndex(([c]) => c === detCode);
+        if (!detalleBelongsToArea(detCode, activeArea)) continue;
+        const existingIdx = list.findIndex(([, , owner]) => owner?.id === cr.id);
         const crItems: DetalleVariantItem[] = cr.subitems.map(s => {
           const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
           return {
@@ -66,7 +69,15 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
         if (existingIdx >= 0) {
           list[existingIdx] = [detCode, crItems, cr];
         } else {
-          list.push([detCode, crItems, cr]);
+          const codeIdx = list.findIndex(([c]) => c === detCode);
+          if (codeIdx >= 0 && !list[codeIdx][2]) {
+            // Rule overlay wins the display (fresher explicit save).
+            list[codeIdx] = [detCode, crItems, cr];
+          } else if (codeIdx < 0) {
+            list.push([detCode, crItems, cr]);
+          } else {
+            list.push([detCode, crItems, cr]);
+          }
         }
       }
     }
@@ -172,7 +183,7 @@ export const BarraRuleCard: React.FC<BarraRuleCardProps> = ({
                     const bg = detIdx % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent';
 
                     return (
-                      <tr key={`${detCode}-${i}`} style={{ borderBottom: bb, background: bg }}>
+                      <tr key={`${detCode}-${customRule?.id || 'variant'}-${i}`} style={{ borderBottom: bb, background: bg }}>
                         {i === 0 && (
                           <td
                             rowSpan={vItems.length}

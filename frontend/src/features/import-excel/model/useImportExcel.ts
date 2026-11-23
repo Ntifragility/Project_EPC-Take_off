@@ -13,7 +13,7 @@ export async function executeImportExcel(csvText: string) {
   const { rules } = useRulesStore.getState();
   const { selPkg, packages } = usePackagesStore.getState();
   const { partidas } = usePartidasStore.getState();
-  const { activeArea, section } = useAppStore.getState();
+  const { activeArea, subAreaHumeda, section } = useAppStore.getState();
   const { showToast } = useUIStore.getState();
 
   const pkgId = selPkg || packages[0]?.id || 'p1';
@@ -26,7 +26,9 @@ export async function executeImportExcel(csvText: string) {
     customPlano,
     customRev,
     items,
-    activeArea
+    activeArea,
+    undefined,
+    subAreaHumeda
   );
 
   // Auto-Sync Header: automatically sync the top header to the plano detected in the file

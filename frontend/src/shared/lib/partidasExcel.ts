@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { PartidaRecord } from '../../entities/partida/model/types';
 import { downloadTableXlsx } from './excelTemplates';
+import { rejectionRuleSnapshot } from '../../features/rejection-rules/model/useRejectionRulesStore';
 import { useTemplatesStore } from '../../features/manage-templates/model/useTemplatesStore';
 
 /**
@@ -50,11 +51,12 @@ export async function downloadPartidasTemplateXlsx(): Promise<void> {
  * AREA / ITEM / DESCRIPCIÓN layout.
  */
 export async function parsePartidasExcelFile(file: File): Promise<PartidaRecord[]> {
+  const rej = rejectionRuleSnapshot();
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
 
   if (workbook.SheetNames.length === 0) {
-    throw new Error('El archivo Excel no contiene hojas de cálculo.');
+    throw new Error(rej.isEnabled('partidas.no_sheets') ? rej.message('partidas.no_sheets') : 'El archivo Excel no contiene hojas de cálculo.');
   }
 
   const firstSheetName = workbook.SheetNames[0];
@@ -64,7 +66,7 @@ export async function parsePartidasExcelFile(file: File): Promise<PartidaRecord[
   const rawRows = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '' });
 
   if (rawRows.length === 0) {
-    throw new Error('La hoja de cálculo está vacía.');
+    throw new Error(rej.isEnabled('partidas.empty_sheet') ? rej.message('partidas.empty_sheet') : 'La hoja de cálculo está vacía.');
   }
 
   const partidas: PartidaRecord[] = [];
@@ -173,7 +175,7 @@ export async function parsePartidasExcelFile(file: File): Promise<PartidaRecord[
   }
 
   if (partidas.length === 0) {
-    throw new Error('No se encontraron registros de partidas válidos en el archivo Excel.');
+    throw new Error(rej.isEnabled('partidas.no_valid_rows') ? rej.message('partidas.no_valid_rows') : 'No se encontraron registros de partidas válidos en el archivo Excel.');
   }
 
   return partidas;

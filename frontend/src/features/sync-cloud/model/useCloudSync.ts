@@ -13,7 +13,6 @@ import {
 import { useBductoStore } from '../../generate-bducto/model/useBductoStore';
 import { updateDynamicVariants } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { ensureRuleCatalog, fetchRuleLines, hydrateRules } from './publishRuleCatalog';
-import { getDefaultDetalleByRule, getDefaultTagPrefixByRule, SEED_CANALIZADO_RULES, SEED_RULES } from '../../../entities/takeoff-rule/model/seedRules';
 import { attachCatalogAreas } from '../../../entities/takeoff-rule/model/areaCatalog';
 import { saveStoredRules, saveStoredPartidas } from '../../../shared/lib/storage';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
@@ -34,11 +33,11 @@ export async function loadInitialCloudConfig() {
     await ensureRuleCatalog();
     const lines = await fetchRuleLines();
 
-    // 1. Fetch Takeoff Rules
+    // 1. Fetch Takeoff Rules — Supabase-first, offline cache fallback only.
     const { data: cloudRules, error: rulesErr } = await fetchTakeoffRulesFromSupabase(section);
     if (!rulesErr && cloudRules && cloudRules.length > 0) {
       const enrichedRules = cloudRules.map(r => {
-        const up = r.trigger.toUpperCase().trim();
+        const up = (r.trigger || '').toUpperCase().trim();
         let trigger = r.trigger;
         let subitems = r.subitems;
 
@@ -56,17 +55,12 @@ export async function loadInitialCloudConfig() {
           );
         }
 
-        return attachCatalogAreas(
-          {
-            ...r,
-            trigger,
-            subitems,
-            detalle: r.detalle || getDefaultDetalleByRule(trigger, activeArea),
-            tagPrefix:
-              trigger === 'SOLDADURA T 4/0' ? 'TT' : r.tagPrefix || getDefaultTagPrefixByRule(trigger)
-          },
-          section === 'canalizado' ? SEED_CANALIZADO_RULES : SEED_RULES
-        );
+        return attachCatalogAreas({
+          ...r,
+          trigger,
+          subitems,
+          tagPrefix: trigger === 'SOLDADURA T 4/0' ? 'TT' : r.tagPrefix || 'M'
+        });
       });
 
       const hydrated = lines.unavailable ? enrichedRules : hydrateRules(enrichedRules, lines.items, lines.matrix);

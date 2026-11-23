@@ -29,7 +29,7 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
     syncGlobalContext,
     syncContextToItemIds
   } = useItemsStore();
-  const { section, activeArea, setTab } = useAppStore();
+  const { section, activeArea, subAreaHumeda, setSubAreaHumeda, setTab } = useAppStore();
   const {
     addMode,
     setAddMode,
@@ -459,6 +459,39 @@ export const AddPanel: React.FC<AddPanelProps> = ({ onCollapseSidebar }) => {
       )}
 
       {/* Import / Guide Action Buttons */}
+      {activeArea === 'AREA HUMEDA' && (
+        <div
+          className="panel-section"
+          style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '2px' }}
+        >
+          <div className="field-label" title="Los detalles 2/0 y Barra importados desde Excel usarán las variantes de esta sub-área">
+            Sub-área para importar (Área Húmeda)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => setSubAreaHumeda('NO_CORROSIVO')}
+              className={`modal-choice${subAreaHumeda === 'NO_CORROSIVO' ? ' is-active' : ''}`}
+              style={{ padding: '6px 8px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
+              title="Importar con variantes No Corrosivo"
+            >
+              💧 No Corrosivo
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubAreaHumeda('CORROSIVO')}
+              className={`modal-choice${subAreaHumeda === 'CORROSIVO' ? ' is-active' : ''}`}
+              style={{ padding: '6px 8px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
+              title="Importar con variantes Corrosivo"
+            >
+              🛡️ Corrosivo
+            </button>
+          </div>
+          <div style={{ fontSize: '10.5px', color: 'var(--mu)', lineHeight: 1.4 }}>
+            Importando como: <strong>{subAreaHumeda === 'CORROSIVO' ? 'CORROSIVO' : 'NO CORROSIVO'}</strong>
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
         <label
           className="btn btn-secondary"

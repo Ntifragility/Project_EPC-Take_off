@@ -14,6 +14,8 @@ import { LoginScreen } from '../features/auth/ui/LoginScreen';
 import { UserManagementModal } from '../features/auth/ui/UserManagementModal';
 import { TemplateManagementModal } from '../features/manage-templates/ui/TemplateManagementModal';
 import { useTemplatesStore } from '../features/manage-templates/model/useTemplatesStore';
+import { RejectionRulesModal } from '../features/rejection-rules/ui/RejectionRulesModal';
+import { useRejectionRulesStore } from '../features/rejection-rules/model/useRejectionRulesStore';
 
 export const App: React.FC = () => {
   const tab = useAppStore(state => state.tab);
@@ -32,6 +34,9 @@ export const App: React.FC = () => {
 
     // Initialize official excel templates in background
     void useTemplatesStore.getState().loadTemplates();
+
+    // Load rejection rules (Supabase-first, offline cache fallback)
+    void useRejectionRulesStore.getState().loadRules();
 
     // Load initial cloud configuration asynchronously
     loadInitialCloudConfig();
@@ -75,6 +80,7 @@ export const App: React.FC = () => {
 
       <UserManagementModal />
       <TemplateManagementModal />
+      <RejectionRulesModal />
     </>
   );
 };

@@ -47,12 +47,16 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
   }, [activeArea, subArea, variantsVersion]);
 
   const allDetalles: [string, DetalleVariantItem[], TakeoffRule?][] = useMemo(() => {
+    // baseDetalles: authoritative variant rows for (area, subArea) from Supabase.
     const list: [string, DetalleVariantItem[], TakeoffRule?][] = baseDetalles.map(([code, items]) => [code, items, undefined]);
     if (customRules && customRules.length > 0) {
       for (const cr of customRules) {
         const detCode = cr.detalle || cr.defaultDetalle;
         if (!detCode) continue;
-        const existingIdx = list.findIndex(([c]) => c === detCode);
+        // Match by RULE identity first (inside-only clone rows), then fall back
+        // to code equality for legacy overlays. A standalone outside card can
+        // never appear here: visibleCatalogRules excludes family members.
+        const existingIdx = list.findIndex(([, , owner]) => owner?.id === cr.id);
         const crItems: DetalleVariantItem[] = cr.subitems.map(s => {
           const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
           return {
@@ -67,7 +71,20 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
         if (existingIdx >= 0) {
           list[existingIdx] = [detCode, crItems, cr];
         } else {
-          list.push([detCode, crItems, cr]);
+          const codeIdx = list.findIndex(([c]) => c === detCode);
+          if (codeIdx >= 0 && !list[codeIdx][2]) {
+            // Variant row and rule overlay share the code (the stamp writes
+            // both on every clone save): the rule is the fresher explicit
+            // save, so its items win the display. Delete paths remove both
+            // records of the same visual row together.
+            list[codeIdx] = [detCode, crItems, cr];
+          } else if (codeIdx < 0) {
+            list.push([detCode, crItems, cr]);
+          } else {
+            // Same code, different rule identity: distinct inside-section
+            // rows keyed by (code, rule). Rendered as separate rows below.
+            list.push([detCode, crItems, cr]);
+          }
         }
       }
     }
@@ -201,7 +218,7 @@ export const Cable20RuleCard: React.FC<Cable20RuleCardProps> = ({
 
                       return (
                         <tr
-                          key={`${detalleCode}-${i}`}
+                          key={`${detalleCode}-${customRule?.id || 'variant'}-${i}`}
                           style={{ borderBottom: bb, background: bg }}
                         >
                           {i === 0 && (

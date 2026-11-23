@@ -5,8 +5,8 @@ import { generateTagUnico } from '../../takeoff-item/model/tagGenerator';
 import { isPrimaryMaterial, getAbsoluteUnit } from '../../takeoff-item/model/materialClassifier';
 import {
   DYNAMIC_DETALLE_VARIANTS,
-  DYNAMIC_BARRA_POT_VARIANTS,
-  DYNAMIC_BARRA_INST_VARIANTS,
+  DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA,
+  DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA,
   getCalculatedVariantItems,
   shouldAutoManageTuberia
 } from './detalleVariants';
@@ -15,7 +15,6 @@ import {
   getCableTrayMatrixValue
 } from './cableTrayRules';
 import { normalizeDetalle, SOLDADURA_DETALLE_SPECS } from './detalleRegistry';
-import { SEED_RULES, SEED_CANALIZADO_RULES } from './seedRules';
 
 export interface RebuildExtras {
   numSoportes?: number;
@@ -70,7 +69,8 @@ function has(desc: string, token: string): boolean {
 }
 
 function allRules(extra: TakeoffRule[] | undefined): TakeoffRule[] {
-  return [...(extra || []), ...SEED_RULES, ...SEED_CANALIZADO_RULES];
+  // Supabase-first: only live rules (cache/store), never hardcoded seeds.
+  return [...(extra || [])];
 }
 
 function findRule(ruleId: string, extras?: TakeoffRule[]): TakeoffRule | undefined {
@@ -232,8 +232,10 @@ function resolveBom(
   }
 
   const barraVariant =
-    DYNAMIC_BARRA_POT_VARIANTS[norm] ||
-    DYNAMIC_BARRA_INST_VARIANTS[norm];
+    DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[norm] ||
+    DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['CORROSIVO']?.[norm] ||
+    DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[norm] ||
+    DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['CORROSIVO']?.[norm];
   if (barraVariant && barraVariant.length > 0) {
     const ruleId =
       currentRuleId === 'r8' || currentRuleId === 'r9'

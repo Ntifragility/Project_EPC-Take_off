@@ -24,6 +24,7 @@ import {
   STICK_LENGTH_M
 } from './types';
 import { foldHeaderCell } from '../../../shared/lib/readSheetMatrix';
+import { rejectionRuleSnapshot } from '../../../features/rejection-rules/model/useRejectionRulesStore';
 
 const STICK_CENTS = Math.round(STICK_LENGTH_M * 100);
 
@@ -74,6 +75,22 @@ export function parsePlano(plano: string): { wbs: string; stem: string } | null 
   return { wbs, stem: `${wbs}${discipline}${seq}` };
 }
 
+/** Configurable plano-shape check shared by parse + sheet import (bductos.plano_shape). */
+function planoMatchesRule(plano: string): boolean {
+  const pattern = rejectionRuleSnapshot().paramText(
+    'bductos.plano_shape',
+    'planoPattern',
+    '^P\\d+-[A-Z]+-\\d+-\\d+-[A-Z]+-\\d+$'
+  );
+  const value = plano.trim().toUpperCase();
+  if (!pattern.trim()) return value.length > 0;
+  try {
+    return new RegExp(pattern).test(value);
+  } catch {
+    return parsePlano(plano) !== null;
+  }
+}
+
 function normalizeDiameter(raw: string): string {
   return raw.trim().replace(/[″”]/g, '"').replace(/\s+/g, ' ');
 }
@@ -121,16 +138,28 @@ export function buildTagEnPlano(vias: number | string, diameter: string, bankId:
 }
 
 export function parseBductoSource(source: Pick<BductoSource, 'plano' | 'tagEnPlano' | 'quantity'>): ParsedBducto | string {
-  if (!Number.isFinite(source.quantity) || source.quantity <= 0) {
-    return 'La longitud debe ser mayor que 0.';
+  const rej = rejectionRuleSnapshot();
+  const minLength = rej.paramNum('bductos.length_positive', 'minLength', 0);
+  if (!Number.isFinite(source.quantity) || source.quantity <= minLength) {
+    if (!rej.isEnabled('bductos.length_positive')) {
+      return 'La longitud debe ser mayor que 0.';
+    }
+    return rej.message('bductos.length_positive');
   }
   const plano = parsePlano(source.plano);
-  if (!plano) {
-    return 'El plano debe tener la forma P22-DA-3300-07-LY-028.';
+  const planoOk = plano !== null && (!rej.isEnabled('bductos.plano_shape') || planoMatchesRule(source.plano));
+  if (!planoOk) {
+    if (!rej.isEnabled('bductos.plano_shape')) {
+      return 'El plano debe tener la forma P22-DA-3300-07-LY-028.';
+    }
+    return rej.message('bductos.plano_shape');
   }
   const tag = parseTagEnPlano(source.tagEnPlano);
   if (!tag) {
-    return 'El tag debe tener la forma 1 VIA, 2", BD.A.1 o 2 VIAS, 2", E.1.';
+    if (!rej.isEnabled('bductos.tag_shape')) {
+      return 'El tag debe tener la forma 1 VIA, 2", BD.A.1 o 2 VIAS, 2", E.1.';
+    }
+    return rej.message('bductos.tag_shape');
   }
   return {
     ...tag,
@@ -397,7 +426,11 @@ export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
   }
 
   if (headerIdx < 0) {
-    return { rows, errors: ['No encontré las columnas PLANO, TAG EN PLANO y LONGITUD TUBERÍA.'], rejectedRows };
+    const rej = rejectionRuleSnapshot();
+    const msg = rej.isEnabled('bductos.header_columns')
+      ? rej.message('bductos.header_columns')
+      : 'No encontré las columnas PLANO, TAG EN PLANO y LONGITUD TUBERÍA.';
+    return { rows, errors: [msg], rejectedRows };
   }
 
   for (let r = headerIdx + 1; r < matrix.length; r++) {
@@ -437,7 +470,8 @@ export function parseBductoSheet(matrix: unknown[][]): BductoSheetResult {
   }
 
   if (rows.length === 0 && errors.length === 0) {
-    errors.push('El Excel no tiene tramos.');
+    const rej = rejectionRuleSnapshot();
+    errors.push(rej.isEnabled('bductos.empty_file') ? rej.message('bductos.empty_file') : 'El Excel no tiene tramos.');
   }
   return { rows, errors, rejectedRows };
 }

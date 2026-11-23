@@ -1,7 +1,7 @@
 import { createStore } from '../../../shared/lib/store';
 import { TakeoffRule, DetalleVariantItem } from '../../../entities/takeoff-rule/model/types';
 import { SectionType, SubAreaHumeda } from '../../../shared/types/common';
-import { loadStoredRules, saveStoredRules } from '../../../shared/lib/storage';
+import { loadStoredRules, saveStoredRules, loadStoredVariants, saveStoredVariants } from '../../../shared/lib/storage';
 import {
   saveTakeoffRuleToSupabase,
   deleteTakeoffRuleFromSupabase,
@@ -10,7 +10,8 @@ import {
   fetchDetalleVariantsFromSupabase
 } from '../../../shared/api/supabase';
 import { deleteRuleLines, replaceRuleLines } from '../../sync-cloud/model/publishRuleCatalog';
-import { updateDynamicVariants, updateSingleDynamicVariant, deleteSingleDynamicVariant } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { updateDynamicVariants, updateSingleDynamicVariant, deleteSingleDynamicVariant, normalizeVariantSubArea } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { variantRowId, familyCategory } from '../../../entities/takeoff-rule/model/ruleFamily';
 import { fetchUnifiedRules, saveUnifiedRule } from '../../../entities/takeoff-rule/api/ruleRepository';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 import { MasterImportPlan } from './rulesMasterTable';
@@ -31,7 +32,8 @@ export interface RulesActions {
     detalleCode: string,
     itemsToSave: DetalleVariantItem[],
     category?: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST',
-    subArea?: SubAreaHumeda
+    subArea?: SubAreaHumeda,
+    ownerRuleId?: string
   ) => Promise<boolean>;
   deleteDetalleVariant: (
     area: string,
@@ -49,38 +51,62 @@ export interface RulesActions {
 
 export type RulesStore = RulesState & RulesActions;
 
-const initialSection = (localStorage.getItem('epc-active-section') as SectionType) || 'pat';
-const initialRules = loadStoredRules(initialSection);
+/** (area × subArea) partitions a rule's inside-section rows occupy. */
+export function ruleVariantScopes(rule: TakeoffRule): Array<{ area: string; subArea: SubAreaHumeda }> {
+  const areas = rule.areas && rule.areas.length > 0 ? rule.areas : ['AREA SECA', 'AREA HUMEDA'];
+  const scopes: Array<{ area: string; subArea: SubAreaHumeda }> = [];
+  for (const area of areas) {
+    const up = (area || '').toUpperCase();
+    const isHumeda = up.includes('HUMED') || up.includes('HUEMD');
+    if (!isHumeda) {
+      scopes.push({ area, subArea: 'NO_CORROSIVO' });
+    } else if (rule.subAreas && rule.subAreas.length > 0) {
+      for (const sub of rule.subAreas) scopes.push({ area, subArea: sub });
+    } else {
+      // Legacy/global rule: canonical partition only. Other partitions keep
+      // whatever rows they already have (no cross-partition writes).
+      scopes.push({ area, subArea: 'NO_CORROSIVO' });
+    }
+  }
+  return scopes;
+}
 
-export function syncRulesToDynamicVariants(rules: TakeoffRule[]) {
-  for (const r of rules) {
-    if (r.id === 'r2' || r.id === 'r8' || r.id === 'r9') continue;
-    const upTrigger = (r.trigger || '').trim().toUpperCase();
-    const detCode = r.detalle || r.defaultDetalle;
-    if (detCode && (upTrigger.includes('2/0') || upTrigger.includes('BARRA'))) {
-      const cat = upTrigger.includes('BARRA INST')
-        ? 'BARRA_INST'
-        : upTrigger.includes('BARRA')
-        ? 'BARRA_POT'
-        : 'CABLE_2_0';
-      const targetAreas = r.areas && r.areas.length > 0 ? r.areas : ['AREA HUMEDA'];
-      const variantItems: DetalleVariantItem[] = r.subitems.map(s => {
-        const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
-        return {
-          desc: s.desc,
-          qty: s.qty,
-          unit: s.unit,
-          formula: s.formula,
-          material: s.material,
-          ot: rawOt
-        };
-      });
-      for (const area of targetAreas) {
-        updateSingleDynamicVariant(area, detCode, variantItems, cat);
-      }
+/**
+ * Scoped variant stamp for family-rule saves. Creates/updates the variant row
+ * for each partition in the rule's own scope with an ownership link
+ * (rule_id), so later deletes are precise. No-ops for anchors/standalone.
+ */
+async function stampFamilyRuleVariant(
+  rule: TakeoffRule,
+  saveVariant: RulesActions['saveDetalleVariant']
+): Promise<void> {
+  if (rule.id === 'r2' || rule.id === 'r8' || rule.id === 'r9') return;
+  const cat = familyCategory(rule.trigger);
+  if (!cat) return;
+  const detCode = (rule.detalle || rule.defaultDetalle || '').trim().toUpperCase();
+  if (!detCode) return;
+  const variantItems: DetalleVariantItem[] = (rule.subitems || []).map(s => {
+    const rawOt = s.formula ? s.formula : s.qty !== undefined && s.qty !== '' ? s.qty : 1;
+    return {
+      desc: s.desc,
+      qty: s.qty,
+      unit: s.unit,
+      formula: s.formula,
+      material: s.material,
+      ot: rawOt
+    };
+  });
+  for (const scope of ruleVariantScopes(rule)) {
+    try {
+      await saveVariant(scope.area, detCode, variantItems, cat, scope.subArea, rule.id);
+    } catch (e) {
+      console.warn('Scoped variant stamp notice:', e);
     }
   }
 }
+
+const initialSection = (localStorage.getItem('epc-active-section') as SectionType) || 'pat';
+const initialRules = loadStoredRules(initialSection);
 
 export const useRulesStore = createStore<RulesStore>((set, get) => ({
   rules: initialRules,
@@ -88,27 +114,32 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
   detalleVariantsVersion: 0,
 
   loadRules: async (section: SectionType) => {
-    // 1. Instant local state
+    // Supabase-first: instant offline cache paint, then authoritative refresh.
+    // localStorage is ONLY an offline cache of what Supabase returned — no seeds.
     const cachedRules = loadStoredRules(section);
+    const cachedVariants = loadStoredVariants();
     set({ rules: cachedRules });
-    syncRulesToDynamicVariants(cachedRules);
+    if (cachedVariants.length > 0) {
+      updateDynamicVariants(cachedVariants);
+    }
     set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
 
     // 2. Refresh from Supabase in background
     try {
       const remoteRules = await fetchUnifiedRules(section);
-      const activeRules = remoteRules && remoteRules.length > 0 ? remoteRules : cachedRules;
       if (remoteRules && remoteRules.length > 0) {
         set({ rules: remoteRules });
       }
 
-      // Hydrate detalle variants from Supabase FIRST, then overlay custom rules so they aren't wiped
+      // Hydrate detalle variants from Supabase FIRST (MERGE semantics —
+      // updateDynamicVariants never wipes partitions it didn't receive),
+      // then persist the authoritative snapshot to the offline cache.
       const { data: cloudVariants, error: varErr } = await fetchDetalleVariantsFromSupabase();
       if (!varErr && cloudVariants && cloudVariants.length > 0) {
         updateDynamicVariants(cloudVariants);
+        saveStoredVariants(cloudVariants);
       }
 
-      syncRulesToDynamicVariants(activeRules);
       set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
     } catch (e) {
       console.warn('Background rule fetch failed:', e);
@@ -141,7 +172,6 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     }
 
     saveStoredRules(section, nextRules);
-    syncRulesToDynamicVariants([rule]);
     set({ rules: nextRules, detalleVariantsVersion: get().detalleVariantsVersion + 1 });
 
     // Sync with Supabase asynchronously without blocking local state
@@ -149,31 +179,11 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
       const orderIndex = isNew ? nextRules.length - 1 : Math.max(0, nextRules.findIndex(r => r.id === rule.id));
       await saveUnifiedRule(rule, section, orderIndex);
 
-      // If this rule belongs to Cable 2/0 or Barra, also mirror into detalle_variants table in Supabase
-      const upTrigger = rule.trigger.trim().toUpperCase();
-      const detCode = rule.detalle || rule.defaultDetalle;
-      if (detCode && rule.id !== 'r2' && rule.id !== 'r8' && rule.id !== 'r9' && (upTrigger.includes('2/0') || upTrigger.includes('BARRA'))) {
-        const cat = upTrigger.includes('BARRA INST')
-          ? 'BARRA_INST'
-          : upTrigger.includes('BARRA')
-          ? 'BARRA_POT'
-          : 'CABLE_2_0';
-        const targetAreas = rule.areas && rule.areas.length > 0 ? rule.areas : ['AREA HUMEDA'];
-        const variantItems: DetalleVariantItem[] = rule.subitems.map(s => {
-          const rawOt = s.formula ? s.formula : (s.qty !== undefined && s.qty !== '') ? s.qty : 1;
-          return {
-            desc: s.desc,
-            qty: s.qty,
-            unit: s.unit,
-            formula: s.formula,
-            material: s.material,
-            ot: rawOt
-          };
-        });
-        for (const area of targetAreas) {
-          await get().saveDetalleVariant(area, detCode, variantItems, cat);
-        }
-      }
+      // Scoped variant stamp for non-anchor family rules: a clone saved from
+      // an inside-section row backs EXACTLY the (area × subArea) partitions in
+      // its own scope — never a substring-matched mirror. Anchors (r2/r8/r9)
+      // and standalone rules never touch variant rows here.
+      await stampFamilyRuleVariant(rule, get().saveDetalleVariant);
 
       useUIStore.getState().showToast('Regla guardada con éxito', 'success');
     } catch (err) {
@@ -186,8 +196,44 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
   },
 
   deleteRule: async (id: string, section: SectionType) => {
+    const doomed = get().rules.find(r => r.id === id);
     const nextRules = get().rules.filter(r => r.id !== id);
     saveStoredRules(section, nextRules);
+    // Family-clone delete removes the rule AND its scoped variant rows
+    // (same canonical ids the stamp created). Plain variant rows under a
+    // different code, other partitions, and standalone rules are untouched.
+    // Anchors (r2/r8/r9) never trigger variant cleanup.
+    if (doomed && doomed.id !== 'r2' && doomed.id !== 'r8' && doomed.id !== 'r9') {
+      const cat = familyCategory(doomed.trigger);
+      const detCode = (doomed.detalle || doomed.defaultDetalle || '').trim().toUpperCase();
+      if (cat && detCode) {
+        for (const scope of ruleVariantScopes(doomed)) {
+          try {
+            await get().deleteDetalleVariant(scope.area, detCode, cat, scope.subArea);
+          } catch (e) {
+            console.warn('Scoped variant cleanup notice:', e);
+          }
+        }
+      } else if (doomed.originRuleId) {
+        // Legacy ownership link fallback.
+        try {
+          const variants = loadStoredVariants();
+          const owned = variants.find(
+            v => v.id === doomed.originRuleId || (v as any).rule_id === doomed.id
+          );
+          if (owned) {
+            await get().deleteDetalleVariant(
+              owned.area,
+              owned.detalle_code || detCode,
+              (owned.category as 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST') || 'CABLE_2_0',
+              (owned.sub_area as SubAreaHumeda) || undefined
+            );
+          }
+        } catch (e) {
+          console.warn('Owned variant cleanup notice:', e);
+        }
+      }
+    }
     set({ rules: nextRules });
     try {
       await deleteTakeoffRuleFromSupabase(id);
@@ -203,23 +249,35 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     detalleCode: string,
     itemsToSave: DetalleVariantItem[],
     category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST' = 'CABLE_2_0',
-    subArea?: SubAreaHumeda
+    subArea?: SubAreaHumeda,
+    ownerRuleId?: string
   ) => {
     try {
-      updateSingleDynamicVariant(area, detalleCode, itemsToSave, category, subArea);
+      const effectiveSubArea = normalizeVariantSubArea(area, subArea);
+      updateSingleDynamicVariant(area, detalleCode, itemsToSave, category, effectiveSubArea);
       set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
 
-      const areaDb = area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
-      const effectiveSubArea = areaDb === 'AREA HUMEDA' ? (subArea || 'NO_CORROSIVO') : 'NO_CORROSIVO';
-      const id = `${areaDb}_${effectiveSubArea}_${category}_${detalleCode}`;
+      const id = variantRowId(area, effectiveSubArea, category, detalleCode);
+      const areaDb = (area || '').toUpperCase().includes('HUMED') || (area || '').toUpperCase().includes('HUEMD')
+        ? 'AREA HUMEDA'
+        : 'AREA SECA';
       const res = await saveDetalleVariantToSupabase({
         id,
         area: areaDb,
         sub_area: effectiveSubArea,
         category,
         detalle_code: detalleCode,
-        items: itemsToSave
+        items: itemsToSave,
+        ...(ownerRuleId ? { rule_id: ownerRuleId } : {})
       });
+
+      if (res.success) {
+        // Keep the offline variant cache in sync with the authoritative write.
+        try {
+          const { data } = await fetchDetalleVariantsFromSupabase();
+          if (data) saveStoredVariants(data as any);
+        } catch {}
+      }
 
       if (!res.success) {
         console.warn('Detalle saved locally. Supabase synchronization notice:', res.error);
@@ -249,18 +307,21 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     subArea?: SubAreaHumeda
   ) => {
     try {
-      deleteSingleDynamicVariant(area, detalleCode, category, subArea);
+      const effectiveSubArea = normalizeVariantSubArea(area, subArea);
+      // Scoped delete: ONLY the (area, subArea, category, code) partition row,
+      // by canonical id. Never a business-key sweep across sub-areas.
+      deleteSingleDynamicVariant(area, detalleCode, category, effectiveSubArea);
       set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
 
-      const areaDb = area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
-      const effectiveSubArea = areaDb === 'AREA HUMEDA' ? (subArea || 'NO_CORROSIVO') : 'NO_CORROSIVO';
-      const id = `${areaDb}_${effectiveSubArea}_${category}_${detalleCode}`;
-      const res = await deleteDetalleVariantFromSupabase(id, {
-        area: areaDb,
-        category,
-        detalle_code: detalleCode,
-        sub_area: effectiveSubArea
-      });
+      const id = variantRowId(area, effectiveSubArea, category, detalleCode);
+      const res = await deleteDetalleVariantFromSupabase(id);
+
+      if (res.success) {
+        try {
+          const { data } = await fetchDetalleVariantsFromSupabase();
+          if (data) saveStoredVariants(data as any);
+        } catch {}
+      }
 
       if (!res.success) {
         console.warn('Supabase delete detalle notice:', res.error);
@@ -277,12 +338,10 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
 
   setRules: (rules: TakeoffRule[], section: SectionType) => {
     saveStoredRules(section, rules);
-    syncRulesToDynamicVariants(rules);
     set({ rules });
   },
 
   incrementVariantsVersion: () => {
-    syncRulesToDynamicVariants(get().rules);
     set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
   },
 
@@ -297,7 +356,6 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
 
     if (plan.updatedRules.length > 0 || plan.createdRules.length > 0) {
       saveStoredRules(section, nextRules);
-      syncRulesToDynamicVariants(nextRules);
     }
 
     plan.variants.forEach(variant => {
@@ -306,7 +364,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
         variant.detalleCode,
         variant.items,
         variant.category,
-        variant.subArea
+        normalizeVariantSubArea(variant.area, variant.subArea)
       );
     });
 
@@ -332,10 +390,11 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
 
     for (const variant of plan.variants) {
       try {
-        const areaDb = variant.area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
-        const effectiveSubArea =
-          areaDb === 'AREA HUMEDA' ? variant.subArea || 'NO_CORROSIVO' : 'NO_CORROSIVO';
-        const id = `${areaDb}_${effectiveSubArea}_${variant.category}_${variant.detalleCode}`;
+          const effectiveSubArea = normalizeVariantSubArea(variant.area, variant.subArea);
+        const areaDb = (variant.area || '').toUpperCase().includes('HUMED') || (variant.area || '').toUpperCase().includes('HUEMD')
+          ? 'AREA HUMEDA'
+          : 'AREA SECA';
+        const id = variantRowId(variant.area, effectiveSubArea, variant.category, variant.detalleCode);
         const res = await saveDetalleVariantToSupabase({
           id,
           area: areaDb,
@@ -352,6 +411,11 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
         console.warn('Master import variant sync notice:', err);
       }
     }
+
+    try {
+      const { data } = await fetchDetalleVariantsFromSupabase();
+      if (data) saveStoredVariants(data as any);
+    } catch {}
 
     return { ok: true, remoteSynced };
   }

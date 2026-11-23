@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, ShieldCheck, Shield, LogOut, UserPlus, FileSpreadsheet } from 'lucide-react';
+import { User, ShieldCheck, Shield, LogOut, UserPlus, FileSpreadsheet, ListX } from 'lucide-react';
 import { getRoleDisplayName } from '../model/authTypes';
 import { useAuthStore } from '../model/useAuthStore';
 import { useTemplatesStore } from '../../manage-templates/model/useTemplatesStore';
+import { useRejectionRulesStore } from '../../rejection-rules/model/useRejectionRulesStore';
 
 export const UserProfileButton: React.FC = () => {
   const { currentUser, setShowUserManagement, signOut } = useAuthStore();
@@ -287,6 +288,43 @@ export const UserProfileButton: React.FC = () => {
               <span>Gestión de Plantillas</span>
             </button>
           )}
+
+          {/* Rejection rules management (all authenticated users can view/edit) */}
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              useRejectionRulesStore.getState().setShowModal(true);
+            }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '7px 10px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#e4e4e7',
+              fontSize: '12.5px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              textAlign: 'left',
+              transition: 'background-color 0.15s',
+              marginBottom: '4px'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#1c1e27';
+              e.currentTarget.style.color = '#ffffff';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#e4e4e7';
+            }}
+          >
+            <ListX size={14} color="#f59e0b" />
+            <span>Reglas de Rechazo</span>
+          </button>
 
           {/* Logout Option */}
           <button

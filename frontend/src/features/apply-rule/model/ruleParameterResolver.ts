@@ -1,8 +1,9 @@
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { AreaType } from '../../../shared/types/common';
-import { getDefaultTagPrefixByRule, getDefaultDetalleByRule, getRuleCatalogDetalles } from '../../../entities/takeoff-rule/model/seedRules';
+import { getRuleCatalogDetalles } from '../../../entities/takeoff-rule/model/seedRules';
 import { getDetallesForArea, hasSoporteItems, hasJumperItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { detalleBelongsToArea } from '../../../entities/takeoff-rule/model/areaCatalog';
+import { isBarraInstFamily, isBarraPotFamily, isCable20Family } from '../../../entities/takeoff-rule/model/ruleFamily';
 
 export interface RulePromptRequirements {
   isCableTray: boolean;
@@ -34,20 +35,22 @@ export function resolveRuleRequirements(rule: TakeoffRule, activeArea: AreaType)
   const isSoldadura40_20 = triggerUp.includes('SOLDADURA T 4/0 -2/0') || triggerUp.includes('SOLDADURA T 4/0-2/0') || triggerUp.includes('SOLDADURA T 4/0  - 2/0');
   const isSoldadura40 = !isSoldadura40_20 && (triggerUp === 'SOLDADURA T 4/0' || triggerUp.startsWith('SOLDADURA T 4/0'));
   const isCable40 = triggerUp.includes('CABLE DESNUDO 4/0');
-  const isCable20 = triggerUp.includes('CABLE DESNUDO 2/0');
-  const isBarraPot = triggerUp.includes('BARRA POT');
-  const isBarraInst = triggerUp.includes('BARRA INST');
+  const isCable20 = ruleId === 'r2' || isCable20Family(triggerUp);
+  const isBarraPot = ruleId === 'r8' || isBarraPotFamily(triggerUp);
+  const isBarraInst = ruleId === 'r9' || isBarraInstFamily(triggerUp);
   const isPozo = triggerUp.includes('POZO');
   const isSoldaduraX = triggerUp.includes('SOLDADURA X');
 
-  const defaultTagPrefix = rule.tagPrefix || getDefaultTagPrefixByRule(rule.trigger) || 'M';
+  // Supabase-first: tag prefix and detalle fall back to the rule's own stored
+  // values — no hardcoded trigger tables.
+  const defaultTagPrefix = rule.tagPrefix || 'M';
   const storedDetalle = (rule.detalle || '').trim();
   const areaSpecificDetalle = (rule.areaDetalles?.[activeArea] || '').trim();
   const defaultDetalle =
     areaSpecificDetalle ||
     (storedDetalle && detalleBelongsToArea(storedDetalle, activeArea)
       ? storedDetalle
-      : getDefaultDetalleByRule(rule.trigger, activeArea)) || '';
+      : getRuleCatalogDetalles(rule.trigger, activeArea, storedDetalle)[0]) || '';
 
   const areaDetalleEntries = getDetallesForArea(activeArea);
   const availableDetalles = isCable20

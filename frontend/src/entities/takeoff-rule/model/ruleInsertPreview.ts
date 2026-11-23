@@ -1,8 +1,6 @@
 import { TakeoffRule } from './types';
-import { getDefaultDetalleByRule } from './seedRules';
 import {
-  DYNAMIC_BARRA_INST_VARIANTS,
-  DYNAMIC_BARRA_POT_VARIANTS,
+  getBarraVariants,
   getCalculatedVariantItems,
   getDetallesForArea
 } from './detalleVariants';
@@ -57,7 +55,7 @@ export function getRuleInsertPreview(rule: TakeoffRule, activeArea: string, cont
   }
 
   if (up.includes('BARRA POT')) {
-    const variant = detalle ? DYNAMIC_BARRA_POT_VARIANTS[detalle] : undefined;
+    const variant = detalle ? getBarraVariants('BARRA_POT')[detalle] : undefined;
     if (variant && variant.length > 0) return `${detalle}: ${joinItems(variant.map(item => item.desc))}`;
     return isHumedaArea(activeArea)
       ? 'Barra + soportes/terminales según DETALLE 010/17A o 010/17B'
@@ -65,7 +63,7 @@ export function getRuleInsertPreview(rule: TakeoffRule, activeArea: string, cont
   }
 
   if (up.includes('BARRA INST')) {
-    const variant = detalle ? DYNAMIC_BARRA_INST_VARIANTS[detalle] : undefined;
+    const variant = detalle ? getBarraVariants('BARRA_INST')[detalle] : undefined;
     if (variant && variant.length > 0) return `${detalle}: ${joinItems(variant.map(item => item.desc))}`;
     return isHumedaArea(activeArea)
       ? 'Barra + aislador y herrajes según DETALLE 010/17C o 010/17D'
@@ -95,7 +93,9 @@ export function getRuleInsertPreview(rule: TakeoffRule, activeArea: string, cont
     names.push('TUBERIA PVC SCH 80 Ø3/4"');
   }
   const list = joinItems(names);
-  const detalleLabel = detalle || getDefaultDetalleByRule(rule.trigger, activeArea) || rule.detalle || '';
+  // Supabase-first: no hardcoded fallback detalle. Surface the rule's own
+  // configured detalle, or the variant/active-area selection.
+  const detalleLabel = detalle || rule.detalle || '';
   if (list && detalleLabel) return `${detalleLabel}: ${list}`;
   if (list) return list;
   return detalleLabel ? `Detalle ${detalleLabel}` : 'Sin ítems configurados';

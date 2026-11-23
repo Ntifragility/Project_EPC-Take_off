@@ -1,7 +1,7 @@
 import React from 'react';
 import { TakeoffRule } from '../../../entities/takeoff-rule/model/types';
 import { AreaType } from '../../../shared/types/common';
-import { getRuleCatalogDetalles, getDefaultDetalleByRule } from '../../../entities/takeoff-rule/model/seedRules';
+import { getRuleDetallesForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 import { shownFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { IconActionButton } from '../../../shared/ui/IconActionButton';
 import { MatCell, MatHeader } from './MatCell';
@@ -45,8 +45,10 @@ export const GenericRuleCard: React.FC<GenericRuleCardProps> = ({
   onDelete
 }) => {
   const configuredDetalle = (rule.areaDetalles?.[activeArea] || rule.defaultDetalle || rule.detalle || '').trim();
-  const detalleCodes = getRuleCatalogDetalles(rule.trigger, activeArea, configuredDetalle);
-  const currentDetalle = configuredDetalle || getDefaultDetalleByRule(rule.trigger, activeArea) || detalleCodes[0] || '';
+  // Supabase-first: detalle options come from the rule's own configured
+  // detalle + area catalog (Supabase detalle_catalog / variant registry).
+  const detalleCodes = getRuleDetallesForArea(rule.trigger, activeArea, configuredDetalle);
+  const currentDetalle = configuredDetalle || detalleCodes[0] || '';
   const shownCodes = Array.from(new Set([currentDetalle, ...detalleCodes].filter(Boolean)));
   const finalShownCodes = shownCodes.length > 0 ? shownCodes : ['—'];
   const rows = rule.subitems.length > 0 ? rule.subitems : [{ id: 'empty', desc: '', qty: '', unit: '' }];

@@ -249,7 +249,8 @@ export function generateRuleItemsForInstance(
       detalleCode,
       numSoportes,
       true,
-      instanceId
+      instanceId,
+      subArea
     );
   }
 

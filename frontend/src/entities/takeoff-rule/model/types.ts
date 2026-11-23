@@ -72,7 +72,11 @@ export interface TakeoffRule {
   overrides?: RuleItemOverride[];
   parameterOptions?: RuleParameterOption[];
   areas?: AreaType[];
+  /** Sub-area visibility inside AREA HUMEDA. Undefined = visible in both (legacy rows). */
+  subAreas?: Array<'CORROSIVO' | 'NO_CORROSIVO'>;
   areaDetalles?: Record<string, string>;
+  /** Ownership link: variant rows / standalone rule created from an inside-section detalle. */
+  originRuleId?: string;
   orderIndex?: number;
 }
 

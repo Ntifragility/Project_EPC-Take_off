@@ -89,8 +89,8 @@ export function getCatalogForArea(rules: TakeoffRule[], area: string): TakeoffRu
   return rules.filter(rule => ruleBelongsToArea(rule, area));
 }
 
-/** Stamp seed `areas` onto stored/cloud rules that predate the field. */
-export function attachCatalogAreas(rule: TakeoffRule, seedRules: TakeoffRule[]): TakeoffRule {
+/** Stamp catalog `areas` onto stored/cloud rules that predate the field. Supabase-first: no seeds. */
+export function attachCatalogAreas(rule: TakeoffRule, seedRules: TakeoffRule[] = []): TakeoffRule {
   if (rule.areas && rule.areas.length > 0) return rule;
   const seed = seedRules.find(s => s.id === rule.id);
   if (seed?.areas && seed.areas.length > 0) return { ...rule, areas: seed.areas };

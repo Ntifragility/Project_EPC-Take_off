@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TakeoffRule, RuleSubitem, DetalleDefinition } from '../../../entities/takeoff-rule/model/types';
-import { AreaType } from '../../../shared/types/common';
+import { AreaType, SubAreaHumeda } from '../../../shared/types/common';
 import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
 import { formulaHint, shownFormula, shownVariantFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 import { fetchDetalleCatalog } from '../../../entities/takeoff-rule/api/ruleRepository';
 import { getRuleDetallesForArea } from '../../../entities/takeoff-rule/model/areaCatalog';
 import {
+  getBarraVariants,
   getDetallesForArea,
   shouldAutoManageTuberia,
-  DYNAMIC_BARRA_POT_VARIANTS,
-  DYNAMIC_BARRA_INST_VARIANTS,
   DetalleVariantItem
 } from '../../../entities/takeoff-rule/model/detalleVariants';
+import {
+  isBarraInstFamily,
+  isBarraPotFamily,
+  isCable20Family
+} from '../../../entities/takeoff-rule/model/ruleFamily';
 import { uid } from '../../../shared/lib/uid';
 import { ModalShell } from '../../../shared/ui/ModalShell';
 import { siteConfirm } from '../../../shared/ui/askSite';
@@ -22,6 +26,7 @@ export interface RuleEditorModalProps {
   initialRule: TakeoffRule | null;
   isNew: boolean;
   activeArea?: AreaType;
+  activeSubArea?: SubAreaHumeda;
   availableRules?: TakeoffRule[];
   onClose: () => void;
   onSave: (rule: TakeoffRule, isNew: boolean) => void;
@@ -33,12 +38,14 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   initialRule,
   isNew,
   activeArea = 'AREA SECA',
+  activeSubArea = 'NO_CORROSIVO',
   availableRules = [],
   onClose,
   onSave,
   onDelete
 }) => {
   const currentArea = activeArea || 'AREA SECA';
+  const currentSubArea: SubAreaHumeda = currentArea === 'AREA HUMEDA' ? (activeSubArea || 'NO_CORROSIVO') : 'NO_CORROSIVO';
   const [trigger, setTrigger] = useState('');
   const [detalle, setDetalle] = useState('');
   const [tagPrefix, setTagPrefix] = useState('M');
@@ -51,35 +58,35 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
   const isCable20Selected = useMemo(() => {
     if (!selectedTemplateId) return false;
     const rule = availableRules.find(r => r.id === selectedTemplateId);
-    return rule ? (rule.id === 'r2' || rule.trigger.toUpperCase().includes('2/0')) : false;
+    return rule ? (rule.id === 'r2' || isCable20Family(rule.trigger)) : false;
   }, [selectedTemplateId, availableRules]);
 
   const isBarraPotSelected = useMemo(() => {
     if (!selectedTemplateId) return false;
     const rule = availableRules.find(r => r.id === selectedTemplateId);
-    return rule ? (rule.id === 'r8' || rule.trigger.toUpperCase().includes('BARRA POT')) : false;
+    return rule ? (rule.id === 'r8' || isBarraPotFamily(rule.trigger)) : false;
   }, [selectedTemplateId, availableRules]);
 
   const isBarraInstSelected = useMemo(() => {
     if (!selectedTemplateId) return false;
     const rule = availableRules.find(r => r.id === selectedTemplateId);
-    return rule ? (rule.id === 'r9' || rule.trigger.toUpperCase().includes('BARRA INST')) : false;
+    return rule ? (rule.id === 'r9' || isBarraInstFamily(rule.trigger)) : false;
   }, [selectedTemplateId, availableRules]);
 
   const cable20DetalleList = useMemo(() => {
     if (!isCable20Selected) return [];
-    return getDetallesForArea(currentArea);
-  }, [isCable20Selected, currentArea]);
+    return getDetallesForArea(currentArea, currentSubArea);
+  }, [isCable20Selected, currentArea, currentSubArea]);
 
   const barraDetalleList = useMemo(() => {
     if (isBarraPotSelected) {
-      return Object.entries(DYNAMIC_BARRA_POT_VARIANTS);
+      return Object.entries(getBarraVariants('BARRA_POT', currentSubArea));
     }
     if (isBarraInstSelected) {
-      return Object.entries(DYNAMIC_BARRA_INST_VARIANTS);
+      return Object.entries(getBarraVariants('BARRA_INST', currentSubArea));
     }
     return [];
-  }, [isBarraPotSelected, isBarraInstSelected]);
+  }, [isBarraPotSelected, isBarraInstSelected, currentSubArea]);
 
   useEffect(() => {
     if (isOpen) {
@@ -197,9 +204,9 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
     if (!baseRule) return;
 
     // Check if Cable 2/0
-    const isC20 = baseRule.id === 'r2' || baseRule.trigger.toUpperCase().includes('2/0');
+    const isC20 = baseRule.id === 'r2' || isCable20Family(baseRule.trigger);
     if (isC20) {
-      const variants = getDetallesForArea(currentArea);
+      const variants = getDetallesForArea(currentArea, currentSubArea);
       if (variants.length > 0) {
         const firstCode = variants[0][0];
         handleSelectCable20Option(firstCode);
@@ -208,10 +215,12 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
     }
 
     // Check if Barra
-    const isBPot = baseRule.id === 'r8' || baseRule.trigger.toUpperCase().includes('BARRA POT');
-    const isBInst = baseRule.id === 'r9' || baseRule.trigger.toUpperCase().includes('BARRA INST');
+    const isBPot = baseRule.id === 'r8' || isBarraPotFamily(baseRule.trigger);
+    const isBInst = baseRule.id === 'r9' || isBarraInstFamily(baseRule.trigger);
     if (isBPot || isBInst) {
-      const bList = isBPot ? Object.entries(DYNAMIC_BARRA_POT_VARIANTS) : Object.entries(DYNAMIC_BARRA_INST_VARIANTS);
+      const bList = isBPot
+        ? Object.entries(getBarraVariants('BARRA_POT', currentSubArea))
+        : Object.entries(getBarraVariants('BARRA_INST', currentSubArea));
       if (bList.length > 0) {
         const firstCode = bList[0][0];
         handleSelectBarraOption(firstCode);
@@ -263,9 +272,9 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
     // When starting from a blank rule (or matching a known Cable 2/0 / Barra constructivo detail),
     // preload its materials if available so picking a constructivo detail accelerates setup.
     if (!selectedTemplateId) {
-      const areaVariant = getDetallesForArea(currentArea).find(([c]) => c === code);
-      const barraPotVariant = DYNAMIC_BARRA_POT_VARIANTS[code];
-      const barraInstVariant = DYNAMIC_BARRA_INST_VARIANTS[code];
+      const areaVariant = getDetallesForArea(currentArea, currentSubArea).find(([c]) => c === code);
+      const barraPotVariant = getBarraVariants('BARRA_POT', currentSubArea)[code];
+      const barraInstVariant = getBarraVariants('BARRA_INST', currentSubArea)[code];
       const matchedItems: any[] | undefined = areaVariant?.[1] || barraPotVariant || barraInstVariant;
 
       if (matchedItems && matchedItems.length > 0) {
@@ -375,7 +384,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       });
     }
 
-    for (const [code, items] of getDetallesForArea(currentArea)) {
+    for (const [code, items] of getDetallesForArea(currentArea, currentSubArea)) {
       if (seen.has(code)) continue;
       seen.add(code);
       options.push({
@@ -388,7 +397,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       });
     }
 
-    for (const [code, items] of Object.entries(DYNAMIC_BARRA_POT_VARIANTS)) {
+    for (const [code, items] of Object.entries(getBarraVariants('BARRA_POT', currentSubArea))) {
       if (seen.has(code)) continue;
       seen.add(code);
       options.push({
@@ -401,7 +410,7 @@ export const RuleEditorModal: React.FC<RuleEditorModalProps> = ({
       });
     }
 
-    for (const [code, items] of Object.entries(DYNAMIC_BARRA_INST_VARIANTS)) {
+    for (const [code, items] of Object.entries(getBarraVariants('BARRA_INST', currentSubArea))) {
       if (seen.has(code)) continue;
       seen.add(code);
       options.push({

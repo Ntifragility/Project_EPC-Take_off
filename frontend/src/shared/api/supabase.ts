@@ -126,6 +126,7 @@ export interface SupabaseDetalleVariantRecord {
   sub_area?: string;
   category: string;
   detalle_code: string;
+  rule_id?: string;
   items: any;
 }
 
@@ -308,105 +309,47 @@ export async function saveDetalleVariantToSupabase(
   try {
     return await withTimeout(
       (async () => {
-        // 1. Search for existing record using select('*') to prevent schema cache missing-column failures
-        let existingRows: any[] = [];
-        try {
-          const { data, error: searchError } = await supabase
-            .from('detalle_variants')
-            .select('*')
-            .eq('area', variant.area)
-            .eq('category', variant.category)
-            .eq('detalle_code', variant.detalle_code);
-
-          if (!searchError && data) {
-            existingRows = data;
-          }
-        } catch (searchEx) {
-          console.warn('[Supabase] Non-fatal query error searching detalle_variants:', searchEx);
+        // Upsert by canonical id ONLY: id = AREA_SUBAREA_CATEGORY_CODE.
+        // No business-key sweep, no sibling deletes — saving one partition
+        // must never touch CORROSIVO when writing NO_CORROSIVO or vice versa.
+        const payload: Record<string, any> = {
+          id: variant.id,
+          area: variant.area,
+          category: variant.category,
+          detalle_code: variant.detalle_code,
+          items: variant.items
+        };
+        if (variant.sub_area) {
+          payload.sub_area = variant.sub_area;
+        }
+        if ((variant as any).rule_id) {
+          payload.rule_id = (variant as any).rule_id;
         }
 
-        const matched = existingRows.find(r => {
-          if (r.id === variant.id) return true;
-          if (variant.sub_area) {
-            return r.sub_area === variant.sub_area || (!r.sub_area && variant.sub_area === 'NO_CORROSIVO');
-          }
-          return true;
-        });
-
-        if (matched) {
-          // Row exists: update its items and attributes using matched ID
-          const updateData: Record<string, any> = {
-            items: variant.items,
-            area: variant.area,
-            category: variant.category,
-            detalle_code: variant.detalle_code
-          };
-          if (variant.sub_area) {
-            updateData.sub_area = variant.sub_area;
-          }
-
-          let { error: updateError } = await supabase
-            .from('detalle_variants')
-            .update(updateData)
-            .eq('id', matched.id);
-
-          // If database schema does not have sub_area column, omit and retry
-          if (updateError && updateError.message && updateError.message.includes('sub_area')) {
-            delete updateData.sub_area;
-            const retry = await supabase
-              .from('detalle_variants')
-              .update(updateData)
-              .eq('id', matched.id);
-            updateError = retry.error;
-          }
-
-          if (updateError) {
-            throw updateError;
-          }
-
-          // Cleanup redundant legacy duplicates
-          const duplicates = existingRows.filter(r => r.id !== matched.id && r.id !== variant.id);
-          for (const dup of duplicates) {
-            try {
-              await supabase.from('detalle_variants').delete().eq('id', dup.id);
-            } catch (_) {}
-          }
-
-          return { success: true };
-        }
-
-        // 2. No matching row found: insert new record
-        const insertPayload: Record<string, any> = { ...variant };
-        let { error: insertError } = await supabase
+        let { error: upsertError } = await supabase
           .from('detalle_variants')
-          .insert(insertPayload);
+          .upsert(payload, { onConflict: 'id' });
 
-        // If sub_area is not in schema cache, omit and retry
-        if (insertError && insertError.message && insertError.message.includes('sub_area')) {
-          delete insertPayload.sub_area;
-          const retry = await supabase
-            .from('detalle_variants')
-            .insert(insertPayload);
-          insertError = retry.error;
-        }
-
-        if (insertError) {
-          // If insert failed due to conflict on ID, upsert
-          let { error: upsertError } = await supabase
-            .from('detalle_variants')
-            .upsert(insertPayload, { onConflict: 'id' });
-
-          if (upsertError && upsertError.message && upsertError.message.includes('sub_area')) {
-            delete insertPayload.sub_area;
-            const retryUpsert = await supabase
-              .from('detalle_variants')
-              .upsert(insertPayload, { onConflict: 'id' });
-            upsertError = retryUpsert.error;
+        // Older schemas without sub_area / rule_id columns: drop missing
+        // columns progressively and retry so the items payload still lands.
+        for (let attempt = 0; attempt < 3 && upsertError; attempt++) {
+          const missingColMatch = /Could not find the '([^']+)' column/i.exec(upsertError.message || '');
+          if (missingColMatch && missingColMatch[1] && missingColMatch[1] in payload) {
+            delete payload[missingColMatch[1]];
+            const retry = await supabase.from('detalle_variants').upsert(payload, { onConflict: 'id' });
+            upsertError = retry.error;
+            continue;
           }
-
-          if (upsertError) throw upsertError;
+          if (upsertError.message && upsertError.message.includes('sub_area') && 'sub_area' in payload) {
+            delete payload.sub_area;
+            const retry = await supabase.from('detalle_variants').upsert(payload, { onConflict: 'id' });
+            upsertError = retry.error;
+            continue;
+          }
+          break;
         }
 
+        if (upsertError) throw upsertError;
         return { success: true };
       })(),
       6500,
@@ -420,31 +363,20 @@ export async function saveDetalleVariantToSupabase(
 }
 
 export async function deleteDetalleVariantFromSupabase(
-  id: string,
-  meta?: { area: string; category: string; detalle_code: string; sub_area?: string }
+  id: string
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     return { success: false, error: 'La Base de Datos no está configurada' };
   }
   try {
+    // Scoped delete by canonical id ONLY. No business-key sweep: deleting one
+    // (area, sub_area, category, code) row must never touch sibling partitions
+    // or rows owned by another rule.
     const { error } = await supabase.from('detalle_variants').delete().eq('id', id);
     if (error) throw error;
-
-    if (meta) {
-      let q = supabase
-        .from('detalle_variants')
-        .delete()
-        .eq('area', meta.area)
-        .eq('category', meta.category)
-        .eq('detalle_code', meta.detalle_code);
-      if (meta.sub_area) {
-        q = q.or(`sub_area.eq.${meta.sub_area},sub_area.is.null`);
-      }
-      await q;
-    }
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al eliminar variante de detalle en Base de Datos';
+    const message = err instanceof Error ? err.message : 'Error al eliminar variante en Base de Datos';
     console.error('[Supabase] Error en deleteDetalleVariantFromSupabase:', err);
     return { success: false, error: message };
   }

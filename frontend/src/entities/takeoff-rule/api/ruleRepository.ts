@@ -34,7 +34,8 @@ export async function fetchDetalleCatalog(section?: SectionType): Promise<Detall
     }
   }
 
-  // Fallback to localStorage
+  // Fallback to localStorage cache only. Empty cache = empty catalog.
+  // (The legacy hardcoded detalle list was removed: Supabase is SSOT.)
   try {
     const raw = localStorage.getItem(DETALLE_STORAGE_KEY);
     if (raw) {
@@ -42,27 +43,7 @@ export async function fetchDetalleCatalog(section?: SectionType): Promise<Detall
     }
   } catch {}
 
-  // Built-in standard details
-  return [
-    { code: '151', section: 'pat', area: 'AREA SECA', description: 'Conexión a estructura con cable 2/0' },
-    { code: '020', section: 'pat', area: 'AREA SECA', description: 'Puesta a tierra de motores y tableros' },
-    { code: '022', section: 'pat', area: 'AREA SECA', description: 'Puesta a tierra de bandejas' },
-    { code: '166A', section: 'pat', area: 'AREA SECA', description: 'Barra POT' },
-    { code: '166B', section: 'pat', area: 'AREA SECA', description: 'Barra secundaria' },
-    { code: '166C', section: 'pat', area: 'AREA SECA', description: 'Barra INST' },
-    { code: '167/G1', section: 'pat', area: 'GENERAL', description: 'Malla a tierra cable 4/0' },
-    { code: '167/X1', section: 'pat', area: 'GENERAL', description: 'Soldadura T 4/0' },
-    { code: '167/X2', section: 'pat', area: 'GENERAL', description: 'Soldadura T 4/0-2/0' },
-    { code: '010/17A', section: 'pat', area: 'GENERAL', description: 'Pozo vertical tipo A' },
-    { code: '010/17B', section: 'pat', area: 'GENERAL', description: 'Pozo vertical tipo B' },
-    { code: '010/17C', section: 'pat', area: 'GENERAL', description: 'Pozo vertical tipo C' },
-    { code: '010/17D', section: 'pat', area: 'GENERAL', description: 'Pozo horizontal' },
-    { code: '008/05', section: 'pat', area: 'GENERAL', description: 'Derivación cable terminal' },
-    { code: '008/3A', section: 'pat', area: 'GENERAL', description: 'Bajada cable vertical' },
-    { code: '008/3B', section: 'pat', area: 'GENERAL', description: 'Bajada con recubrimiento' },
-    { code: '001/2B-X1', section: 'canalizado', area: 'GENERAL', description: 'Soporte trapecio/lateral' },
-    { code: '001/1', section: 'canalizado', area: 'GENERAL', description: 'Soporte trapecio' }
-  ];
+  return [];
 }
 
 /**
@@ -180,23 +161,25 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
               w300: m.w300
             }));
 
-          return {
-            id: r.id,
-            section: r.section,
-            trigger: r.trigger,
-            detalle: r.default_detalle || r.detalle || '',
-            defaultDetalle: r.default_detalle || r.detalle || '',
-            tagPrefix: r.tag_prefix || 'M',
-            allowDetalleEdit: r.allow_detalle_edit ?? true,
-            hasDimensionParam: r.has_dimension_param ?? false,
-            dimensionParamName: r.dimension_param_name,
-            areas: r.allowed_areas || r.areas || ['AREA SECA', 'AREA HUMEDA'],
-            areaDetalles: (r.area_detalles && typeof r.area_detalles === 'object') ? r.area_detalles : {},
-            orderIndex: r.order_index,
-            subitems,
-            parameterOptions,
-            cableTrayMatrix: ruleMatrix.length > 0 ? ruleMatrix : (r.cable_tray_matrix || undefined)
-          };
+      return {
+        id: r.id,
+        section: r.section,
+        trigger: r.trigger,
+        detalle: r.default_detalle || r.detalle || '',
+        defaultDetalle: r.default_detalle || r.detalle || '',
+        tagPrefix: r.tag_prefix || 'M',
+        allowDetalleEdit: r.allow_detalle_edit ?? true,
+        hasDimensionParam: r.has_dimension_param ?? false,
+        dimensionParamName: r.dimension_param_name,
+        areas: r.allowed_areas || r.areas || ['AREA SECA', 'AREA HUMEDA'],
+        subAreas: r.allowed_subareas || r.sub_areas || r.subAreas,
+        areaDetalles: (r.area_detalles && typeof r.area_detalles === 'object') ? r.area_detalles : {},
+        originRuleId: r.origin_rule_id || r.originRuleId,
+        orderIndex: r.order_index,
+        subitems,
+        parameterOptions,
+        cableTrayMatrix: ruleMatrix.length > 0 ? ruleMatrix : (r.cable_tray_matrix || undefined)
+      };
         });
 
         saveStoredRules(section, fullRules);
@@ -207,7 +190,8 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
     }
   }
 
-  // Fallback to local storage
+  // Fallback to localStorage — the offline cache of the last Supabase snapshot.
+  // No hardcoded data: an unreachable DB with an empty cache yields [].
   return loadStoredRules(section);
 }
 
@@ -242,6 +226,8 @@ export async function saveUnifiedRule(
           tag_prefix: rule.tagPrefix || 'M',
           allowed_areas: rule.areas || ['AREA SECA', 'AREA HUMEDA'],
           areas: rule.areas || ['AREA SECA', 'AREA HUMEDA'],
+          allowed_subareas: rule.subAreas || null,
+          origin_rule_id: rule.originRuleId || null,
           area_detalles: rule.areaDetalles || {},
           allow_detalle_edit: rule.allowDetalleEdit ?? true,
           has_dimension_param: rule.hasDimensionParam ?? false,

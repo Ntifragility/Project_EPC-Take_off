@@ -3,236 +3,28 @@ import { SubAreaHumeda } from '../../../shared/types/common';
 export type { DetalleVariantItem };
 export { CABLE_TRAY_WIDTHS, DETALLE_001_2B_X1_ITEMS, getCableTrayStrutLength } from './cableTrayRules';
 
+/** Canonical sub-area for a variant write: SECA pins NO_CORROSIVO; HUMEDA keeps caller's (default NO_CORROSIVO). */
+export function normalizeVariantSubArea(area: string, subArea?: SubAreaHumeda): SubAreaHumeda {
+  const up = (area || '').toUpperCase();
+  const isHumeda = up.includes('HUMED') || up.includes('HUEMD');
+  return isHumeda ? subArea || 'NO_CORROSIVO' : 'NO_CORROSIVO';
+}
+
+// ---------------------------------------------------------------------------
+// Supabase-first variant registry.
+//
+// SSOT: the `detalle_variants` table in Supabase, partitioned by
+// (area, sub_area, category, detalle_code). These in-memory maps are ONLY a
+// runtime cache hydrated from Supabase (see updateDynamicVariants /
+// updateSingleDynamicVariant). There is intentionally NO hardcoded seed data
+// here anymore: on an empty database the catalog renders empty, and
+// localStorage acts purely as an offline cache of what Supabase returned.
+// ---------------------------------------------------------------------------
+
 export const DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVariantItem[]>> = {
-  'AREA SECA': {
-    '020': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '151': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '152': [
-      { desc: 'PRENSA PARALELA 2 CONDUCTORES 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '153': [
-      { desc: 'PRENSA PARALELA 1 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 1, unit: 'und', ot: '1 c / 3 m', otDynamic: '1c/3m' },
-      { desc: 'PRENSA PARALELA 2 CONDUCTOR 4- 2/0 AWG GCM26 BURNDY', qty: 2, unit: 'und', ot: '2 s / 15 m', otDynamic: 'empty' }
-    ],
-    '154': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '155A': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '155B': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
-    ],
-    '157A': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '157B': [
-      { desc: 'SOLDADURA VS', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'CARGA 90', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'MOLDE HSC-2G', qty: 1, unit: 'und', ot: 0.0167 }
-    ],
-    '160': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '161': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 2, unit: 'und', ot: 2 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 }
-    ],
-    '166A': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '166B': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '166C': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'und', ot: 2 },
-      { desc: 'AISLADOR DE RESINA TIPO BARRIL', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '168': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    '170': [
-      { desc: 'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26', qty: 1, unit: 'und', ot: 1 },
-      { desc: 'PERNO 3/8"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1 }
-    ],
-    'NA': [],
-    'ND': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
-    ]
-  },
-  'AREA HUEMDA': {
-    'ND': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
-    ],
-    '008/05': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'CABLE AISLADO 2/0 AWG THHN (JUMPER)', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' }
-    ],
-    '009/07': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '009/08A': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'PRENSA PARALELA', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '009/09': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 1" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' },
-      { desc: 'CONECTOR DE PUESTA A TIERRA DE ACERO ESTRUCTURAL TIPO \'BURNDY\'', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '009/10': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '009/11': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 3/8" TIPO YA26 DE BURNDY O SIMILAR', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 3/8"X1 1/2" DE ACERO INOX 316  CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '009/12A': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'SOLDADURA VBC-2G', qty: 1, unit: 'c/u', ot: 1, material: 'C' }
-    ],
-    '009/12B': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '010/13': [
-      { desc: 'CABLE AISLADO 2/0 AWG THHN', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' }
-    ],
-    '010/14': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 1" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' },
-      { desc: 'CONECTOR DE PUESTA A TIERRA DE ACERO ESTRUCTURAL TIPO \'BURNDY\'', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '010/15': [
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'CABLE DESNUDO 4/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '010/16': [
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'PLATINA DE ACERO 100x50x4mm, CON DOS PERFORACIONES DE Ø14mm.', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' }
-    ],
-    '010/17A': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
-    ],
-    '010/17B': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
-    ],
-    '010/17C': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
-    ],
-    '010/17D': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV', qty: 1, unit: 'und', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'und', ot: 1, material: 'C' }
-    ],
-    '010/18': [
-      { desc: 'CABLE DESNUDO 2/0 AWG', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'CABLE AISLADO 2/0 AWG THHN (JUMPER)', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 1, unit: 'c/mecha', ot: 1, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 1, unit: 'c/u', ot: 1, material: 'C' },
-      { desc: 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC', qty: 0.15, unit: 'm/ soporte', ot: 0.15, material: 'C' },
-      { desc: 'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN', qty: 2, unit: 'u / soporte', ot: 2, material: 'C' },
-      { desc: 'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT', qty: 1, unit: 'u / soporte', ot: 1, material: 'C' },
-      { desc: 'TUBERIA PVC SCH 80 Ø3/4"', qty: 'Var.', unit: 'm', ot: 'Var.', material: 'P' },
-      { desc: 'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YA26N', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' },
-      { desc: 'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN', qty: 2, unit: 'c/jumper', ot: 2, material: 'C' }
-    ]
-  }
+  'AREA SECA': {},
+  'AREA HUEMDA': {}
 };
-
-export const DETALLE_VARIANTS: Record<string, DetalleVariantItem[]> = Object.fromEntries(
-  Object.values(DETALLE_VARIANTS_BY_AREA).flatMap(area => Object.entries(area))
-);
-if (DETALLE_VARIANTS['008/05']) {
-  DETALLE_VARIANTS['008/5'] = DETALLE_VARIANTS['008/05'];
-}
-if (DETALLE_VARIANTS['ND']) {
-  DETALLE_VARIANTS['N/D'] = DETALLE_VARIANTS['ND'];
-}
-
 export const DETALLE_VARIANTS_BY_SUBAREA: Record<SubAreaHumeda, Record<string, DetalleVariantItem[]>> = {
   'NO_CORROSIVO': JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_AREA['AREA HUEMDA'])),
   'CORROSIVO': JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_AREA['AREA HUEMDA']))
@@ -342,118 +134,11 @@ export function getCalculatedVariantItems(
     .filter(v => typeof v.qty !== 'number' || v.qty > 0);
 }
 
-export interface BarraPotVariantItem {
-  desc: string;
-  qty: number;
-  unit: string;
-  material: 'P' | 'C';
-  metradoOt: string;
-}
-
-export const BARRA_POT_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = {
-  '010/17A': [
-    {
-      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, SIN AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
-      qty: 1,
-      unit: 'u / cjto',
-      material: 'P',
-      metradoOt: '1'
-    },
-    {
-      desc: 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE',
-      qty: 4,
-      unit: 'u / cjto',
-      material: 'C',
-      metradoOt: '4'
-    },
-    {
-      desc: 'PERNO DE CABEZA HEXAGONAL 3/8"X1" DE ACERO INOXIDABLE, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
-      qty: 4,
-      unit: 'u / cjto',
-      material: 'C',
-      metradoOt: '4'
-    },
-    {
-      desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
-      qty: 2,
-      unit: 'u / soporte',
-      material: 'C',
-      metradoOt: '2'
-    }
-  ],
-  '010/17B': [
-    {
-      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, SIN AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
-      qty: 1,
-      unit: 'u / cjto',
-      material: 'P',
-      metradoOt: '1'
-    },
-    {
-      desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
-      qty: 2,
-      unit: 'u / soporte',
-      material: 'C',
-      metradoOt: '2'
-    }
-  ]
-};
-
-export const BARRA_INST_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = {
-  '010/17C': [
-    {
-      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, CON AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
-      qty: 1,
-      unit: 'u / cjto',
-      material: 'P',
-      metradoOt: '1'
-    },
-    {
-      desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
-      qty: 2,
-      unit: 'u / soporte',
-      material: 'C',
-      metradoOt: '2'
-    }
-  ],
-  '010/17D': [
-    {
-      desc: 'BARRA DE COBRE CON AGUJEROS PREPERFORADOS SIMETRICOS 11mm, CON AISLADORES TIPO CB14412JK THERMOWELD O SIMILAR',
-      qty: 1,
-      unit: 'u / cjto',
-      material: 'P',
-      metradoOt: '1'
-    },
-    {
-      desc: 'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE',
-      qty: 4,
-      unit: 'u / cjto',
-      material: 'C',
-      metradoOt: '4'
-    },
-    {
-      desc: 'PERNO DE CABEZA HEXAGONAL 3/8"X1" DE ACERO INOXIDABLE, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
-      qty: 4,
-      unit: 'u / cjto',
-      material: 'C',
-      metradoOt: '4'
-    },
-    {
-      desc: 'SOPORTE TIPO OMEGA ACERO INOXIDABLE 50x50mm e=1/4", CON 2 AGUJEROS DE 9/16" PARA 4 PERNOS DE 1/2"',
-      qty: 2,
-      unit: 'u / soporte',
-      material: 'C',
-      metradoOt: '2'
-    }
-  ]
-};
-
-export const ALL_BARRA_VARIANTS_HUMEDA: Record<string, BarraPotVariantItem[]> = {
-  ...BARRA_POT_VARIANTS_HUMEDA,
-  ...BARRA_INST_VARIANTS_HUMEDA
-};
-
-export const R2_SWAPPABLE: string[] = [
+// ---------------------------------------------------------------------------
+// Material-name suggestion list for the Detalle / CableTray editors.
+// Supabase-first: this is a UI hint list only, never a data source.
+// ---------------------------------------------------------------------------
+export const AVAILABLE_CUSTOM_ITEMS: string[] = [
   'TERMINAL A COMPRESION UN OJAL 1/2 PARA CABLE 2/0 YAV',
   'PERNO 1/2"X1 1/2" DE ACERO GALVANIZADO, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
   'TERMINAL A COMPRESION UN OJAL 3/8 PARA CABLE 2/0 YA26',
@@ -467,37 +152,17 @@ export const R2_SWAPPABLE: string[] = [
   'AISLADOR DE RESINA TIPO BARRIL',
   'ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE',
   'PERNO DE CABEZA HEXAGONAL 3/8"X1" DE ACERO INOXIDABLE, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
-  'PERNO 3/8"X1" DE ACERO INOXIDABLE 316 CON ARANDELA PLANA Y UNA DE PRESIÓN',
-  'BARRA DE COBRE CON AGUJEROS 11mm, SIN AISLADORES TIPO CB14412 THERMOWELD O SIMILAR',
-  'RIEL UNISTRUT ACERO GALVANIZADO 41X41X2.7mm. L= 1metro',
-  'ABRAZADERA UNISTRUT PARA TUBERIA PVC 3/4" ACERO GALVANIZADO',
-  'TUBERIA PVC SCH 80 Ø1"',
-  'ABRAZADERA (T&B OCAL O SIMILAR) INOX DE 1"',
-  'PERNO MAQUINADO 1/4" X 1/4" ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA DE CERRADURA',
-  'TACO DE EXPANSION METALICO, TIPO ACERO 1/4"',
-  'CONECTOR TIPO BURNDY',
-  'PLATINA METÁLICA 2"x2-1/2"x3/8"esp. CON AGUJERO DE 13 mm',
-  'PLATINA METALICA 2"x2 1/2"x3/8" de espesor con agujero de 13mm de acero inox. 316',
-  'TERMINAL A COMPRESION UN OJAL 1/2" PARA CABLE 2/0 YAV',
-  'PERNO 3/8"X1 1/2" DE ACERO INOXIDABLE, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
-  'TERMINAL PARA CABLE DE Cu N°2/0 AWG, CON 1 PERFORACIÓN DE 1/2" TIPO YAV DE BURNDY O SIMILAR',
-  'PERNO 1/2"X1 1/2" DE ACERO INOX 316, CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
-  'PERNO 3/8"X1 1/2" DE ACERO INOX 316  CON TUERCA, DOBLE ARANDELA PLANA Y UNA DE PRESIÓN',
-  'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC',
-  'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm',
-  'PERNO DE EXPANSIÓN 3/8"x2" SS316, CON TUERCA, ARANDELA PLANA Y UNA DE PRESIÓN',
-  'PERNO DE ANCLAJE 3/8" TIPO HDI DE ACERO INOXIDABLE 316, CON TUERCA, UNA ARANDELA PLANA Y UNA DE PRESIÓN',
-  'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN',
-  'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT',
+  'CABLE DESNUDO 2/0 AWG',
   'CABLE AISLADO 2/0 AWG THHN (JUMPER)',
   'CABLE AISLADO 2/0 AWG THHN',
-  'RIEL PREFORMADO STRUT 41X41 MM, ACERO INOXIDABLE 316',
-  'TUERCA CON RESORTE 1/2",  ACERO INOXIDABLE 316',
-  'MORDAZA DE FIJACION ESCALERILLA, 3/8" X 2 1/4", ACERO INOXIDABLE 316',
-  'PERNO MAQUINADO,  1/2" Ø X 1" CABEZA REDONDA 13 UNC Y DOS ARANDELAS (PLANA Y PRESION), ACERO INOXIDABLE 316'
+  'TUBERIA PVC SCH 80 Ø3/4"',
+  'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC',
+  'PERNO DE EXPANSIÓN 1/4"x2 1/2" SS316, CON TUERCA, ARANDELA PLANA Y DE PRESIÓN',
+  'ABRAZADERA Ø 3/4" DE 2 PIEZAS SS316, SIMILAR A P1112 DE UNISTRUT'
 ];
 
-export const AVAILABLE_CUSTOM_ITEMS: string[] = R2_SWAPPABLE;
+/** Back-compat alias (was R2_SWAPPABLE). */
+export const R2_SWAPPABLE: string[] = AVAILABLE_CUSTOM_ITEMS;
 
 const OLD_CABLE20_RIEL = 'RIEL UNISTRUT ACERO INOX 316, 41X41X2.7mm';
 const NEW_CABLE20_RIEL = 'RIEL PREFORMADO STRUT 41X41X2.7mm, A.G. RECUBIERTO DE PVC';
@@ -543,9 +208,35 @@ export function ensureAnclajePerno(items: any[]): any[] {
 }
 
 export const DYNAMIC_DETALLE_VARIANTS_BY_AREA: Record<string, Record<string, DetalleVariantItem[]>> = JSON.parse(JSON.stringify(DETALLE_VARIANTS_BY_AREA));
-export const DYNAMIC_DETALLE_VARIANTS: Record<string, DetalleVariantItem[]> = JSON.parse(JSON.stringify(DETALLE_VARIANTS));
-export const DYNAMIC_BARRA_POT_VARIANTS: Record<string, any[]> = JSON.parse(JSON.stringify(BARRA_POT_VARIANTS_HUMEDA));
-export const DYNAMIC_BARRA_INST_VARIANTS: Record<string, any[]> = JSON.parse(JSON.stringify(BARRA_INST_VARIANTS_HUMEDA));
+export const DYNAMIC_DETALLE_VARIANTS: Record<string, DetalleVariantItem[]> = {};
+
+/**
+ * Barra variant cache, partitioned by sub-area like CABLE_2_0.
+ * Supabase SSOT (`detalle_variants` category BARRA_POT / BARRA_INST);
+ * NO_CORROSIVO is the canonical partition, CORROSIVO diverges independently.
+ */
+export const DYNAMIC_BARRA_POT_VARIANTS: Record<string, any[]> = {};
+export const DYNAMIC_BARRA_INST_VARIANTS: Record<string, any[]> = {};
+export const DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA: Record<SubAreaHumeda, Record<string, any[]>> = {
+  'NO_CORROSIVO': {},
+  'CORROSIVO': {}
+};
+export const DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA: Record<SubAreaHumeda, Record<string, any[]>> = {
+  'NO_CORROSIVO': {},
+  'CORROSIVO': {}
+};
+
+/** Read Barra variants for one sub-area (defaults to NO_CORROSIVO canonical partition). */
+export function getBarraVariants(
+  category: 'BARRA_POT' | 'BARRA_INST',
+  subArea: SubAreaHumeda = 'NO_CORROSIVO'
+): Record<string, any[]> {
+  const bySub = category === 'BARRA_POT'
+    ? DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA
+    : DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA;
+  const flat = category === 'BARRA_POT' ? DYNAMIC_BARRA_POT_VARIANTS : DYNAMIC_BARRA_INST_VARIANTS;
+  return bySub[subArea] && Object.keys(bySub[subArea]).length > 0 ? bySub[subArea] : flat;
+}
 
 Object.keys(DYNAMIC_BARRA_POT_VARIANTS).forEach(key => {
   DYNAMIC_BARRA_POT_VARIANTS[key] = ensureAnclajePerno(DYNAMIC_BARRA_POT_VARIANTS[key]);
@@ -555,16 +246,9 @@ Object.keys(DYNAMIC_BARRA_INST_VARIANTS).forEach(key => {
 });
 
 export function updateDynamicVariants(dbRecords: any[]) {
-  const newByArea: Record<string, Record<string, DetalleVariantItem[]>> = {
-    'AREA SECA': {},
-    'AREA HUEMDA': {}
-  };
-  const newBySubArea: Record<SubAreaHumeda, Record<string, DetalleVariantItem[]>> = {
-    'NO_CORROSIVO': {},
-    'CORROSIVO': {}
-  };
-  const newPot: Record<string, any[]> = {};
-  const newInst: Record<string, any[]> = {};
+  // MERGE semantics: never wipe partitions we didn't receive rows for.
+  // Supabase is SSOT; an empty response means "offline / no data", not "delete everything".
+  if (!Array.isArray(dbRecords) || dbRecords.length === 0) return;
 
   dbRecords.forEach(rec => {
     const rawArea = (rec.area || '').toUpperCase().trim();
@@ -583,15 +267,18 @@ export function updateDynamicVariants(dbRecords: any[]) {
     }));
 
     if (rec.category === 'CABLE_2_0') {
-      if (!newByArea[areaKey]) newByArea[areaKey] = {};
-      newByArea[areaKey][rec.detalle_code] = itemsMapped;
+      if (!DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey]) DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey] = {};
+      DYNAMIC_DETALLE_VARIANTS_BY_AREA[areaKey][rec.detalle_code] = itemsMapped;
+      DYNAMIC_DETALLE_VARIANTS[rec.detalle_code] = itemsMapped;
+      if (rec.detalle_code === '008/05') DYNAMIC_DETALLE_VARIANTS['008/5'] = itemsMapped;
+      if (rec.detalle_code === 'ND') DYNAMIC_DETALLE_VARIANTS['N/D'] = itemsMapped;
 
       if (isHumeda) {
-        if (!newBySubArea[subAreaKey]) newBySubArea[subAreaKey] = {};
-        newBySubArea[subAreaKey][rec.detalle_code] = itemsMapped;
+        if (!DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subAreaKey]) DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subAreaKey] = {};
+        DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subAreaKey][rec.detalle_code] = itemsMapped;
       }
     } else if (rec.category === 'BARRA_POT') {
-      newPot[rec.detalle_code] = ensureAnclajePerno(
+      const mapped = ensureAnclajePerno(
         itemsMapped.map((it: any) => ({
           desc: it.desc,
           qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
@@ -601,8 +288,23 @@ export function updateDynamicVariants(dbRecords: any[]) {
           formula: it.formula
         }))
       );
+      if (!rec.sub_area && isHumeda) {
+        DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][rec.detalle_code] = mapped;
+        DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['CORROSIVO'][rec.detalle_code] = mapped;
+      } else {
+        DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA[subAreaKey][rec.detalle_code] = mapped;
+      }
+      DYNAMIC_BARRA_POT_VARIANTS[rec.detalle_code] = mapped;
+      // Legacy row without sub_area populates BOTH partitions so CORROSIVO
+      // starts identical, then diverges independently on per-subarea saves.
+      if (!rec.sub_area && isHumeda) {
+        DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['CORROSIVO'][rec.detalle_code] = mapped;
+      }
+      if (!DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][rec.detalle_code]) {
+        DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][rec.detalle_code] = mapped;
+      }
     } else if (rec.category === 'BARRA_INST') {
-      newInst[rec.detalle_code] = ensureAnclajePerno(
+      const mapped = ensureAnclajePerno(
         itemsMapped.map((it: any) => ({
           desc: it.desc,
           qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
@@ -612,32 +314,33 @@ export function updateDynamicVariants(dbRecords: any[]) {
           formula: it.formula
         }))
       );
+      if (!rec.sub_area && isHumeda) {
+        DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][rec.detalle_code] = mapped;
+        DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['CORROSIVO'][rec.detalle_code] = mapped;
+      } else {
+        DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA[subAreaKey][rec.detalle_code] = mapped;
+      }
+      DYNAMIC_BARRA_INST_VARIANTS[rec.detalle_code] = mapped;
+      if (!rec.sub_area && isHumeda) {
+        DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['CORROSIVO'][rec.detalle_code] = mapped;
+      }
+      if (!DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][rec.detalle_code]) {
+        DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][rec.detalle_code] = mapped;
+      }
     }
   });
 
-  Object.keys(DYNAMIC_DETALLE_VARIANTS_BY_AREA).forEach(key => delete DYNAMIC_DETALLE_VARIANTS_BY_AREA[key]);
-  Object.assign(DYNAMIC_DETALLE_VARIANTS_BY_AREA, newByArea);
-
-  Object.keys(DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA).forEach(key => delete (DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA as any)[key]);
-  Object.assign(DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA, newBySubArea);
-
-  const flat: Record<string, DetalleVariantItem[]> = {};
-  Object.values(DYNAMIC_DETALLE_VARIANTS_BY_AREA).forEach(area => {
-    Object.entries(area).forEach(([code, items]) => {
-      flat[code] = items;
-    });
-  });
-  if (flat['008/05']) flat['008/5'] = flat['008/05'];
-  if (flat['ND']) flat['N/D'] = flat['ND'];
-
-  Object.keys(DYNAMIC_DETALLE_VARIANTS).forEach(key => delete DYNAMIC_DETALLE_VARIANTS[key]);
-  Object.assign(DYNAMIC_DETALLE_VARIANTS, flat);
-
-  Object.keys(DYNAMIC_BARRA_POT_VARIANTS).forEach(key => delete DYNAMIC_BARRA_POT_VARIANTS[key]);
-  Object.assign(DYNAMIC_BARRA_POT_VARIANTS, newPot);
-
-  Object.keys(DYNAMIC_BARRA_INST_VARIANTS).forEach(key => delete DYNAMIC_BARRA_INST_VARIANTS[key]);
-  Object.assign(DYNAMIC_BARRA_INST_VARIANTS, newInst);
+  // Ensure canonical NO_CORROSIVO mirrors exist for flat-map Barra lookups.
+  for (const [code, items] of Object.entries(DYNAMIC_BARRA_POT_VARIANTS)) {
+    if (!DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][code]) {
+      DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][code] = items;
+    }
+  }
+  for (const [code, items] of Object.entries(DYNAMIC_BARRA_INST_VARIANTS)) {
+    if (!DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][code]) {
+      DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][code] = items;
+    }
+  }
 }
 
 export function updateSingleDynamicVariant(
@@ -675,7 +378,7 @@ export function updateSingleDynamicVariant(
       }
     }
   } else if (category === 'BARRA_POT') {
-    DYNAMIC_BARRA_POT_VARIANTS[detalleCode] = ensureAnclajePerno(
+    const mapped = ensureAnclajePerno(
       items.map((it: any) => ({
         desc: it.desc,
         qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
@@ -685,8 +388,17 @@ export function updateSingleDynamicVariant(
         formula: it.formula
       }))
     );
+    DYNAMIC_BARRA_POT_VARIANTS[detalleCode] = mapped;
+    // Barra is partitioned by sub-area like CABLE_2_0. An explicit subArea
+    // writes ONLY that partition; omitted subArea (AREA SECA legacy path)
+    // writes only the canonical NO_CORROSIVO partition.
+    const target: SubAreaHumeda = isHumeda ? subArea || 'NO_CORROSIVO' : 'NO_CORROSIVO';
+    if (!DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA[target]) {
+      DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA[target] = {};
+    }
+    DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA[target][detalleCode] = mapped;
   } else if (category === 'BARRA_INST') {
-    DYNAMIC_BARRA_INST_VARIANTS[detalleCode] = ensureAnclajePerno(
+    const mapped = ensureAnclajePerno(
       items.map((it: any) => ({
         desc: it.desc,
         qty: typeof it.qty === 'number' ? it.qty : parseFloat(it.qty) || 1,
@@ -696,6 +408,12 @@ export function updateSingleDynamicVariant(
         formula: it.formula
       }))
     );
+    DYNAMIC_BARRA_INST_VARIANTS[detalleCode] = mapped;
+    const target: SubAreaHumeda = isHumeda ? subArea || 'NO_CORROSIVO' : 'NO_CORROSIVO';
+    if (!DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA[target]) {
+      DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA[target] = {};
+    }
+    DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA[target][detalleCode] = mapped;
   }
 }
 
@@ -722,8 +440,25 @@ export function deleteSingleDynamicVariant(
       }
     }
   } else if (category === 'BARRA_POT') {
-    delete DYNAMIC_BARRA_POT_VARIANTS[detalleCode];
+    if (isHumeda && subArea) {
+      // Scoped delete: only the active partition. Flat map stays as canonical fallback.
+      if (DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA[subArea]) {
+        delete DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA[subArea][detalleCode];
+      }
+    } else {
+      delete DYNAMIC_BARRA_POT_VARIANTS[detalleCode];
+      delete DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[detalleCode];
+      delete DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['CORROSIVO']?.[detalleCode];
+    }
   } else if (category === 'BARRA_INST') {
-    delete DYNAMIC_BARRA_INST_VARIANTS[detalleCode];
+    if (isHumeda && subArea) {
+      if (DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA[subArea]) {
+        delete DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA[subArea][detalleCode];
+      }
+    } else {
+      delete DYNAMIC_BARRA_INST_VARIANTS[detalleCode];
+      delete DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[detalleCode];
+      delete DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['CORROSIVO']?.[detalleCode];
+    }
   }
 }

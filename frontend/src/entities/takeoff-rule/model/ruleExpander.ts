@@ -7,11 +7,11 @@ import { generateTagUnico, assignTagUnicoSuffixes } from '../../takeoff-item/mod
 import {
   DYNAMIC_DETALLE_VARIANTS,
   DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA,
-  DYNAMIC_BARRA_POT_VARIANTS,
-  DYNAMIC_BARRA_INST_VARIANTS,
-  R2_SWAPPABLE,
+  DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA,
+  DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA,
   shouldAutoManageTuberia
 } from './detalleVariants';
+import { AVAILABLE_CUSTOM_ITEMS as R2_SWAPPABLE } from './detalleVariants';
 import { evaluateMetradoFormula, isMetradoExpression, lengthVar, shownVariantFormula } from './metradoFormula';
 
 /**
@@ -268,11 +268,15 @@ export function applyBarraPotDetalleVariant(
   detalleCode: string,
   numSoportes = 1,
   skipAssignSuffixes = false,
-  instanceId?: string
+  instanceId?: string,
+  subArea: SubAreaHumeda = 'NO_CORROSIVO'
 ): TakeoffItem[] {
+  const normalizedSubArea = subArea || 'NO_CORROSIVO';
   const variant =
-    DYNAMIC_BARRA_POT_VARIANTS[detalleCode] ||
-    DYNAMIC_BARRA_INST_VARIANTS[detalleCode];
+    DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA[normalizedSubArea]?.[detalleCode] ||
+    DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[detalleCode] ||
+    DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA[normalizedSubArea]?.[detalleCode] ||
+    DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[detalleCode];
   if (!variant) return items;
 
   const currentItems = [...items];

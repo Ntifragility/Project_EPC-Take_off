@@ -2,11 +2,13 @@ import { readSheetMatrices, foldHeaderCell } from './readSheetMatrix';
 import { cleanFloat } from './cleanNumber';
 import { TakeoffItem } from '../../entities/takeoff-item/model/types';
 import { TakeoffRule } from '../../entities/takeoff-rule/model/types';
+import { SubAreaHumeda } from '../types/common';
 import { uid } from './uid';
 import { isPrimaryMaterial, getAbsoluteUnit } from '../../entities/takeoff-item/model/materialClassifier';
-import { generateTagUnico, assignTagUnicoSuffixes, isDrawingPlano } from '../../entities/takeoff-item/model/tagGenerator';
+import { generateTagUnico, assignTagUnicoSuffixes } from '../../entities/takeoff-item/model/tagGenerator';
+import { rejectionRuleSnapshot } from '../../features/rejection-rules/model/useRejectionRulesStore';
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../entities/takeoff-rule/model/ruleExpander';
-import { findIntroducedTagCollision, tagCollisionMessage } from '../../entities/takeoff-item/model/itemIdentity';
+import { findIntroducedTagCollision } from '../../entities/takeoff-item/model/itemIdentity';
 import { normalizeDetalle, isKnownDetalle } from '../../entities/takeoff-rule/model/detalleRegistry';
 import { sitePrompt } from '../ui/askSite';
 
@@ -24,16 +26,47 @@ export interface RejectedRowInfo {
 function getRuleNameByTag(tag: string): string | null {
   if (!tag) return null;
   const tagUp = tag.trim().toUpperCase();
-  if (tagUp.startsWith('PS')) return 'POZO SIN CAJA REGISTRO';
-  if (tagUp.startsWith('PC')) return 'POZO CON CAJA REGISTRO';
-  if (tagUp.startsWith('TT')) return 'SOLDADURA T 4/0 -2/0';
-  if (tagUp.startsWith('T')) return 'SOLDADURA T 4/0';
-  if (tagUp.startsWith('X')) return 'SOLDADURA X 4/0';
-  if (tagUp.startsWith('C')) return 'CABLE DESNUDO 4/0 AWG';
-  if (tagUp.startsWith('M')) return 'CABLE DESNUDO 2/0 AWG';
-  if (tagUp.startsWith('BP')) return 'BARRA POT';
-  if (tagUp.startsWith('BI')) return 'BARRA INST';
+  const prefixes = rejectionRuleSnapshot()
+    .paramText('metrado.tag_prefix', 'tagPrefixes', 'M,C,BP,BI,T,TT,X,PC,PS')
+    .split(',')
+    .map(p => p.trim().toUpperCase())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  for (const prefix of prefixes) {
+    if (!tagUp.startsWith(prefix)) continue;
+    if (prefix === 'PS') return 'POZO SIN CAJA REGISTRO';
+    if (prefix === 'PC') return 'POZO CON CAJA REGISTRO';
+    if (prefix === 'TT') return 'SOLDADURA T 4/0 -2/0';
+    if (prefix === 'T') return 'SOLDADURA T 4/0';
+    if (prefix === 'X') return 'SOLDADURA X 4/0';
+    if (prefix === 'C') return 'CABLE DESNUDO 4/0 AWG';
+    if (prefix === 'M') return 'CABLE DESNUDO 2/0 AWG';
+    if (prefix === 'BP') return 'BARRA POT';
+    if (prefix === 'BI') return 'BARRA INST';
+    return prefix;
+  }
   return null;
+}
+
+function tagPrefixesLabel(): string {
+  return rejectionRuleSnapshot()
+    .paramText('metrado.tag_prefix', 'tagPrefixes', 'M,C,BP,BI,T,TT,X,PC,PS');
+}
+
+/** Configurable drawing-plano shape check (metrado.plano_shape). */
+function isDrawingPlano(plano: string): boolean {
+  const pattern = rejectionRuleSnapshot().paramText(
+    'metrado.plano_shape',
+    'planoPattern',
+    '^P\\d+-[A-Z]+-\\d+-\\d+-[A-Z]+-\\d+$'
+  );
+  const value = plano.trim().toUpperCase();
+  if (!pattern.trim()) return value.length > 0;
+  try {
+    return new RegExp(pattern).test(value);
+  } catch {
+    return /^P\d+-[A-Z]+-\d+-\d+-[A-Z]+-\d+$/.test(value);
+  }
 }
 
 export interface ColumnMapping {
@@ -247,7 +280,8 @@ export async function parseTakeoffCsv(
   revVal: string,
   existingItems: TakeoffItem[] = [],
   activeArea: 'AREA SECA' | 'AREA HUMEDA' = 'AREA SECA',
-  promptSoportesFallback?: (detalleCode: string) => number
+  promptSoportesFallback?: (detalleCode: string) => number,
+  activeSubArea: SubAreaHumeda = 'NO_CORROSIVO'
 ): Promise<{ newItems: TakeoffItem[]; addedCount: number; rejectedRows: RejectedRowInfo[]; detectedPlano?: string }> {
   const rejectedRows: RejectedRowInfo[] = [];
   let itemsResult: TakeoffItem[] = [...existingItems];
@@ -354,10 +388,16 @@ export async function parseTakeoffCsv(
     if (!tagRaw) continue;
 
     const ruleName = getRuleNameByTag(tagRaw);
-    const effectivePlano = (planoRow || detectedFilePlano || planoVal || '').toUpperCase();
+    const rej = rejectionRuleSnapshot();
+    const planoRequired = rej.paramBool('metrado.plano_required', 'requirePlano', true);
+    const allowPropagation = rej.paramBool('metrado.plano_required', 'allowFilePlanoPropagation', true);
+    const planoCandidate = allowPropagation
+      ? (planoRow || detectedFilePlano || planoVal || '')
+      : (planoRow || planoVal || '');
+    const effectivePlano = planoCandidate.toUpperCase();
 
     // Strict Validation: PLANO is required (either from row, file propagation, or top header)
-    if (!effectivePlano) {
+    if (planoRequired && !effectivePlano) {
       rejectedRows.push({
         fila: i + 1,
         plano: '',
@@ -366,12 +406,12 @@ export async function parseTakeoffCsv(
         longitudTuberia: tuberiaRaw,
         detalle: detalleRaw,
         jumpers: jumpersRaw,
-        motivo: 'PLANO es requerido (indicar en el archivo o en la barra superior)'
+        motivo: rej.message('metrado.plano_required')
       });
       continue;
     }
 
-    if (!isDrawingPlano(effectivePlano)) {
+    if (effectivePlano && rej.isEnabled('metrado.plano_shape') && !isDrawingPlano(effectivePlano)) {
       rejectedRows.push({
         fila: i + 1,
         plano: planoRow || effectivePlano,
@@ -380,15 +420,20 @@ export async function parseTakeoffCsv(
         longitudTuberia: tuberiaRaw,
         detalle: detalleRaw,
         jumpers: jumpersRaw,
-        motivo: 'PLANO debe tener la forma P22-DA-3400-07-LY-014'
+        motivo: rej.message('metrado.plano_shape')
       });
       continue;
     }
 
+    const autoDefaults = rej
+      .paramText('metrado.length_numeric', 'autoDefaultForTags', 'SOLDADURA,POZO,BARRA')
+      .split(',')
+      .map(s => s.trim().toUpperCase())
+      .filter(Boolean);
     if (
       (!lengthRawStr || isNaN(parseFloat(lengthRawStr.replace(',', '.')))) &&
       ruleName &&
-      (ruleName.includes('SOLDADURA') || ruleName.includes('POZO') || ruleName.startsWith('BARRA'))
+      autoDefaults.some(key => ruleName.toUpperCase().includes(key))
     ) {
       lengthRawStr = '1';
     }
@@ -400,6 +445,9 @@ export async function parseTakeoffCsv(
     const cleanTuberiaStr = !isNaN(parsedTuberiaRaw) ? String(cleanFloat(parsedTuberiaRaw)) : tuberiaRaw;
 
     if (!ruleName) {
+      if (!rej.isEnabled('metrado.tag_prefix')) {
+        continue;
+      }
       rejectedRows.push({
         fila: i + 1,
         plano: planoRow,
@@ -408,12 +456,15 @@ export async function parseTakeoffCsv(
         longitudTuberia: tuberiaRaw,
         detalle: detalleRaw,
         jumpers: jumpersRaw,
-        motivo: `Prefijo no reconocido (debe comenzar con M, C, BP, BI, T, TT, X, PC o PS)`
+        motivo: rej.message('metrado.tag_prefix', { prefixes: tagPrefixesLabel() })
       });
       continue;
     }
 
     if (isNaN(lengthRaw)) {
+      if (!rej.isEnabled('metrado.length_numeric')) {
+        continue;
+      }
       rejectedRows.push({
         fila: i + 1,
         plano: planoRow,
@@ -422,13 +473,16 @@ export async function parseTakeoffCsv(
         longitudTuberia: tuberiaRaw,
         detalle: detalleRaw,
         jumpers: jumpersRaw,
-        motivo: 'Valor no numérico en columna LONGITUD_CABLE'
+        motivo: rej.message('metrado.length_numeric')
       });
       continue;
     }
 
     const rule = rules.find(r => r.trigger === ruleName);
     if (!rule) {
+      if (!rej.isEnabled('metrado.rule_exists')) {
+        continue;
+      }
       rejectedRows.push({
         fila: i + 1,
         plano: planoRow,
@@ -437,7 +491,7 @@ export async function parseTakeoffCsv(
         longitudTuberia: tuberiaRaw,
         detalle: detalleRaw,
         jumpers: jumpersRaw,
-        motivo: `Regla de metrado "${ruleName}" no encontrada en la configuración actual`
+        motivo: rej.message('metrado.rule_exists', { rule: ruleName })
       });
       continue;
     }
@@ -451,7 +505,8 @@ export async function parseTakeoffCsv(
       (tagRaw.startsWith('BI') ? (activeArea === 'AREA HUMEDA' ? '010/17C' : '166C') : '')))
     ));
 
-    if (rowDetalle && !isKnownDetalle(rowDetalle, rules)) {
+    const skipBlank = rej.paramBool('metrado.detalle_known', 'skipBlankDetalle', true);
+    if (rowDetalle && rej.isEnabled('metrado.detalle_known') && !(skipBlank && !detalleRaw) && !isKnownDetalle(rowDetalle, rules)) {
       rejectedRows.push({
         fila: i + 1,
         plano: planoRow,
@@ -460,7 +515,7 @@ export async function parseTakeoffCsv(
         longitudTuberia: tuberiaRaw,
         detalle: detalleRaw,
         jumpers: jumpersRaw,
-        motivo: `DETALLE "${rowDetalle}" no existe en ninguna regla`
+        motivo: rej.message('metrado.detalle_known', { detalle: rowDetalle })
       });
       continue;
     }
@@ -518,6 +573,9 @@ export async function parseTakeoffCsv(
     const importInstanceId = uid();
     batch.forEach(it => {
       it.instanceId = importInstanceId;
+      if (activeArea === 'AREA HUMEDA') {
+        it.subArea = activeSubArea;
+      }
     });
 
     if (rule.id === 'r1' && rowDetalle === '008/3B' && !batch.some(it => it.desc.toUpperCase().includes('CEMENTO GEM'))) {
@@ -557,7 +615,7 @@ export async function parseTakeoffCsv(
         if (jumpersRaw && !isNaN(parseInt(jumpersRaw, 10)) && parseInt(jumpersRaw, 10) > 0) {
           numJumpers = parseInt(jumpersRaw, 10);
         }
-        processedBatch = applyDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, cleanTuberiaStr, cleanLengthStr, true, importInstanceId);
+        processedBatch = applyDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, numJumpers, cleanTuberiaStr, cleanLengthStr, true, importInstanceId, activeSubArea);
       }
     } else if (rule.id === 'r8' || rule.id === 'r9') {
       const rowDetalle = detalleRaw || (rule.id === 'r8' ? '010/17A' : '010/17C');
@@ -582,11 +640,13 @@ export async function parseTakeoffCsv(
             numSoportes = val;
           }
         }
-        processedBatch = applyBarraPotDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, true, importInstanceId);
+        processedBatch = applyBarraPotDetalleVariant(batch, tagRaw, pkgId, rowDetalle.toUpperCase(), numSoportes, true, importInstanceId, activeSubArea);
       }
     }
 
-    const tagCollision = findIntroducedTagCollision(itemsResult, [...itemsResult, ...processedBatch]);
+    const tagCollision = rej.isEnabled('metrado.tag_collision')
+      ? findIntroducedTagCollision(itemsResult, [...itemsResult, ...processedBatch])
+      : null;
     if (tagCollision) {
       rejectedRows.push({
         fila: i + 1,
@@ -596,7 +656,10 @@ export async function parseTakeoffCsv(
         longitudTuberia: tuberiaRaw,
         detalle: detalleRaw,
         jumpers: jumpersRaw,
-        motivo: tagCollisionMessage(tagCollision)
+        motivo: rej.message('metrado.tag_collision', {
+          tag: tagCollision.tag || '(vacío)',
+          plano: tagCollision.plano || '(sin plano)'
+        })
       });
       continue;
     }

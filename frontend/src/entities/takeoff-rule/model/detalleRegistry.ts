@@ -1,14 +1,10 @@
 import { TakeoffItem } from '../../takeoff-item/model/types';
 import { TakeoffRule } from './types';
 import {
-  DETALLE_VARIANTS,
   DYNAMIC_DETALLE_VARIANTS,
   DYNAMIC_BARRA_POT_VARIANTS,
-  DYNAMIC_BARRA_INST_VARIANTS,
-  BARRA_POT_VARIANTS_HUMEDA,
-  BARRA_INST_VARIANTS_HUMEDA
+  DYNAMIC_BARRA_INST_VARIANTS
 } from './detalleVariants';
-import { SEED_RULES, SEED_CANALIZADO_RULES } from './seedRules';
 
 /**
  * Canonical form for a DETALLE code: uppercase + trimmed,
@@ -57,17 +53,15 @@ export function isKnownDetalle(code: string | undefined | null, rules: TakeoffRu
   const norm = normalizeDetalle(code);
   if (LEGACY_ALLOWED.has(norm)) return true;
   if (KNOWN_STATIC_DETALLES.has(norm)) return true;
-  if (DYNAMIC_DETALLE_VARIANTS[norm] || (DETALLE_VARIANTS as Record<string, unknown>)[norm]) return true;
+  // Supabase-hydrated caches only — no hardcoded variant tables.
+  if (DYNAMIC_DETALLE_VARIANTS[norm]) return true;
   if (
     DYNAMIC_BARRA_POT_VARIANTS[norm] ||
-    DYNAMIC_BARRA_INST_VARIANTS[norm] ||
-    (BARRA_POT_VARIANTS_HUMEDA as Record<string, unknown>)[norm] ||
-    (BARRA_INST_VARIANTS_HUMEDA as Record<string, unknown>)[norm]
+    DYNAMIC_BARRA_INST_VARIANTS[norm]
   ) {
     return true;
   }
-  const allRules = [...(rules || []), ...SEED_RULES, ...SEED_CANALIZADO_RULES];
-  for (const r of allRules) {
+  for (const r of rules || []) {
     if (r.detalle && normalizeDetalle(r.detalle) === norm) return true;
     if (r.defaultDetalle && normalizeDetalle(r.defaultDetalle) === norm) return true;
   }

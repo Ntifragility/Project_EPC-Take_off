@@ -1,12 +1,5 @@
 import { componentClass } from '../../takeoff-item/model/materialClassifier';
 import { inferRuleAreas } from './areaCatalog';
-import { DEFAULT_CABLE_TRAY_MATRIX } from './cableTrayRules';
-import {
-  BARRA_INST_VARIANTS_HUMEDA,
-  BARRA_POT_VARIANTS_HUMEDA,
-  DETALLE_VARIANTS_BY_AREA
-} from './detalleVariants';
-import { SEED_CANALIZADO_RULES, SEED_RULES } from './seedRules';
 import { CableTrayMatrixItem, DetalleVariantItem, RuleSubitem, TakeoffRule } from './types';
 
 export type RuleKind = 'items' | 'detalle' | 'cable_tray';
@@ -54,6 +47,7 @@ export interface DetalleVariantRecord {
   sub_area?: string;
   category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST';
   detalle_code: string;
+  rule_id?: string;
   items: DetalleVariantItem[];
 }
 
@@ -144,66 +138,15 @@ export function cableTrayRows(rule: TakeoffRule): CableTrayRecord[] {
   }));
 }
 
-function variantItems(items: Array<DetalleVariantItem & { metradoOt?: string }>): DetalleVariantItem[] {
-  return items.map(item => ({
-    desc: item.desc,
-    qty: item.qty,
-    unit: item.unit,
-    ot: item.metradoOt ?? item.ot ?? item.qty,
-    otDynamic: item.otDynamic,
-    formula: item.formula,
-    material: item.material || componentClass(item.desc)
-  }));
-}
-
-export function detalleVariantRows(): DetalleVariantRecord[] {
-  const rows: DetalleVariantRecord[] = [];
-  for (const [area, byCode] of Object.entries(DETALLE_VARIANTS_BY_AREA)) {
-    const storedArea = area.toUpperCase().includes('HUEM') || area.toUpperCase().includes('HUMED') ? 'AREA HUMEDA' : 'AREA SECA';
-    for (const [code, items] of Object.entries(byCode)) {
-      rows.push({
-        id: `${storedArea}_NO_CORROSIVO_CABLE_2_0_${code}`,
-        area: storedArea,
-        sub_area: 'NO_CORROSIVO',
-        category: 'CABLE_2_0',
-        detalle_code: code,
-        items: variantItems(items)
-      });
-    }
-  }
-  for (const [code, items] of Object.entries(BARRA_POT_VARIANTS_HUMEDA)) {
-    rows.push({
-      id: `AREA HUMEDA_NO_CORROSIVO_BARRA_POT_${code}`,
-      area: 'AREA HUMEDA',
-      sub_area: 'NO_CORROSIVO',
-      category: 'BARRA_POT',
-      detalle_code: code,
-      items: variantItems(items)
-    });
-  }
-  for (const [code, items] of Object.entries(BARRA_INST_VARIANTS_HUMEDA)) {
-    rows.push({
-      id: `AREA HUMEDA_NO_CORROSIVO_BARRA_INST_${code}`,
-      area: 'AREA HUMEDA',
-      sub_area: 'NO_CORROSIVO',
-      category: 'BARRA_INST',
-      detalle_code: code,
-      items: variantItems(items)
-    });
-  }
-  return rows;
-}
-
+/**
+ * Supabase-first: seeds were removed as a runtime source. Bootstrapping new
+ * databases happens through the SQL backfill migration, not the frontend.
+ * Returns empty groups; callers must hydrate from Supabase / offline cache.
+ */
 export function catalogRules(): { section: string; rules: TakeoffRule[] }[] {
-  const tray = SEED_CANALIZADO_RULES.find(rule => rule.id === 'r-001-2b-x1-can');
-  const canalizado = SEED_CANALIZADO_RULES.map(rule =>
-    rule.id === 'r-001-2b-x1-can' && (!rule.cableTrayMatrix || rule.cableTrayMatrix.length === 0)
-      ? { ...rule, cableTrayMatrix: DEFAULT_CABLE_TRAY_MATRIX }
-      : rule
-  );
   return [
-    { section: 'pat', rules: SEED_RULES },
-    { section: 'canalizado', rules: tray ? canalizado : SEED_CANALIZADO_RULES }
+    { section: 'pat', rules: [] },
+    { section: 'canalizado', rules: [] }
   ];
 }
 
