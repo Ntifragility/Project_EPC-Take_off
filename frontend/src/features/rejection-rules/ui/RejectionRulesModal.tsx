@@ -96,8 +96,9 @@ export const RejectionRulesModal: React.FC = () => {
     if (!showModal) setDrafts({});
   }, [showModal]);
 
-  if (!showModal) return null;
-
+  // NOTE: this useMemo must stay BEFORE the `if (!showModal) return null`
+  // below — hooks must run in the same order on every render, whether the
+  // modal is open or closed (React error #310 otherwise).
   const filtered = useMemo(() => {
     const q = search.trim().toUpperCase();
     return rules.filter(r => {
@@ -111,6 +112,8 @@ export const RejectionRulesModal: React.FC = () => {
       );
     });
   }, [rules, scopeFilter, search]);
+
+  if (!showModal) return null;
 
   const effective = (rule: RejectionRule): RejectionRule => drafts[rule.id] || rule;
   const isDirty = (rule: RejectionRule): boolean => Boolean(drafts[rule.id]);
