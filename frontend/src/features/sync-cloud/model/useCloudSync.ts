@@ -29,12 +29,13 @@ export async function loadInitialCloudConfig() {
   const { setPartidas } = usePartidasStore.getState();
   const { correlateAll } = useItemsStore.getState();
 
+  let cloudRules: Awaited<ReturnType<typeof fetchUnifiedRules>> = [];
   try {
     await ensureRuleCatalog();
 
     // 1. Fetch Takeoff Rules — single dual-read path (repository owns the
     // new-tables-first + JSONB-fallback order; no second reader allowed).
-    const cloudRules = await fetchUnifiedRules(section);
+    cloudRules = await fetchUnifiedRules(section);
     if (cloudRules && cloudRules.length > 0) {
       const enrichedRules = cloudRules.map(r => {
         const up = (r.trigger || '').toUpperCase().trim();
@@ -70,12 +71,25 @@ export async function loadInitialCloudConfig() {
       );
     }
 
-    // 2. Fetch Detalle Variants
-    const { data: cloudVariants, error: variantsErr } = await fetchDetalleVariantsFromSupabase();
-    if (!variantsErr && cloudVariants) {
-      updateDynamicVariants(cloudVariants);
-      incrementVariantsVersion();
+    // 2. Fetch Detalle Variants (pre-07 legacy table; post-07 gone — overrides hydrate the cache)
+    try {
+      const { data: cloudVariants, error: variantsErr } = await fetchDetalleVariantsFromSupabase();
+      if (!variantsErr && cloudVariants) {
+        updateDynamicVariants(cloudVariants);
+        incrementVariantsVersion();
+      }
+    } catch {
+      // table dropped by 07 — overrides below own the variant payload
     }
+    // Post-07 path: hydrate the variant cache from rule_item_overrides so the
+    // section cards render even when detalle_variants no longer exists.
+    try {
+      const { hydrateVariantFromOverrides } = await import('../../../entities/takeoff-rule/model/detalleVariants');
+      for (const r of cloudRules || []) {
+        if (r.overrides && r.overrides.length > 0) hydrateVariantFromOverrides(r.overrides as any);
+      }
+      incrementVariantsVersion();
+    } catch { /* best-effort secondary source */ }
 
     // 3. Curve catalog. bducto_curve_catalog is the only source.
     const { data: cloudCurves, error: curvesErr } = await fetchCurveCatalogFromSupabase();

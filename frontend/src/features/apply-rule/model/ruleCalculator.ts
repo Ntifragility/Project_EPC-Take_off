@@ -5,7 +5,7 @@ import { uid } from '../../../shared/lib/uid';
 import { generateTagUnico } from '../../../entities/takeoff-item/model/tagGenerator';
 import { componentClass } from '../../../entities/takeoff-item/model/materialClassifier';
 import { DEFAULT_CABLE_TRAY_MATRIX, getCableTrayMatrixValue } from '../../../entities/takeoff-rule/model/cableTrayRules';
-import { getCalculatedVariantItems } from '../../../entities/takeoff-rule/model/detalleVariants';
+import { getCalculatedVariantItems, overridesToVariantItems } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { applyDetalleVariant, applyBarraPotDetalleVariant } from '../../../entities/takeoff-rule/model/ruleExpander';
 import { evaluateMetradoFormula, lengthVar, shownFormula } from '../../../entities/takeoff-rule/model/metradoFormula';
 
@@ -94,13 +94,17 @@ export function generateRuleItemsForInstance(
       };
     });
   } else if (currentRule.id === 'r2' && activeArea === 'AREA HUMEDA') {
-    const variantItems = getCalculatedVariantItems(
+    let variantItems = getCalculatedVariantItems(
       detalleCode,
       'AREA HUMEDA',
       numSoportes,
       numJumpers,
       subArea
     );
+    // Post-07 / cold-cache fallback: anchor's own overrides carry the detalle payload.
+    if (variantItems.length === 0 && currentRule.overrides && currentRule.overrides.length > 0) {
+      variantItems = overridesToVariantItems(currentRule.overrides, detalleCode, currentRule.subitems as any) as any;
+    }
     instanceItems = variantItems.map(v => {
       const isVar = v.qty === 'Var.' || String(v.ot).toUpperCase() === 'VAR.';
       const mat = componentClass(v.desc, v.material);
@@ -233,7 +237,8 @@ export function generateRuleItemsForInstance(
       cOt,
       true,
       instanceId,
-      subArea
+      subArea,
+      currentRule.overrides
     );
   }
 
@@ -250,7 +255,8 @@ export function generateRuleItemsForInstance(
       numSoportes,
       true,
       instanceId,
-      subArea
+      subArea,
+      currentRule.overrides
     );
   }
 

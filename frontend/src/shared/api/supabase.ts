@@ -109,17 +109,6 @@ export async function fetchItemsFromSupabase(
   }
 }
 
-export interface SupabaseRuleRecord {
-  id: string;
-  section: string;
-  trigger: string;
-  subitems: any;
-  order_index?: number;
-  detalle?: string;
-  tag_prefix?: string;
-  cable_tray_matrix?: any;
-}
-
 export interface SupabaseDetalleVariantRecord {
   id: string;
   area: string;
@@ -130,127 +119,37 @@ export interface SupabaseDetalleVariantRecord {
   items: any;
 }
 
-export async function fetchTakeoffRulesFromSupabase(
-  section: SectionType
-): Promise<{ data: TakeoffRule[] | null; error?: string }> {
-  if (!supabase) {
-    return { data: null, error: 'La Base de Datos no está configurada' };
-  }
-  try {
-    const { data, error } = await supabase
-      .from('takeoff_rules')
-      .select('*')
-      .eq('section', section)
-      .order('order_index', { ascending: true });
-
-    if (error) throw error;
-    const rules: TakeoffRule[] = (data || []).map((r: any) => {
-      let subitems = r.subitems;
-      let cableTrayMatrix = r.cable_tray_matrix || r.cableTrayMatrix;
-      let detalle = r.default_detalle || r.detalle || r.detalle_code;
-      let tagPrefix = r.tag_prefix || r.tagPrefix;
-      let areas = r.allowed_areas || r.areas;
-
-      if (subitems && typeof subitems === 'object' && !Array.isArray(subitems)) {
-        if (subitems.cableTrayMatrix) cableTrayMatrix = subitems.cableTrayMatrix;
-        if (subitems.detalle || subitems.defaultDetalle) detalle = subitems.detalle || subitems.defaultDetalle;
-        if (subitems.tagPrefix) tagPrefix = subitems.tagPrefix;
-        if (subitems.areas) areas = subitems.areas;
-        if (Array.isArray(subitems.items)) subitems = subitems.items;
-      }
-
-      return {
-        id: r.id,
-        section: r.section,
-        trigger: r.trigger,
-        subitems: Array.isArray(subitems) ? subitems : [],
-        detalle,
-        defaultDetalle: r.default_detalle || detalle,
-        tagPrefix,
-        cableTrayMatrix,
-        areas,
-        areaDetalles: r.area_detalles && typeof r.area_detalles === 'object' ? r.area_detalles : undefined,
-        allowDetalleEdit: r.allow_detalle_edit,
-        hasDimensionParam: r.has_dimension_param,
-        dimensionParamName: r.dimension_param_name
-      };
-    });
-    return { data: rules };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al obtener reglas de la Base de Datos';
-    return { data: null, error: message };
-  }
-}
-
-export async function saveTakeoffRuleToSupabase(
-  rule: TakeoffRule,
-  section: SectionType,
-  orderIndex = 0
-): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) {
-    return { success: false, error: 'La Base de Datos no está configurada' };
-  }
-  try {
-    const v3Payload: any = {
-      id: rule.id,
-      section,
-      trigger: rule.trigger,
-      default_detalle: rule.defaultDetalle || rule.detalle || null,
-      tag_prefix: rule.tagPrefix || 'M',
-      allowed_areas: rule.areas || ['AREA SECA', 'AREA HUMEDA'],
-      area_detalles: rule.areaDetalles || {},
-      allow_detalle_edit: rule.allowDetalleEdit ?? true,
-      has_dimension_param: rule.hasDimensionParam ?? false,
-      dimension_param_name: rule.dimensionParamName || null,
-      order_index: orderIndex,
-      updated_at: new Date().toISOString()
-    };
-    const { error: v3Err } = await supabase.from('takeoff_rules').upsert(v3Payload);
-    if (!v3Err) return { success: true };
-
-    // Fallback for legacy schema
-    const legacyPayload: any = {
-      id: rule.id,
-      section,
-      trigger: rule.trigger,
-      subitems: rule.subitems,
-      order_index: orderIndex,
-      detalle: rule.detalle,
-      tag_prefix: rule.tagPrefix
-    };
-    if (rule.areas && rule.areas.length) legacyPayload.areas = rule.areas;
-    const { error: legErr } = await supabase.from('takeoff_rules').upsert(legacyPayload);
-    if (!legErr) return { success: true };
-
-    // Fallback minimal
-    const minPayload = {
-      id: rule.id,
-      section,
-      trigger: rule.trigger,
-      tag_prefix: rule.tagPrefix || 'M',
-      order_index: orderIndex
-    };
-    const { error: minErr } = await supabase.from('takeoff_rules').upsert(minPayload);
-    if (minErr) throw minErr;
-
-    return { success: true };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al guardar regla en Base de Datos';
-    return { success: false, error: message };
-  }
-}
-
-export async function deleteTakeoffRuleFromSupabase(
+export async function deleteTakeoffRuleCascade(
   ruleId: string
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     return { success: false, error: 'La Base de Datos no está configurada' };
   }
   try {
-    // Delete any dependent child records first to prevent foreign key constraint rejections
-    await supabase.from('rule_items').delete().eq('rule_id', ruleId);
-    await supabase.from('rule_area_detalles').delete().eq('rule_id', ruleId);
-    await supabase.from('rule_parameter_options').delete().eq('rule_id', ruleId);
+    // Delete dependent child records first to prevent FK rejections.
+    // Missing-relation-safe: post-07 legacy tables are gone.
+    const legacyTables = ['cable_tray_matrix', 'detalle_variants']; // dropped by 07 — best-effort only
+    for (const tbl of ['rule_item_overrides', 'rule_items', 'rule_area_detalles', 'rule_parameter_options', ...legacyTables]) {
+      try {
+        if (tbl === 'rule_item_overrides') {
+          let ids: string[] = [];
+          try {
+            const { data, error } = await supabase.from('rule_items').select('id').eq('rule_id', ruleId);
+            if (!error) ids = ((data || []) as Array<{ id: string }>).map(r => r.id);
+          } catch { /* rule_items missing — nothing to clean */ }
+          if (ids.length > 0) {
+            const { error } = await supabase.from(tbl).delete().in('rule_item_id', ids);
+            if (error && !isMissingRelationError(error)) throw error;
+          }
+        } else {
+          const { error } = await supabase.from(tbl).delete().eq('rule_id', ruleId);
+          if (error && !isMissingRelationError(error)) throw error;
+        }
+      } catch (err) {
+        if (!isMissingRelationError(err)) throw err;
+        /* table dropped by 07 — nothing to clean */
+      }
+    }
     const { error } = await supabase.from('takeoff_rules').delete().eq('id', ruleId);
     if (error) throw error;
     return { success: true };
@@ -272,7 +171,11 @@ export async function fetchDetalleVariantsFromSupabase(): Promise<{
       .from('detalle_variants')
       .select('*');
 
-    if (error) throw error;
+    // Post-07 the table is dropped: return empty so overrides hydration owns it.
+    if (error) {
+      if (isMissingRelationError(error)) return { data: [] };
+      throw error;
+    }
     return { data: (data as SupabaseDetalleVariantRecord[]) || [] };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error al obtener variantes de detalles de la Base de Datos';
@@ -298,6 +201,18 @@ export function withTimeout<T>(
     }),
     timeoutPromise
   ]);
+}
+
+function isMissingRelationError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  const m = msg.toLowerCase();
+  return (
+    (err as { code?: string } | null)?.code === '42P01' ||
+    (err as { code?: string } | null)?.code === 'PGRST205' ||
+    m.includes('does not exist') ||
+    m.includes('schema cache') ||
+    m.includes("could not find the table")
+  );
 }
 
 export async function saveDetalleVariantToSupabase(
@@ -349,13 +264,20 @@ export async function saveDetalleVariantToSupabase(
           break;
         }
 
-        if (upsertError) throw upsertError;
+        // Post-07 the detalle_variants table is dropped: the overrides
+        // mirror (saveVariantAsOverrides) owns the payload. Report it as a
+        // no-op success so callers don't toast false "offline" warnings.
+        if (upsertError) {
+          if (isMissingRelationError(upsertError)) return { success: true };
+          throw upsertError;
+        }
         return { success: true };
       })(),
       6500,
       'Guardar variante de detalle'
     );
   } catch (err: unknown) {
+    if (isMissingRelationError(err)) return { success: true };
     const message = err instanceof Error ? err.message : 'Error al guardar variante de detalle en Base de Datos';
     console.warn('[Supabase] Warning en saveDetalleVariantToSupabase:', message);
     return { success: false, error: message };
@@ -373,9 +295,14 @@ export async function deleteDetalleVariantFromSupabase(
     // (area, sub_area, category, code) row must never touch sibling partitions
     // or rows owned by another rule.
     const { error } = await supabase.from('detalle_variants').delete().eq('id', id);
-    if (error) throw error;
+    // Post-07 the table is dropped: overrides mirror owns the delete.
+    if (error) {
+      if (isMissingRelationError(error)) return { success: true };
+      throw error;
+    }
     return { success: true };
   } catch (err: unknown) {
+    if (isMissingRelationError(err)) return { success: true };
     const message = err instanceof Error ? err.message : 'Error al eliminar variante en Base de Datos';
     console.error('[Supabase] Error en deleteDetalleVariantFromSupabase:', err);
     return { success: false, error: message };

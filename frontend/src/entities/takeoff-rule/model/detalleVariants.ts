@@ -82,6 +82,45 @@ export function hasJumperItems(detalleCode: string, area = 'AREA HUMEDA', subAre
   );
 }
 
+/**
+ * Convert a rule's own rule_item_overrides for one detalle into variant items.
+ * Used as an engine fallback when the detalle_variants cache is empty
+ * (post-07, or a cold offline cache): the override rows ARE the per-detalle
+ * payload, keyed to the anchor's rule_items.
+ */
+export function overridesToVariantItems(
+  overrides: Array<{
+    ruleItemId?: string;
+    detalleCode?: string;
+    overrideDescripcion?: string;
+    overrideQty?: string | number;
+    overrideUnit?: string;
+    overrideFormula?: string;
+  }> | undefined,
+  detalleCode: string,
+  subitems?: Array<{ id: string; desc: string; qty?: string | number; unit?: string; formula?: string }>
+): DetalleVariantItem[] {
+  if (!overrides || overrides.length === 0) return [];
+  const code = (detalleCode || '').toUpperCase().trim();
+  if (!code) return [];
+  const order = new Map<string, number>();
+  (subitems || []).forEach((s, i) => { if (!order.has(s.id)) order.set(s.id, i); });
+  return overrides
+    .filter(o => (o.detalleCode || '').toUpperCase().trim() === code)
+    .map(o => ({
+      ruleItemId: o.ruleItemId || '',
+      desc: (o.overrideDescripcion || '').trim(),
+      qty: o.overrideQty !== undefined && o.overrideQty !== null && String(o.overrideQty) !== '' ? o.overrideQty : 1,
+      unit: (o.overrideUnit || '').trim() || 'und',
+      ot: o.overrideQty !== undefined && o.overrideQty !== null && String(o.overrideQty) !== '' ? o.overrideQty : 1,
+      formula: (o.overrideFormula || '').trim() || undefined,
+      material: undefined
+    }))
+    .filter(v => v.desc)
+    .sort((a, b) => (order.get(a.ruleItemId) ?? 9999) - (order.get(b.ruleItemId) ?? 9999))
+    .map(({ ruleItemId: _drop, ...rest }) => rest);
+}
+
 export function getCalculatedVariantItems(
   detalleCode: string,
   area = 'AREA HUMEDA',
@@ -250,7 +289,11 @@ export function updateDynamicVariants(dbRecords: any[]) {
   // Supabase is SSOT; an empty response means "offline / no data", not "delete everything".
   if (!Array.isArray(dbRecords) || dbRecords.length === 0) return;
 
-  dbRecords.forEach(rec => {
+  for (const rec of dbRecords) {
+    if (rec && (rec.rule_item_id || rec.detalleCode || rec.override_descripcion)) {
+      hydrateVariantFromOverrides([rec]);
+      continue;
+    }
     const rawArea = (rec.area || '').toUpperCase().trim();
     const isHumeda = rawArea.includes('HUMED') || rawArea.includes('HUEMD');
     const areaKey = isHumeda ? 'AREA HUEMDA' : 'AREA SECA';
@@ -328,7 +371,7 @@ export function updateDynamicVariants(dbRecords: any[]) {
         DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][rec.detalle_code] = mapped;
       }
     }
-  });
+  }
 
   // Ensure canonical NO_CORROSIVO mirrors exist for flat-map Barra lookups.
   for (const [code, items] of Object.entries(DYNAMIC_BARRA_POT_VARIANTS)) {
@@ -339,6 +382,81 @@ export function updateDynamicVariants(dbRecords: any[]) {
   for (const [code, items] of Object.entries(DYNAMIC_BARRA_INST_VARIANTS)) {
     if (!DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][code]) {
       DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO'][code] = items;
+    }
+  }
+}
+
+/**
+ * Post-07 variant hydration: rule_item_overrides rows carry the per-detalle
+ * payload (detalle_variants table is dropped). Anchors r2/r8/r9 map by
+ * (detalle_code, order_index): each detalle_code's overrides are grouped in
+ * rule_item order and expanded positionally — same shape 03_backfill wrote.
+ */
+export function hydrateVariantFromOverrides(
+  overrides: Array<{
+    rule_item_id?: string;
+    ruleItemId?: string;
+    detalle_code?: string;
+    detalleCode?: string;
+    override_descripcion?: string;
+    overrideDescripcion?: string;
+    override_qty?: string | number;
+    overrideQty?: string | number;
+    override_unit?: string;
+    overrideUnit?: string;
+    override_formula?: string;
+    overrideFormula?: string;
+    rule_id?: string;
+    ruleId?: string;
+    order_index?: number;
+    orderIndex?: number;
+  }>,
+  anchors?: Array<{ id: string; category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'; area: string }>
+): void {
+  if (!Array.isArray(overrides) || overrides.length === 0) return;
+  const norm = overrides.map(o => ({
+    ruleItemId: o.ruleItemId ?? o.rule_item_id ?? '',
+    ruleId: o.ruleId ?? o.rule_id ?? '',
+    detalleCode: (o.detalleCode ?? o.detalle_code ?? '').toUpperCase().trim(),
+    desc: (o.overrideDescripcion ?? o.override_descripcion ?? '').trim(),
+    qty: o.overrideQty ?? o.override_qty ?? '',
+    unit: (o.overrideUnit ?? o.override_unit ?? '').trim() || 'und',
+    formula: (o.overrideFormula ?? o.override_formula ?? '').trim(),
+    orderIndex: o.orderIndex ?? o.order_index ?? 0
+  })).filter(o => o.detalleCode && (o.desc || o.qty));
+  if (norm.length === 0) return;
+
+  const anchorByRule = new Map<string, { category: 'CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST'; area: string }>();
+  for (const a of anchors || []) anchorByRule.set(a.id, { category: a.category, area: a.area });
+  // Default anchor map (matches 03_backfill): r2/r8/r9 rule_ids.
+  if (!anchorByRule.has('r2')) anchorByRule.set('r2', { category: 'CABLE_2_0', area: 'AREA SECA' });
+  if (!anchorByRule.has('r8')) anchorByRule.set('r8', { category: 'BARRA_POT', area: 'AREA HUMEDA' });
+  if (!anchorByRule.has('r9')) anchorByRule.set('r9', { category: 'BARRA_INST', area: 'AREA HUMEDA' });
+
+  const byAnchorDetalle = new Map<string, typeof norm>();
+  for (const o of norm) {
+    const anchor = anchorByRule.get(o.ruleId) || [...anchorByRule.values()][0];
+    if (!anchor) continue;
+    const key = `${anchor.category}::${o.detalleCode}`;
+    const list = byAnchorDetalle.get(key) || [];
+    list.push(o);
+    byAnchorDetalle.set(key, list);
+  }
+
+  for (const [key, list] of byAnchorDetalle) {
+    const [category, code] = key.split('::') as ['CABLE_2_0' | 'BARRA_POT' | 'BARRA_INST', string];
+    const items: DetalleVariantItem[] = list.map(o => ({
+      desc: o.desc,
+      qty: o.qty !== undefined && o.qty !== '' ? o.qty : 1,
+      unit: o.unit || 'und',
+      ot: o.qty !== undefined && o.qty !== '' ? o.qty : 1,
+      formula: o.formula || undefined,
+      material: undefined
+    }));
+    const area = category === 'CABLE_2_0' ? 'AREA SECA' : 'AREA HUMEDA';
+    updateSingleDynamicVariant(area, code, items, category);
+    if (area === 'AREA HUMEDA') {
+      updateSingleDynamicVariant(area, code, items, category, 'CORROSIVO');
     }
   }
 }

@@ -44,8 +44,8 @@ const TABLE_PROBES: TableProbeSpec[] = [
     nonexistentId: '__health_check_nonexistent__'
   },
   {
-    tableName: 'detalle_variants',
-    writePayload: { area: '__probe__' },
+    tableName: 'rule_item_overrides',
+    writePayload: { override_descripcion: '__probe__' },
     nonexistentId: '__health_check_nonexistent__'
   },
   {

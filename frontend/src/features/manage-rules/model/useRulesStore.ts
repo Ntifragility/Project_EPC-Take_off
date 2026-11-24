@@ -3,16 +3,16 @@ import { TakeoffRule, DetalleVariantItem } from '../../../entities/takeoff-rule/
 import { SectionType, SubAreaHumeda } from '../../../shared/types/common';
 import { loadStoredRules, saveStoredRules, loadStoredVariants, saveStoredVariants } from '../../../shared/lib/storage';
 import {
-  saveTakeoffRuleToSupabase,
-  deleteTakeoffRuleFromSupabase,
   saveDetalleVariantToSupabase,
   deleteDetalleVariantFromSupabase,
-  fetchDetalleVariantsFromSupabase
+  fetchDetalleVariantsFromSupabase,
+  deleteTakeoffRuleCascade
 } from '../../../shared/api/supabase';
 import { deleteRuleLines, replaceRuleLines } from '../../sync-cloud/model/publishRuleCatalog';
 import { updateDynamicVariants, updateSingleDynamicVariant, deleteSingleDynamicVariant, normalizeVariantSubArea } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { variantRowId, familyCategory } from '../../../entities/takeoff-rule/model/ruleFamily';
-import { fetchUnifiedRules, saveUnifiedRule } from '../../../entities/takeoff-rule/api/ruleRepository';
+import { fetchUnifiedRules, saveUnifiedRule, saveVariantAsOverrides, deleteVariantOverrides } from '../../../entities/takeoff-rule/api/ruleRepository';
+import { hydrateVariantFromOverrides } from '../../../entities/takeoff-rule/model/detalleVariants';
 import { useUIStore } from '../../filter-takeoff/model/useUIStore';
 import { MasterImportPlan } from './rulesMasterTable';
 
@@ -108,6 +108,9 @@ async function stampFamilyRuleVariant(
 const initialSection = (localStorage.getItem('epc-active-section') as SectionType) || 'pat';
 const initialRules = loadStoredRules(initialSection);
 
+
+const CATEGORY_ANCHOR: Record<string, string> = { CABLE_2_0: 'r2', BARRA_POT: 'r8', BARRA_INST: 'r9' };
+
 export const useRulesStore = createStore<RulesStore>((set, get) => ({
   rules: initialRules,
   collapsedRuleAreas: new Set<string>(['AREA SECA', 'AREA HUEMDA']),
@@ -139,6 +142,14 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
         updateDynamicVariants(cloudVariants);
         saveStoredVariants(cloudVariants);
       }
+      // Post-07 path: hydrate the variant cache from rule_item_overrides so
+      // the catalog survives the detalle_variants drop. No-op pre-07 dupes
+      // merge into the same in-memory maps.
+      try {
+        for (const r of remoteRules || []) {
+          if (r.overrides && r.overrides.length > 0) hydrateVariantFromOverrides(r.overrides as any);
+        }
+      } catch { /* best-effort secondary source */ }
 
       set({ detalleVariantsVersion: get().detalleVariantsVersion + 1 });
     } catch (e) {
@@ -236,7 +247,7 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
     }
     set({ rules: nextRules });
     try {
-      await deleteTakeoffRuleFromSupabase(id);
+      await deleteTakeoffRuleCascade(id);
       await deleteRuleLines(id);
       useUIStore.getState().showToast('Regla eliminada de Base de Datos', 'info');
     } catch (err) {
@@ -270,6 +281,10 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
         items: itemsToSave,
         ...(ownerRuleId ? { rule_id: ownerRuleId } : {})
       });
+      // Dual-write: mirror into rule_item_overrides (post-07 source of truth).
+      try {
+        await saveVariantAsOverrides(CATEGORY_ANCHOR[category] || 'r2', detalleCode, itemsToSave as any);
+      } catch { /* best-effort mirror */ }
 
       if (res.success) {
         // Keep the offline variant cache in sync with the authoritative write.
@@ -315,6 +330,9 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
 
       const id = variantRowId(area, effectiveSubArea, category, detalleCode);
       const res = await deleteDetalleVariantFromSupabase(id);
+      try {
+        await deleteVariantOverrides(CATEGORY_ANCHOR[category] || 'r2', detalleCode);
+      } catch { /* best-effort mirror */ }
 
       if (res.success) {
         try {
@@ -403,6 +421,9 @@ export const useRulesStore = createStore<RulesStore>((set, get) => ({
           detalle_code: variant.detalleCode,
           items: variant.items
         });
+        try {
+          await saveVariantAsOverrides(CATEGORY_ANCHOR[variant.category] || 'r2', variant.detalleCode, variant.items as any);
+        } catch { /* best-effort mirror */ }
         if (!res.success) {
           remoteSynced = false;
         }

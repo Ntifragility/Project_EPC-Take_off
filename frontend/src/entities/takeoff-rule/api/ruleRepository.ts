@@ -6,15 +6,14 @@ import { loadStoredRules, saveStoredRules } from '../../../shared/lib/storage';
 const DETALLE_STORAGE_KEY = 'epc-detalle-catalog';
 
 // --- Re-model cutover flags -------------------------------------------------
-// REMODEL_SOURCE: 'new' once rule_items/overrides/param_options are the sole
-// writer (post-backfill). During dual-read it stays 'auto' (new tables first,
-// JSONB mirror fallback). Flipped in one place — no parser changes needed.
-// REMODEL_LEGACY_WRITE: while true the cutover writer still mirrors to the
-// legacy JSONB blobs (takeoff_rules.subitems, detalle_variants.items,
-// cable_tray_matrix) for rollback. Set false one release after cutover, then
-// run migration_remodel_07_cleanup (staged).
-export const REMODEL_SOURCE: 'auto' | 'new' = 'auto';
-export const REMODEL_LEGACY_WRITE = true;
+// Reads are always dual: rule_items (normalized BOM) wins when present,
+// takeoff_rules.subitems JSONB mirror is the fallback for databases where the
+// remodel backfill hasn't run yet. Post-07 the mirror column is gone, so the
+// fallback is a silent no-op there.
+// REMODEL_LEGACY_WRITE: while true the writer still mirrors to the legacy
+// JSONB blobs (takeoff_rules.subitems, cable_tray_matrix) for rollback. Set
+// false one release after cutover, then run migration_remodel_07_cleanup.
+export const REMODEL_LEGACY_WRITE = false;
 
 interface RawRuleItemRow {
   id: string;
@@ -186,28 +185,43 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
         }
 
         // Fetch parameter options
-        const { data: paramsData } = await supabase
-          .from('rule_parameter_options')
-          .select('*')
-          .in('rule_id', ruleIds);
+        let paramsData: any[] = [];
+        try {
+          const res = await supabase
+            .from('rule_parameter_options')
+            .select('*')
+            .in('rule_id', ruleIds);
+          if (!res.error) paramsData = (res.data || []) as any[];
+        } catch {
+          paramsData = []; // table may not exist pre-migration — fall back silently
+        }
 
-        // Fetch cable tray matrix (legacy table; normalized options win when present)
-        const { data: matrixData } = await supabase
-          .from('cable_tray_matrix')
-          .select('*')
-          .in('rule_id', ruleIds)
-          .order('order_index');
+        // Fetch cable tray matrix (legacy table; normalized options win when present).
+        // Post-07 this table is gone — missing-relation errors mean empty.
+        let matrixData: any[] | null = [];
+        try {
+          const res = await supabase
+            .from('cable_tray_matrix')
+            .select('*')
+            .in('rule_id', ruleIds)
+            .order('order_index');
+          if (!res.error) matrixData = (res.data || []) as any[];
+        } catch {
+          matrixData = [];
+        }
 
         const fullRules: TakeoffRule[] = rulesData.map(r => {
           const normItems = (itemsData || []).filter(i => i.rule_id === r.id);
-          // If subitems table populated, use it, else fallback to JSONB column
+          // Normalized BOM wins when present; JSONB mirror is the fallback
+          // for databases where the remodel backfill hasn't run yet.
+          // Post-07 the mirror column is gone (undefined) so this is a no-op.
           let subitems: RuleSubitem[] = [];
-          if (REMODEL_SOURCE === 'new' || normItems.length > 0) {
+          if (normItems.length > 0) {
             subitems = normItems
               .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
               .map(mapRuleItemRow);
           }
-          if (subitems.length === 0 && REMODEL_SOURCE !== 'new' && Array.isArray(r.subitems)) {
+          if (subitems.length === 0 && Array.isArray(r.subitems)) {
             subitems = r.subitems;
           }
 
@@ -245,6 +259,41 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
             p => (p.paramKey || '').toLowerCase() === 'width'
           );
 
+          // Post-07 synthesis: no legacy rows, but width options exist —
+          // rebuild display matrix rows from the multiplier maps so cards,
+          // previews, and the tray editor keep working without the table.
+          let effectiveMatrix = ruleMatrix.length > 0
+            ? ruleMatrix
+            : (r.cable_tray_matrix || undefined);
+          if (
+            (!effectiveMatrix || effectiveMatrix.length === 0) &&
+            hasWidthOptions &&
+            normItems.length > 0
+          ) {
+            const widthOpts = parameterOptions.filter(
+              p => (p.paramKey || '').toLowerCase() === 'width'
+            );
+            effectiveMatrix = normItems
+              .slice()
+              .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+              .map(i => {
+                const row: Record<string, any> = {
+                  id: i.id,
+                  desc: i.descripcion ?? i.desc ?? '',
+                  unit: i.unit || 'und',
+                  material: i.material || 'C',
+                  w900: '', w600: '', w450: '', w300: ''
+                };
+                for (const opt of widthOpts) {
+                  const key = `w${String(opt.optionValue || '').trim()}`;
+                  const map = opt.multiplierMap || {};
+                  const v = map[i.id];
+                  if (key in row && v !== undefined && v !== null) row[key] = String(v);
+                }
+                return row;
+              });
+          }
+
       return {
         id: r.id,
         section: r.section,
@@ -264,8 +313,8 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
         overrides: overrides.length > 0 ? overrides : undefined,
         parameterOptions,
         cableTrayMatrix: hasWidthOptions
-          ? (r.cable_tray_matrix || undefined)
-          : (ruleMatrix.length > 0 ? ruleMatrix : (r.cable_tray_matrix || undefined))
+          ? (effectiveMatrix || undefined)
+          : effectiveMatrix
       };
         });
 
@@ -280,6 +329,76 @@ export async function fetchUnifiedRules(section: SectionType): Promise<TakeoffRu
   // Fallback to localStorage — the offline cache of the last Supabase snapshot.
   // No hardcoded data: an unreachable DB with an empty cache yields [].
   return loadStoredRules(section);
+}
+
+/**
+ * Overrides-mirror of a detalle_variants write. Positional mapping matches
+ * 03_backfill 3.3: variant items[i] overrides anchor rule_items[i].
+ * Runs best-effort AFTER the legacy detalle_variants write so pre-07 paths
+ * keep working; post-07 (table dropped) this is the ONLY write that matters.
+ */
+export async function saveVariantAsOverrides(
+  anchorRuleId: string,
+  detalleCode: string,
+  items: Array<{ desc?: string; qty?: string | number; unit?: string; formula?: string; ot?: string | number }>
+): Promise<void> {
+  if (!supabase || !anchorRuleId || !detalleCode || !items || items.length === 0) return;
+  try {
+    const { data: anchorItems } = await supabase
+      .from('rule_items')
+      .select('id, order_index')
+      .eq('rule_id', anchorRuleId)
+      .order('order_index');
+    if (!anchorItems || anchorItems.length === 0) return;
+    const code = detalleCode.toUpperCase().trim();
+    const rows = items.map((it, idx) => {
+      const anchor = anchorItems[Math.min(idx, anchorItems.length - 1)] as { id: string };
+      const desc = (it.desc || '').trim();
+      if (!desc) return null;
+      return {
+        id: `${anchorRuleId}::${code}::${idx}`,
+        rule_item_id: anchor.id,
+        detalle_code: code,
+        override_descripcion: desc,
+        override_qty: it.qty !== undefined && it.qty !== null && String(it.qty) !== '' ? String(it.qty) : null,
+        override_unit: (it.unit || '').trim() || null,
+        override_formula: (it.formula || '').trim() || null
+      };
+    }).filter(Boolean);
+    if (rows.length === 0) return;
+    // Replace ONLY this detalle's slots for this anchor (deterministic ids).
+    // Stale trailing slots (previous longer list) are removed by prefix.
+    try {
+      const prefix = `${anchorRuleId}::${code}::`;
+      const { data: stale } = await supabase.from('rule_item_overrides').select('id').like('id', `${prefix}%`);
+      const staleIds = ((stale || []) as Array<{ id: string }>).map(r => r.id)
+        .filter(id => !rows.some(rr => (rr as { id: string }).id === id));
+      if (staleIds.length > 0) await supabase.from('rule_item_overrides').delete().in('id', staleIds);
+    } catch { /* best-effort cleanup */ }
+    const { error } = await supabase.from('rule_item_overrides').upsert(rows as any[], { onConflict: 'id' });
+    if (error) console.warn('[Supabase] Warning saving variant overrides mirror:', error.message);
+  } catch (e) {
+    console.warn('[Supabase] Variant overrides mirror notice:', e);
+  }
+}
+
+/**
+ * Overrides-mirror of a detalle_variants delete. Best-effort; missing
+ * table/rows after 07 simply no-op.
+ */
+export async function deleteVariantOverrides(
+  anchorRuleId: string,
+  detalleCode: string
+): Promise<void> {
+  if (!supabase || !anchorRuleId || !detalleCode) return;
+  try {
+    const prefix = `${anchorRuleId}::${detalleCode.toUpperCase().trim()}::`;
+    const { data } = await supabase.from('rule_item_overrides').select('id').like('id', `${prefix}%`);
+    const ids = ((data || []) as Array<{ id: string }>).map(r => r.id);
+    if (ids.length > 0) await supabase.from('rule_item_overrides').delete().in('id', ids);
+  } catch {
+    // table dropped or RLS — legacy path already handled the delete
+  }
 }
 
 /**
@@ -393,6 +512,8 @@ export async function saveUnifiedRule(
           }
         }
 
+
+
         // 2b. Upsert Rule Item Overrides (NORMALIZED — replaces detalle_variants.items for anchors)
         if (rule.overrides && rule.overrides.length > 0) {
           const itemIds = rule.overrides.map(o => o.ruleItemId);
@@ -430,23 +551,28 @@ export async function saveUnifiedRule(
         }
 
         // 4. Legacy Cable Tray Matrix mirror — rollback window only.
+        // Post-07 the table is gone: skip silently (save succeeds anyway).
         if (REMODEL_LEGACY_WRITE && rule.cableTrayMatrix && rule.cableTrayMatrix.length > 0) {
-          await supabase.from('cable_tray_matrix').delete().eq('rule_id', rule.id);
-          const matrixPayload = rule.cableTrayMatrix.map((m, idx) => ({
-            id: m.id || `${rule.id}_matrix_${idx}`,
-            rule_id: rule.id,
-            order_index: idx + 1,
-            descripcion: m.desc,
-            unit: m.unit || 'm',
-            material: m.material || 'C',
-            w900: String(m.w900 ?? ''),
-            w600: String(m.w600 ?? ''),
-            w450: String(m.w450 ?? ''),
-            w300: String(m.w300 ?? '')
-          }));
-          const { error: matrixErr } = await supabase.from('cable_tray_matrix').insert(matrixPayload);
-          if (matrixErr) {
-            console.warn('[Supabase] Warning saving cable tray matrix:', matrixErr.message);
+          try {
+            await supabase.from('cable_tray_matrix').delete().eq('rule_id', rule.id);
+            const matrixPayload = rule.cableTrayMatrix.map((m, idx) => ({
+              id: m.id || `${rule.id}_matrix_${idx}`,
+              rule_id: rule.id,
+              order_index: idx + 1,
+              descripcion: m.desc,
+              unit: m.unit || 'm',
+              material: m.material || 'C',
+              w900: String(m.w900 ?? ''),
+              w600: String(m.w600 ?? ''),
+              w450: String(m.w450 ?? ''),
+              w300: String(m.w300 ?? '')
+            }));
+            const { error: matrixErr } = await supabase.from('cable_tray_matrix').insert(matrixPayload);
+            if (matrixErr) {
+              console.warn('[Supabase] Warning saving cable tray matrix:', matrixErr.message);
+            }
+          } catch {
+            // table dropped by 07 — normalized options above are authoritative
           }
         }
       })(),

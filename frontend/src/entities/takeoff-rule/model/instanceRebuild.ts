@@ -8,6 +8,7 @@ import {
   DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA,
   DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA,
   getCalculatedVariantItems,
+  overridesToVariantItems,
   shouldAutoManageTuberia
 } from './detalleVariants';
 import {
@@ -231,11 +232,17 @@ function resolveBom(
     }));
   }
 
-  const barraVariant =
+  let barraVariant =
     DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[norm] ||
     DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['CORROSIVO']?.[norm] ||
     DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[norm] ||
     DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['CORROSIVO']?.[norm];
+  // Post-07 / cold-cache fallback: the anchor rule's own overrides carry the detalle payload.
+  if ((!barraVariant || barraVariant.length === 0) && (currentRule?.overrides?.length || detalleRule?.overrides?.length)) {
+    const ov = (currentRule?.overrides?.length ? currentRule : detalleRule)!.overrides!;
+    const conv = overridesToVariantItems(ov as any, norm, (currentRule?.subitems || detalleRule?.subitems) as any);
+    if (conv.length > 0) barraVariant = conv as any;
+  }
   if (barraVariant && barraVariant.length > 0) {
     const ruleId =
       currentRuleId === 'r8' || currentRuleId === 'r9'
@@ -377,7 +384,13 @@ function resolveBom(
         ruleId: 'r2'
       });
     }
-    const accessories = getCalculatedVariantItems(norm, 'AREA HUMEDA', nSop, nJmp);
+    let accessories = getCalculatedVariantItems(norm, 'AREA HUMEDA', nSop, nJmp);
+    if (accessories.length === 0) {
+      const anchorRule = findRule('r2', rules);
+      if (anchorRule?.overrides?.length) {
+        accessories = overridesToVariantItems(anchorRule.overrides as any, norm, anchorRule.subitems as any) as any;
+      }
+    }
     const source = accessories.length > 0 ? accessories : cable2Variant || [];
     const extra = linesFromVariants(source, 'r2', oldRows, nSop, nJmp, cableVal, tuberiaOt).filter(
       l => !has(l.desc, 'CABLE DESNUDO') && !has(l.desc, 'TUBERIA') && !has(l.desc, 'TUBERÍA')

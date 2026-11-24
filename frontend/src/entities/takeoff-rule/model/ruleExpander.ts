@@ -9,8 +9,10 @@ import {
   DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA,
   DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA,
   DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA,
+  overridesToVariantItems,
   shouldAutoManageTuberia
 } from './detalleVariants';
+import type { RuleItemOverride } from './types';
 import { AVAILABLE_CUSTOM_ITEMS as R2_SWAPPABLE } from './detalleVariants';
 import { evaluateMetradoFormula, isMetradoExpression, lengthVar, shownVariantFormula } from './metradoFormula';
 
@@ -28,9 +30,15 @@ export function applyDetalleVariant(
   cableOtParam?: string,
   skipAssignSuffixes = false,
   instanceId?: string,
-  subArea: SubAreaHumeda = 'NO_CORROSIVO'
+  subArea: SubAreaHumeda = 'NO_CORROSIVO',
+  fallbackOverrides?: RuleItemOverride[]
 ): TakeoffItem[] {
   let variant = DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]?.[detalleCode] || DYNAMIC_DETALLE_VARIANTS[detalleCode];
+  // Post-07 / cold-cache fallback: the anchor rule's own overrides ARE the variant.
+  if (!variant && fallbackOverrides && fallbackOverrides.length > 0) {
+    const conv = overridesToVariantItems(fallbackOverrides, detalleCode);
+    if (conv.length > 0) variant = conv;
+  }
   if (!variant && (detalleCode === '008/5' || detalleCode === '008/05')) {
     variant = DYNAMIC_DETALLE_VARIANTS_BY_SUBAREA[subArea]?.['008/05'] || DYNAMIC_DETALLE_VARIANTS['008/05'] || DYNAMIC_DETALLE_VARIANTS['008/5'];
   }
@@ -269,14 +277,19 @@ export function applyBarraPotDetalleVariant(
   numSoportes = 1,
   skipAssignSuffixes = false,
   instanceId?: string,
-  subArea: SubAreaHumeda = 'NO_CORROSIVO'
+  subArea: SubAreaHumeda = 'NO_CORROSIVO',
+  fallbackOverrides?: RuleItemOverride[]
 ): TakeoffItem[] {
   const normalizedSubArea = subArea || 'NO_CORROSIVO';
-  const variant =
+  let variant =
     DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA[normalizedSubArea]?.[detalleCode] ||
     DYNAMIC_BARRA_POT_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[detalleCode] ||
     DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA[normalizedSubArea]?.[detalleCode] ||
     DYNAMIC_BARRA_INST_VARIANTS_BY_SUBAREA['NO_CORROSIVO']?.[detalleCode];
+  if (!variant && fallbackOverrides && fallbackOverrides.length > 0) {
+    const conv = overridesToVariantItems(fallbackOverrides, detalleCode);
+    if (conv.length > 0) variant = conv;
+  }
   if (!variant) return items;
 
   const currentItems = [...items];
