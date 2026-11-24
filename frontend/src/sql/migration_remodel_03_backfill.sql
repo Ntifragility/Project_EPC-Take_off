@@ -116,7 +116,10 @@ FROM (
       WHEN 'P' THEN 'P' ELSE 'C' END AS material,
     COALESCE(NULLIF(TRIM(COALESCE(s.item ->> 'qty', s.item ->> 'base_qty', s.item ->> 'ot')), ''), '1') AS base_qty,
     COALESCE(s.item ->> 'formula', '') AS formula,
-    COALESCE((s.item ->> 'optional')::boolean, FALSE) AS optional,
+    -- some mirrors store optional as 'SI'/'NO'/'' — only strict true/false cast
+    CASE WHEN lower(TRIM(COALESCE(s.item ->> 'optional', ''))) IN ('true', 't', '1', 'si', 'sí', 's', 'yes', 'y') THEN TRUE
+         WHEN lower(TRIM(COALESCE(s.item ->> 'optional', ''))) IN ('false', 'f', '0', 'no', 'n') THEN FALSE
+         ELSE FALSE END AS optional,
     NULLIF(UPPER(TRIM(COALESCE(s.item ->> 'subitemDetalle', s.item ->> 'subitem_detalle', ''))), '') AS subitem_detalle
   FROM public.takeoff_rules r
   JOIN LATERAL jsonb_array_elements(
@@ -170,19 +173,19 @@ DROP TABLE IF EXISTS _remodel_anchor_items;
 DROP TABLE IF EXISTS _remodel_anchor;
 
 -- 3.3b anchor missing entirely -> quarantine + skip that category
-INSERT INTO public.remodel_orphans (check_name, detail)
+-- NOTE: WITH comes BEFORE INSERT (INSERT ... WITH is a syntax error).
 WITH anchor(category, rule_id) AS (
   VALUES ('CABLE_2_0'::text, 'r2'::text),
          ('BARRA_POT'::text, 'r8'::text),
          ('BARRA_INST'::text, 'r9'::text)
 )
+INSERT INTO public.remodel_orphans (check_name, detail)
 SELECT 'backfill_anchor_missing', jsonb_build_object('category', a.category)
 FROM anchor a
 WHERE NOT EXISTS (SELECT 1 FROM public.rule_items i WHERE i.rule_id = a.rule_id);
 
 -- 3.3c insert overrides positionally (anchor inlined as CTE — no TEMP table).
-INSERT INTO public.rule_item_overrides
-  (id, rule_item_id, detalle_code, override_descripcion, override_qty, override_unit, override_formula)
+-- NOTE: WITH comes BEFORE INSERT (INSERT ... WITH is a syntax error).
 WITH anchor(category, rule_id) AS (
   VALUES ('CABLE_2_0'::text, 'r2'::text),
          ('BARRA_POT'::text, 'r8'::text),
@@ -195,6 +198,8 @@ anchor_items AS (
   JOIN public.rule_items i ON i.rule_id = a.rule_id
   ORDER BY a.category, i.order_index, i.id
 )
+INSERT INTO public.rule_item_overrides
+  (id, rule_item_id, detalle_code, override_descripcion, override_qty, override_unit, override_formula)
 SELECT
   v.id || '::' || s.idx::text AS id,
   ai.rule_item_id,
@@ -223,8 +228,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- 3.3d variants with MORE slots than the anchor (or anchor missing): still
 -- inserted, anchored to the LAST anchor item, flagged for manual review
 -- (anchor inlined as CTE — no TEMP table).
-INSERT INTO public.rule_item_overrides
-  (id, rule_item_id, detalle_code, override_descripcion, override_qty, override_unit, override_formula)
+-- NOTE: WITH comes BEFORE INSERT (INSERT ... WITH is a syntax error).
 WITH anchor(category, rule_id) AS (
   VALUES ('CABLE_2_0'::text, 'r2'::text),
          ('BARRA_POT'::text, 'r8'::text),
@@ -237,6 +241,8 @@ anchor_items AS (
   JOIN public.rule_items i ON i.rule_id = a.rule_id
   ORDER BY a.category, i.order_index, i.id
 )
+INSERT INTO public.rule_item_overrides
+  (id, rule_item_id, detalle_code, override_descripcion, override_qty, override_unit, override_formula)
 SELECT
   v.id || '::extra::' || s.idx::text AS id,
   last_ai.rule_item_id,
@@ -270,7 +276,7 @@ ON CONFLICT (id) DO UPDATE SET
   override_unit = EXCLUDED.override_unit,
   override_formula = EXCLUDED.override_formula;
 
-INSERT INTO public.remodel_orphans (check_name, detail)
+-- NOTE: WITH comes BEFORE INSERT (INSERT ... WITH is a syntax error).
 WITH anchor(category, rule_id) AS (
   VALUES ('CABLE_2_0'::text, 'r2'::text),
          ('BARRA_POT'::text, 'r8'::text),
@@ -283,6 +289,7 @@ anchor_items AS (
   JOIN public.rule_items i ON i.rule_id = a.rule_id
   ORDER BY a.category, i.order_index, i.id
 )
+INSERT INTO public.remodel_orphans (check_name, detail)
 SELECT 'backfill_variant_extra_slot',
   jsonb_build_object('variant_id', v.id, 'category', v.category,
     'detalle_code', v.detalle_code, 'slots',
