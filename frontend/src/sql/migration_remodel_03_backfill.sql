@@ -61,8 +61,8 @@ UPDATE public.detalle_variants SET detalle_code = 'ND' WHERE detalle_code = 'N/D
 -- (v3 migration already seeded anchors; this covers custom/imported rules.)
 INSERT INTO public.rule_area_detalles (rule_id, area, detalle_code)
 SELECT r.id, x.key, UPPER(TRIM(x.value))
-FROM public.takeoff_rules r,
-  LATERAL jsonb_each_text(COALESCE(r.area_detalles, '{}'::jsonb)) AS x(key, value)
+FROM public.takeoff_rules r
+JOIN LATERAL jsonb_each_text(COALESCE(r.area_detalles, '{}'::jsonb)) AS x(key, value) ON TRUE
 WHERE x.key IN ('AREA SECA', 'AREA HUMEDA', 'MINA')
   AND TRIM(x.value) <> ''
   AND EXISTS (SELECT 1 FROM public.detalle_catalog c WHERE c.code = UPPER(TRIM(x.value)))
@@ -92,7 +92,7 @@ WHERE COALESCE(r.default_detalle, r.detalle) IS NOT NULL
 INSERT INTO public.rule_items
   (id, rule_id, order_index, descripcion, unit, material, base_qty, formula, optional, subitem_detalle)
 SELECT
-  COALESCE(NULLIF(TRIM(s.item ->> 'id'), ''), r.id || ':s' || (s.idx)) AS id,
+  COALESCE(NULLIF(TRIM(s.item ->> 'id'), ''), r.id || ':s' || s.idx::text) AS id,
   r.id AS rule_id,
   COALESCE((s.idx)::int, 0) AS order_index,
   COALESCE(NULLIF(TRIM(s.item ->> 'desc'), ''), NULLIF(TRIM(s.item ->> 'descripcion'), ''), 'SIN DESCRIPCION') AS descripcion,
@@ -103,8 +103,8 @@ SELECT
   COALESCE(s.item ->> 'formula', '') AS formula,
   COALESCE((s.item ->> 'optional')::boolean, FALSE) AS optional,
   NULLIF(UPPER(TRIM(COALESCE(s.item ->> 'subitemDetalle', s.item ->> 'subitem_detalle', ''))), '') AS subitem_detalle
-FROM public.takeoff_rules r,
-  LATERAL jsonb_array_elements(COALESCE(r.subitems, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx)
+FROM public.takeoff_rules r
+JOIN LATERAL jsonb_array_elements(COALESCE(r.subitems, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx) ON TRUE
 ON CONFLICT (id) DO UPDATE SET
   rule_id = EXCLUDED.rule_id,
   order_index = EXCLUDED.order_index,
@@ -167,17 +167,17 @@ WHERE NOT EXISTS (SELECT 1 FROM public.rule_items i WHERE i.rule_id = a.rule_id)
 INSERT INTO public.rule_item_overrides
   (id, rule_item_id, detalle_code, override_descripcion, override_qty, override_unit, override_formula)
 SELECT
-  v.id || '::' || (s.idx) AS id,
+  v.id || '::' || s.idx::text AS id,
   ai.rule_item_id,
   UPPER(TRIM(v.detalle_code)) AS detalle_code,
   NULLIF(TRIM(s.item ->> 'desc'), '') AS override_descripcion,
   NULLIF(TRIM(COALESCE(s.item ->> 'qty', s.item ->> 'ot', s.item ->> 'base_qty', '')), '') AS override_qty,
   NULLIF(TRIM(s.item ->> 'unit'), '') AS override_unit,
   NULLIF(TRIM(COALESCE(s.item ->> 'formula', '')), '') AS override_formula
-FROM public.detalle_variants v,
-  LATERAL jsonb_array_elements(COALESCE(v.items, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx)
+FROM public.detalle_variants v
+JOIN LATERAL jsonb_array_elements(COALESCE(v.items, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx) ON TRUE
 JOIN _remodel_anchor_items ai
-  ON ai.category = v.category AND ai.order_index = (s.idx)::int
+  ON ai.category = v.category AND ai.order_index = s.idx
 WHERE v.detalle_code IS NOT NULL AND TRIM(v.detalle_code) <> ''
   AND (s.item ->> 'desc' IS NOT NULL AND TRIM(s.item ->> 'desc') <> '')
 ON CONFLICT (id) DO UPDATE SET
@@ -193,15 +193,15 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO public.rule_item_overrides
   (id, rule_item_id, detalle_code, override_descripcion, override_qty, override_unit, override_formula)
 SELECT
-  v.id || '::extra::' || (s.idx) AS id,
+  v.id || '::extra::' || s.idx::text AS id,
   last_ai.rule_item_id,
   UPPER(TRIM(v.detalle_code)),
   NULLIF(TRIM(s.item ->> 'desc'), ''),
   NULLIF(TRIM(COALESCE(s.item ->> 'qty', s.item ->> 'ot', s.item ->> 'base_qty', '')), ''),
   NULLIF(TRIM(s.item ->> 'unit'), ''),
   NULLIF(TRIM(COALESCE(s.item ->> 'formula', '')), '')
-FROM public.detalle_variants v,
-  LATERAL jsonb_array_elements(COALESCE(v.items, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx)
+FROM public.detalle_variants v
+JOIN LATERAL jsonb_array_elements(COALESCE(v.items, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx) ON TRUE
 JOIN LATERAL (
   SELECT ai.rule_item_id
   FROM _remodel_anchor_items ai
@@ -212,7 +212,7 @@ WHERE v.detalle_code IS NOT NULL AND TRIM(v.detalle_code) <> ''
   AND (s.item ->> 'desc' IS NOT NULL AND TRIM(s.item ->> 'desc') <> '')
   AND NOT EXISTS (
     SELECT 1 FROM _remodel_anchor_items ai2
-    WHERE ai2.category = v.category AND ai2.order_index = (s.idx)::int
+    WHERE ai2.category = v.category AND ai2.order_index = s.idx
   )
 ON CONFLICT (id) DO UPDATE SET
   rule_item_id = EXCLUDED.rule_item_id,
