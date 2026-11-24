@@ -23,8 +23,11 @@ WITH used_codes AS (
     SELECT UPPER(TRIM(r.detalle)) FROM public.takeoff_rules r
     WHERE r.detalle IS NOT NULL AND TRIM(r.detalle) <> ''
     UNION
-    SELECT UPPER(TRIM(x.value)) FROM public.takeoff_rules r,
-      LATERAL jsonb_each_text(COALESCE(r.area_detalles, '{}'::jsonb)) AS x(key, value)
+    SELECT UPPER(TRIM(x.value)) FROM public.takeoff_rules r
+    JOIN LATERAL jsonb_each_text(
+      CASE WHEN jsonb_typeof(COALESCE(r.area_detalles, '{}'::jsonb)) = 'object'
+        THEN COALESCE(r.area_detalles, '{}'::jsonb) ELSE '{}'::jsonb END
+    ) AS x(key, value) ON TRUE
     WHERE TRIM(x.value) <> ''
   ) s
   WHERE code IS NOT NULL AND code <> ''
@@ -62,7 +65,10 @@ UPDATE public.detalle_variants SET detalle_code = 'ND' WHERE detalle_code = 'N/D
 INSERT INTO public.rule_area_detalles (rule_id, area, detalle_code)
 SELECT r.id, x.key, UPPER(TRIM(x.value))
 FROM public.takeoff_rules r
-JOIN LATERAL jsonb_each_text(COALESCE(r.area_detalles, '{}'::jsonb)) AS x(key, value) ON TRUE
+JOIN LATERAL jsonb_each_text(
+  CASE WHEN jsonb_typeof(COALESCE(r.area_detalles, '{}'::jsonb)) = 'object'
+    THEN COALESCE(r.area_detalles, '{}'::jsonb) ELSE '{}'::jsonb END
+) AS x(key, value) ON TRUE
 WHERE x.key IN ('AREA SECA', 'AREA HUMEDA', 'MINA')
   AND TRIM(x.value) <> ''
   AND EXISTS (SELECT 1 FROM public.detalle_catalog c WHERE c.code = UPPER(TRIM(x.value)))
@@ -89,12 +95,14 @@ WHERE COALESCE(r.default_detalle, r.detalle) IS NOT NULL
 -- --------------------------------------------------------------------------
 -- Shape in the wild: [{id, desc, qty, unit, material, formula, optional,
 -- subitemDetalle, ot, otDynamic, ruleId}] — qty may be number or text.
+-- Guard: rows whose subitems mirror is a JSON *object* (never an array)
+-- contribute zero rows instead of erroring (22P02 invalid input).
 INSERT INTO public.rule_items
   (id, rule_id, order_index, descripcion, unit, material, base_qty, formula, optional, subitem_detalle)
 SELECT
   COALESCE(NULLIF(TRIM(s.item ->> 'id'), ''), r.id || ':s' || s.idx::text) AS id,
   r.id AS rule_id,
-  COALESCE((s.idx)::int, 0) AS order_index,
+  s.idx AS order_index,
   COALESCE(NULLIF(TRIM(s.item ->> 'desc'), ''), NULLIF(TRIM(s.item ->> 'descripcion'), ''), 'SIN DESCRIPCION') AS descripcion,
   COALESCE(NULLIF(TRIM(s.item ->> 'unit'), ''), 'und') AS unit,
   CASE UPPER(COALESCE(NULLIF(TRIM(s.item ->> 'material'), ''), 'C'))
@@ -104,7 +112,10 @@ SELECT
   COALESCE((s.item ->> 'optional')::boolean, FALSE) AS optional,
   NULLIF(UPPER(TRIM(COALESCE(s.item ->> 'subitemDetalle', s.item ->> 'subitem_detalle', ''))), '') AS subitem_detalle
 FROM public.takeoff_rules r
-JOIN LATERAL jsonb_array_elements(COALESCE(r.subitems, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx) ON TRUE
+JOIN LATERAL jsonb_array_elements(
+  CASE WHEN jsonb_typeof(COALESCE(r.subitems, '[]'::jsonb)) = 'array'
+    THEN COALESCE(r.subitems, '[]'::jsonb) ELSE '[]'::jsonb END
+) WITH ORDINALITY AS s(item, idx) ON TRUE
 ON CONFLICT (id) DO UPDATE SET
   rule_id = EXCLUDED.rule_id,
   order_index = EXCLUDED.order_index,
@@ -175,7 +186,10 @@ SELECT
   NULLIF(TRIM(s.item ->> 'unit'), '') AS override_unit,
   NULLIF(TRIM(COALESCE(s.item ->> 'formula', '')), '') AS override_formula
 FROM public.detalle_variants v
-JOIN LATERAL jsonb_array_elements(COALESCE(v.items, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx) ON TRUE
+JOIN LATERAL jsonb_array_elements(
+  CASE WHEN jsonb_typeof(COALESCE(v.items, '[]'::jsonb)) = 'array'
+    THEN COALESCE(v.items, '[]'::jsonb) ELSE '[]'::jsonb END
+) WITH ORDINALITY AS s(item, idx) ON TRUE
 JOIN _remodel_anchor_items ai
   ON ai.category = v.category AND ai.order_index = s.idx
 WHERE v.detalle_code IS NOT NULL AND TRIM(v.detalle_code) <> ''
@@ -201,7 +215,10 @@ SELECT
   NULLIF(TRIM(s.item ->> 'unit'), ''),
   NULLIF(TRIM(COALESCE(s.item ->> 'formula', '')), '')
 FROM public.detalle_variants v
-JOIN LATERAL jsonb_array_elements(COALESCE(v.items, '[]'::jsonb)) WITH ORDINALITY AS s(item, idx) ON TRUE
+JOIN LATERAL jsonb_array_elements(
+  CASE WHEN jsonb_typeof(COALESCE(v.items, '[]'::jsonb)) = 'array'
+    THEN COALESCE(v.items, '[]'::jsonb) ELSE '[]'::jsonb END
+) WITH ORDINALITY AS s(item, idx) ON TRUE
 JOIN LATERAL (
   SELECT ai.rule_item_id
   FROM _remodel_anchor_items ai
@@ -225,9 +242,12 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO public.remodel_orphans (check_name, detail)
 SELECT 'backfill_variant_extra_slot',
   jsonb_build_object('variant_id', v.id, 'category', v.category,
-    'detalle_code', v.detalle_code, 'slots', jsonb_array_length(COALESCE(v.items, '[]'::jsonb)))
+    'detalle_code', v.detalle_code, 'slots',
+    CASE WHEN jsonb_typeof(COALESCE(v.items, '[]'::jsonb)) = 'array'
+      THEN jsonb_array_length(v.items) ELSE 0 END)
 FROM public.detalle_variants v
-WHERE jsonb_array_length(COALESCE(v.items, '[]'::jsonb)) >
+WHERE CASE WHEN jsonb_typeof(COALESCE(v.items, '[]'::jsonb)) = 'array'
+    THEN jsonb_array_length(v.items) ELSE 0 END >
   COALESCE((SELECT COUNT(*) FROM _remodel_anchor_items ai WHERE ai.category = v.category), 0);
 
 DROP TABLE IF EXISTS _remodel_anchor_items;
@@ -273,7 +293,9 @@ BEGIN
     INTO n_items_expected FROM public.takeoff_rules;
   SELECT COUNT(*) INTO n_variants FROM public.detalle_variants;
   SELECT COUNT(*) INTO n_ov FROM public.rule_item_overrides;
-  SELECT COALESCE(SUM(jsonb_array_length(COALESCE(items, '[]'::jsonb))), 0)
+  SELECT COALESCE(SUM(
+    CASE WHEN jsonb_typeof(COALESCE(items, '[]'::jsonb)) = 'array'
+      THEN jsonb_array_length(items) ELSE 0 END), 0)
     INTO n_ov_expected FROM public.detalle_variants;
 
   SELECT COUNT(*) INTO n_sec FROM public.detalle_variants WHERE area = 'AREA SECA';
