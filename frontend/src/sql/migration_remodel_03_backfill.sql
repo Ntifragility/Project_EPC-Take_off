@@ -91,31 +91,40 @@ WHERE COALESCE(r.default_detalle, r.detalle) IS NOT NULL
   );
 
 -- --------------------------------------------------------------------------
--- 3.2 rule_items: explode takeoff_rules.subitems JSONB -> one row per subitem
+-- -- 3.2 rule_items: explode takeoff_rules.subitems JSONB -> one row per subitem
 -- --------------------------------------------------------------------------
 -- Shape in the wild: [{id, desc, qty, unit, material, formula, optional,
 -- subitemDetalle, ot, otDynamic, ruleId}] — qty may be number or text.
 -- Guard: rows whose subitems mirror is a JSON *object* (never an array)
 -- contribute zero rows instead of erroring (22P02 invalid input).
+-- DISTINCT ON (id): two rules (or two slots) can carry the same explicit
+-- subitem id; without dedup the single command proposes the same target
+-- row twice -> 21000. Deterministic winner: lowest (rule_id, order_index).
 INSERT INTO public.rule_items
   (id, rule_id, order_index, descripcion, unit, material, base_qty, formula, optional, subitem_detalle)
-SELECT
-  COALESCE(NULLIF(TRIM(s.item ->> 'id'), ''), r.id || ':s' || s.idx::text) AS id,
-  r.id AS rule_id,
-  s.idx AS order_index,
-  COALESCE(NULLIF(TRIM(s.item ->> 'desc'), ''), NULLIF(TRIM(s.item ->> 'descripcion'), ''), 'SIN DESCRIPCION') AS descripcion,
-  COALESCE(NULLIF(TRIM(s.item ->> 'unit'), ''), 'und') AS unit,
-  CASE UPPER(COALESCE(NULLIF(TRIM(s.item ->> 'material'), ''), 'C'))
-    WHEN 'P' THEN 'P' ELSE 'C' END AS material,
-  COALESCE(NULLIF(TRIM(COALESCE(s.item ->> 'qty', s.item ->> 'base_qty', s.item ->> 'ot')), ''), '1') AS base_qty,
-  COALESCE(s.item ->> 'formula', '') AS formula,
-  COALESCE((s.item ->> 'optional')::boolean, FALSE) AS optional,
-  NULLIF(UPPER(TRIM(COALESCE(s.item ->> 'subitemDetalle', s.item ->> 'subitem_detalle', ''))), '') AS subitem_detalle
-FROM public.takeoff_rules r
-JOIN LATERAL jsonb_array_elements(
-  CASE WHEN jsonb_typeof(COALESCE(r.subitems, '[]'::jsonb)) = 'array'
-    THEN COALESCE(r.subitems, '[]'::jsonb) ELSE '[]'::jsonb END
-) WITH ORDINALITY AS s(item, idx) ON TRUE
+SELECT DISTINCT ON (q.id)
+  q.id, q.rule_id, q.order_index, q.descripcion, q.unit, q.material,
+  q.base_qty, q.formula, q.optional, q.subitem_detalle
+FROM (
+  SELECT
+    COALESCE(NULLIF(TRIM(s.item ->> 'id'), ''), r.id || ':s' || s.idx::text) AS id,
+    r.id AS rule_id,
+    s.idx::int AS order_index,
+    COALESCE(NULLIF(TRIM(s.item ->> 'desc'), ''), NULLIF(TRIM(s.item ->> 'descripcion'), ''), 'SIN DESCRIPCION') AS descripcion,
+    COALESCE(NULLIF(TRIM(s.item ->> 'unit'), ''), 'und') AS unit,
+    CASE UPPER(COALESCE(NULLIF(TRIM(s.item ->> 'material'), ''), 'C'))
+      WHEN 'P' THEN 'P' ELSE 'C' END AS material,
+    COALESCE(NULLIF(TRIM(COALESCE(s.item ->> 'qty', s.item ->> 'base_qty', s.item ->> 'ot')), ''), '1') AS base_qty,
+    COALESCE(s.item ->> 'formula', '') AS formula,
+    COALESCE((s.item ->> 'optional')::boolean, FALSE) AS optional,
+    NULLIF(UPPER(TRIM(COALESCE(s.item ->> 'subitemDetalle', s.item ->> 'subitem_detalle', ''))), '') AS subitem_detalle
+  FROM public.takeoff_rules r
+  JOIN LATERAL jsonb_array_elements(
+    CASE WHEN jsonb_typeof(COALESCE(r.subitems, '[]'::jsonb)) = 'array'
+      THEN COALESCE(r.subitems, '[]'::jsonb) ELSE '[]'::jsonb END
+  ) WITH ORDINALITY AS s(item, idx) ON TRUE
+) q
+ORDER BY q.id, q.rule_id, q.order_index
 ON CONFLICT (id) DO UPDATE SET
   rule_id = EXCLUDED.rule_id,
   order_index = EXCLUDED.order_index,
@@ -130,8 +139,10 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- map any rows created by the backfill (ids like '<rule>:s<N>')
 INSERT INTO public.legacy_id_map (old_id, kind)
-SELECT i.id, 'item' FROM public.rule_items i
-WHERE NOT EXISTS (SELECT 1 FROM public.legacy_id_map m WHERE m.old_id = i.id)
+SELECT q.old_id, 'item' FROM (
+  SELECT DISTINCT i.id AS old_id FROM public.rule_items i
+  WHERE NOT EXISTS (SELECT 1 FROM public.legacy_id_map m WHERE m.old_id = i.id)
+) q
 ON CONFLICT (old_id) DO NOTHING;
 
 UPDATE public.rule_items i
@@ -163,10 +174,14 @@ SELECT a.category, i.id AS rule_item_id, i.order_index
 FROM _remodel_anchor a
 JOIN public.rule_items i ON i.rule_id = a.rule_id;
 DELETE FROM _remodel_anchor_items;
+-- DISTINCT ON: one anchor row per (category, order_index). Without this, a
+-- rule with two items sharing an order_index fans every variant slot out to
+-- 2+ override rows with the SAME override id -> 21000 mid-statement.
 INSERT INTO _remodel_anchor_items (category, rule_item_id, order_index)
-SELECT a.category, i.id, i.order_index
+SELECT DISTINCT ON (a.category, i.order_index) a.category, i.id, i.order_index
 FROM _remodel_anchor a
-JOIN public.rule_items i ON i.rule_id = a.rule_id;
+JOIN public.rule_items i ON i.rule_id = a.rule_id
+ORDER BY a.category, i.order_index, i.id;
 
 -- anchor missing entirely -> quarantine + skip that category
 INSERT INTO public.remodel_orphans (check_name, detail)
@@ -254,25 +269,34 @@ DROP TABLE IF EXISTS _remodel_anchor_items;
 DROP TABLE IF EXISTS _remodel_anchor;
 
 -- --------------------------------------------------------------------------
--- 3.4 rule_parameter_options: cable_tray_matrix -> width options
+-- 3.4 rule_parameter_options: one width option row per (rule, width).
+-- cable_tray_matrix has ONE ROW PER MATERIAL (riel, tuerca, mordaza, perno),
+-- so the multiplier map must be AGGREGATED: the old per-row
+-- jsonb_build_object(m.id, t.val) produced N rows with the same
+-- '<rule>:width:900' id -> 21000. Deterministic winner: lowest matrix id.
 -- --------------------------------------------------------------------------
 INSERT INTO public.rule_parameter_options
   (id, rule_id, param_key, option_label, option_value, multiplier_map)
 SELECT
-  m.rule_id || ':width:' || lower(t.w) AS id,
-  m.rule_id,
+  q.rule_id || ':width:' || lower(q.w) AS id,
+  q.rule_id,
   'width' AS param_key,
-  t.w || ' mm' AS option_label,
-  t.w AS option_value,
-  jsonb_build_object(m.id, t.val) AS multiplier_map
-FROM public.cable_tray_matrix m
-CROSS JOIN LATERAL (VALUES
-  ('900', NULLIF(TRIM(m.w900), '')),
-  ('600', NULLIF(TRIM(m.w600), '')),
-  ('450', NULLIF(TRIM(m.w450), '')),
-  ('300', NULLIF(TRIM(m.w300), ''))
-) AS t(w, val)
-WHERE t.val IS NOT NULL
+  q.w || ' mm' AS option_label,
+  q.w AS option_value,
+  jsonb_object_agg(q.mat_id, q.val) AS multiplier_map
+FROM (
+  SELECT DISTINCT ON (m.rule_id, t.w, m.id) m.rule_id, t.w, m.id AS mat_id, t.val
+  FROM public.cable_tray_matrix m
+  CROSS JOIN LATERAL (VALUES
+    ('900', NULLIF(TRIM(m.w900), '')),
+    ('600', NULLIF(TRIM(m.w600), '')),
+    ('450', NULLIF(TRIM(m.w450), '')),
+    ('300', NULLIF(TRIM(m.w300), ''))
+  ) AS t(w, val)
+  WHERE t.val IS NOT NULL
+  ORDER BY m.rule_id, t.w, m.id
+) q
+GROUP BY q.rule_id, q.w
 ON CONFLICT (id) DO UPDATE SET
   option_label = EXCLUDED.option_label,
   option_value = EXCLUDED.option_value,
@@ -289,7 +313,10 @@ DECLARE
 BEGIN
   SELECT COUNT(*) INTO n_rules FROM public.takeoff_rules;
   SELECT COUNT(*) INTO n_items FROM public.rule_items;
-  SELECT COALESCE(SUM(jsonb_array_length(COALESCE(subitems, '[]'::jsonb))), 0)
+  -- object-shaped mirrors contribute 0 (same guard as the 3.2 expansion).
+  SELECT COALESCE(SUM(
+    CASE WHEN jsonb_typeof(COALESCE(subitems, '[]'::jsonb)) = 'array'
+      THEN jsonb_array_length(subitems) ELSE 0 END), 0)
     INTO n_items_expected FROM public.takeoff_rules;
   SELECT COUNT(*) INTO n_variants FROM public.detalle_variants;
   SELECT COUNT(*) INTO n_ov FROM public.rule_item_overrides;
