@@ -159,39 +159,42 @@ WHERE m.old_id = i.id AND m.kind = 'item' AND i.uuid IS NULL;
 -- payload diverged are flagged into remodel_orphans for manual review and are
 -- STILL inserted positionally (never dropped).
 -- --------------------------------------------------------------------------
--- 3.3a anchor lookup: category -> generic anchor rule
-CREATE TEMP TABLE IF NOT EXISTS _remodel_anchor (category TEXT PRIMARY KEY, rule_id TEXT);
-DELETE FROM _remodel_anchor;
-INSERT INTO _remodel_anchor (category, rule_id) VALUES
-  ('CABLE_2_0', 'r2'),
-  ('BARRA_POT', 'r8'),
-  ('BARRA_INST', 'r9')
-ON CONFLICT DO NOTHING;
+-- 3.3a anchor definitions (CTE, repeated per statement — NO TEMP TABLES:
+-- Supabase pools connections per statement, so TEMP tables vanish mid-script
+-- with 42P01 "relation _remodel_anchor does not exist").
+-- Heuristic: variant items[i] overrides the anchor's generic rule_items[i]
+-- by position (the app's stampFamilyRuleVariant clones subitems verbatim).
+-- --------------------------------------------------------------------------
+-- cleanup: drop temp leftovers from previous failed runs (harmless if absent)
+DROP TABLE IF EXISTS _remodel_anchor_items;
+DROP TABLE IF EXISTS _remodel_anchor;
 
--- 3.3b expand generic anchor rows with positional index
-CREATE TEMP TABLE IF NOT EXISTS _remodel_anchor_items AS
-SELECT a.category, i.id AS rule_item_id, i.order_index
-FROM _remodel_anchor a
-JOIN public.rule_items i ON i.rule_id = a.rule_id;
-DELETE FROM _remodel_anchor_items;
--- DISTINCT ON: one anchor row per (category, order_index). Without this, a
--- rule with two items sharing an order_index fans every variant slot out to
--- 2+ override rows with the SAME override id -> 21000 mid-statement.
-INSERT INTO _remodel_anchor_items (category, rule_item_id, order_index)
-SELECT DISTINCT ON (a.category, i.order_index) a.category, i.id, i.order_index
-FROM _remodel_anchor a
-JOIN public.rule_items i ON i.rule_id = a.rule_id
-ORDER BY a.category, i.order_index, i.id;
-
--- anchor missing entirely -> quarantine + skip that category
+-- 3.3b anchor missing entirely -> quarantine + skip that category
 INSERT INTO public.remodel_orphans (check_name, detail)
+WITH anchor(category, rule_id) AS (
+  VALUES ('CABLE_2_0'::text, 'r2'::text),
+         ('BARRA_POT'::text, 'r8'::text),
+         ('BARRA_INST'::text, 'r9'::text)
+)
 SELECT 'backfill_anchor_missing', jsonb_build_object('category', a.category)
-FROM _remodel_anchor a
+FROM anchor a
 WHERE NOT EXISTS (SELECT 1 FROM public.rule_items i WHERE i.rule_id = a.rule_id);
 
--- 3.3c insert overrides positionally
+-- 3.3c insert overrides positionally (anchor inlined as CTE — no TEMP table).
 INSERT INTO public.rule_item_overrides
   (id, rule_item_id, detalle_code, override_descripcion, override_qty, override_unit, override_formula)
+WITH anchor(category, rule_id) AS (
+  VALUES ('CABLE_2_0'::text, 'r2'::text),
+         ('BARRA_POT'::text, 'r8'::text),
+         ('BARRA_INST'::text, 'r9'::text)
+),
+anchor_items AS (
+  SELECT DISTINCT ON (a.category, i.order_index)
+    a.category, i.id AS rule_item_id, i.order_index
+  FROM anchor a
+  JOIN public.rule_items i ON i.rule_id = a.rule_id
+  ORDER BY a.category, i.order_index, i.id
+)
 SELECT
   v.id || '::' || s.idx::text AS id,
   ai.rule_item_id,
@@ -205,8 +208,8 @@ JOIN LATERAL jsonb_array_elements(
   CASE WHEN jsonb_typeof(COALESCE(v.items, '[]'::jsonb)) = 'array'
     THEN COALESCE(v.items, '[]'::jsonb) ELSE '[]'::jsonb END
 ) WITH ORDINALITY AS s(item, idx) ON TRUE
-JOIN _remodel_anchor_items ai
-  ON ai.category = v.category AND ai.order_index = s.idx
+JOIN anchor_items ai
+  ON ai.category = v.category AND ai.order_index = s.idx::int
 WHERE v.detalle_code IS NOT NULL AND TRIM(v.detalle_code) <> ''
   AND (s.item ->> 'desc' IS NOT NULL AND TRIM(s.item ->> 'desc') <> '')
 ON CONFLICT (id) DO UPDATE SET
@@ -218,9 +221,22 @@ ON CONFLICT (id) DO UPDATE SET
   override_formula = EXCLUDED.override_formula;
 
 -- 3.3d variants with MORE slots than the anchor (or anchor missing): still
--- inserted, anchored to the LAST anchor item, flagged for manual review.
+-- inserted, anchored to the LAST anchor item, flagged for manual review
+-- (anchor inlined as CTE — no TEMP table).
 INSERT INTO public.rule_item_overrides
   (id, rule_item_id, detalle_code, override_descripcion, override_qty, override_unit, override_formula)
+WITH anchor(category, rule_id) AS (
+  VALUES ('CABLE_2_0'::text, 'r2'::text),
+         ('BARRA_POT'::text, 'r8'::text),
+         ('BARRA_INST'::text, 'r9'::text)
+),
+anchor_items AS (
+  SELECT DISTINCT ON (a.category, i.order_index)
+    a.category, i.id AS rule_item_id, i.order_index
+  FROM anchor a
+  JOIN public.rule_items i ON i.rule_id = a.rule_id
+  ORDER BY a.category, i.order_index, i.id
+)
 SELECT
   v.id || '::extra::' || s.idx::text AS id,
   last_ai.rule_item_id,
@@ -236,15 +252,15 @@ JOIN LATERAL jsonb_array_elements(
 ) WITH ORDINALITY AS s(item, idx) ON TRUE
 JOIN LATERAL (
   SELECT ai.rule_item_id
-  FROM _remodel_anchor_items ai
+  FROM anchor_items ai
   WHERE ai.category = v.category
   ORDER BY ai.order_index DESC LIMIT 1
 ) last_ai ON TRUE
 WHERE v.detalle_code IS NOT NULL AND TRIM(v.detalle_code) <> ''
   AND (s.item ->> 'desc' IS NOT NULL AND TRIM(s.item ->> 'desc') <> '')
   AND NOT EXISTS (
-    SELECT 1 FROM _remodel_anchor_items ai2
-    WHERE ai2.category = v.category AND ai2.order_index = s.idx
+    SELECT 1 FROM anchor_items ai2
+    WHERE ai2.category = v.category AND ai2.order_index = s.idx::int
   )
 ON CONFLICT (id) DO UPDATE SET
   rule_item_id = EXCLUDED.rule_item_id,
@@ -255,6 +271,18 @@ ON CONFLICT (id) DO UPDATE SET
   override_formula = EXCLUDED.override_formula;
 
 INSERT INTO public.remodel_orphans (check_name, detail)
+WITH anchor(category, rule_id) AS (
+  VALUES ('CABLE_2_0'::text, 'r2'::text),
+         ('BARRA_POT'::text, 'r8'::text),
+         ('BARRA_INST'::text, 'r9'::text)
+),
+anchor_items AS (
+  SELECT DISTINCT ON (a.category, i.order_index)
+    a.category, i.order_index
+  FROM anchor a
+  JOIN public.rule_items i ON i.rule_id = a.rule_id
+  ORDER BY a.category, i.order_index, i.id
+)
 SELECT 'backfill_variant_extra_slot',
   jsonb_build_object('variant_id', v.id, 'category', v.category,
     'detalle_code', v.detalle_code, 'slots',
@@ -263,10 +291,9 @@ SELECT 'backfill_variant_extra_slot',
 FROM public.detalle_variants v
 WHERE CASE WHEN jsonb_typeof(COALESCE(v.items, '[]'::jsonb)) = 'array'
     THEN jsonb_array_length(v.items) ELSE 0 END >
-  COALESCE((SELECT COUNT(*) FROM _remodel_anchor_items ai WHERE ai.category = v.category), 0);
+  COALESCE((SELECT COUNT(*) FROM anchor_items ai WHERE ai.category = v.category), 0);
 
-DROP TABLE IF EXISTS _remodel_anchor_items;
-DROP TABLE IF EXISTS _remodel_anchor;
+-- (no DROP needed — no TEMP tables are created by this script)
 
 -- --------------------------------------------------------------------------
 -- 3.4 rule_parameter_options: one width option row per (rule, width).
