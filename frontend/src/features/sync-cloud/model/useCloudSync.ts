@@ -1,6 +1,5 @@
 import { getCurveCatalog, setCurveCatalog, setJointLossCatalog, setMaterialCatalog } from '../../../entities/bducto/model/catalog';
 import {
-  fetchTakeoffRulesFromSupabase,
   fetchDetalleVariantsFromSupabase,
   fetchPartidasFromSupabase,
   fetchCurveCatalogFromSupabase,
@@ -10,9 +9,10 @@ import {
   syncBductosToSupabase,
   syncCurveCatalogToSupabase
 } from '../../../shared/api/supabase';
+import { fetchUnifiedRules } from '../../../entities/takeoff-rule/api/ruleRepository';
 import { useBductoStore } from '../../generate-bducto/model/useBductoStore';
 import { updateDynamicVariants } from '../../../entities/takeoff-rule/model/detalleVariants';
-import { ensureRuleCatalog, fetchRuleLines, hydrateRules } from './publishRuleCatalog';
+import { ensureRuleCatalog } from './publishRuleCatalog';
 import { attachCatalogAreas } from '../../../entities/takeoff-rule/model/areaCatalog';
 import { saveStoredRules, saveStoredPartidas } from '../../../shared/lib/storage';
 import { useRulesStore } from '../../manage-rules/model/useRulesStore';
@@ -31,11 +31,11 @@ export async function loadInitialCloudConfig() {
 
   try {
     await ensureRuleCatalog();
-    const lines = await fetchRuleLines();
 
-    // 1. Fetch Takeoff Rules — Supabase-first, offline cache fallback only.
-    const { data: cloudRules, error: rulesErr } = await fetchTakeoffRulesFromSupabase(section);
-    if (!rulesErr && cloudRules && cloudRules.length > 0) {
+    // 1. Fetch Takeoff Rules — single dual-read path (repository owns the
+    // new-tables-first + JSONB-fallback order; no second reader allowed).
+    const cloudRules = await fetchUnifiedRules(section);
+    if (cloudRules && cloudRules.length > 0) {
       const enrichedRules = cloudRules.map(r => {
         const up = (r.trigger || '').toUpperCase().trim();
         let trigger = r.trigger;
@@ -63,7 +63,7 @@ export async function loadInitialCloudConfig() {
         });
       });
 
-      const hydrated = lines.unavailable ? enrichedRules : hydrateRules(enrichedRules, lines.items, lines.matrix);
+      const hydrated = enrichedRules;
       setRules(
         section === 'canalizado' ? hydrated : hydrated.filter(r => r.id !== 'r-001-2b-x1'),
         section
